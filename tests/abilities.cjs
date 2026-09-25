@@ -69,11 +69,11 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
  const hpBeforeUtility=a.get().pHP,enemyBeforeUtility=a.get().eHP,guardBeforeUtility=a.get().pGuard;
  a.applyColor('yellow',3,'player');a.applyColor('purple',3,'player');assert.equal(a.get().pHP,hpBeforeUtility);assert.equal(a.get().eHP,enemyBeforeUtility);assert.equal(a.get().pGuard,guardBeforeUtility);assert.equal(a.get().charges.yellow,3);assert.equal(a.get().charges.purple,3);
 
- // Attunements are flat first-match bonuses, do not cascade-stack inside one action, and expire after 3 future player actions.
- equip('bloodstone-whet');assert.equal(a.get().buffs.redwake,3);a.applyColor('red',3,'player');assert.equal(a.get().eHP,19);a.applyColor('red',3,'player');assert.equal(a.get().eHP,16);await a.finish();a.afterAction('player');assert.equal(a.get().buffs.redwake,2);a.afterAction('player');assert.equal(a.get().buffs.redwake,1);a.afterAction('player');assert.equal(a.get().buffs.redwake,0);
- equip('bastion-sigil');assert.equal(a.get().buffs.holdfast,3);a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,5);a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,8);
- equip('heartseed');assert.equal(a.get().buffs.aftergrowth,3);a.applyColor('green',3,'player');assert.equal(a.get().pHP,12);a.applyColor('green',3,'player');assert.equal(a.get().pHP,12);
- equip('gamblers-thread');assert.equal(a.get().buffs.momentum,3);a.applyColor('yellow',3,'player');assert.equal(a.get().charges.red,2);a.applyColor('yellow',3,'player');assert.equal(a.get().charges.red,2);
+ // Attunements proc on every qualifying match resolution, including cascades, and expire after 3 future player actions.
+ equip('bloodstone-whet');assert.equal(a.get().buffs.redwake,3);a.applyColor('red',3,'player',0);assert.equal(a.get().eHP,19);a.applyColor('red',3,'player',1);assert.equal(a.get().eHP,14);await a.finish();a.afterAction('player');assert.equal(a.get().buffs.redwake,2);a.afterAction('player');assert.equal(a.get().buffs.redwake,1);a.afterAction('player');assert.equal(a.get().buffs.redwake,0);
+ equip('bastion-sigil');assert.equal(a.get().buffs.holdfast,3);a.applyColor('blue',3,'player',0);assert.equal(a.get().pGuard,5);a.applyColor('blue',3,'player',1);assert.equal(a.get().pGuard,10);
+ equip('heartseed');assert.equal(a.get().buffs.aftergrowth,3);a.applyColor('green',3,'player',0);assert.equal(a.get().pHP,12);a.applyColor('green',3,'player',1);assert.equal(a.get().pHP,14);
+ equip('gamblers-thread');assert.equal(a.get().buffs.momentum,3);a.applyColor('yellow',3,'player',0);assert.equal(a.get().charges.red,2);a.applyColor('yellow',3,'player',1);assert.equal(a.get().charges.blue,2);
 
- console.log('PASS: 64 abilities, core color rules, Attunement first-match limits and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
+ console.log('PASS: 64 abilities, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
 })().catch(e=>{console.error(e);process.exitCode=1});
