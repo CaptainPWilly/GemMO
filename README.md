@@ -114,7 +114,7 @@ When no legal swaps remain, the game explicitly logs a reshuffle, deals a fresh 
 
 ## Controls and original specialist builds
 
-Swipe one cell horizontally or vertically, or tap adjacent cells. After 30 seconds without input on your turn, a legal pair glows. When no legal swaps remain, an animated wipe and refill preserves HP and reservoirs. The turn badge counts each completed action, including extra actions. Status chips have hover descriptions and can be tapped to put the explanation in the combat log.
+Swipe one cell horizontally or vertically, or tap adjacent cells. Settings → Automatic hints offers 15 seconds, 30 seconds (default), or Off. After the selected idle time on your turn, a legal pair glows. Off disables the hint timer. The preference persists in browser storage. When no legal swaps remain, an animated wipe and refill preserves HP and reservoirs. The turn badge counts each completed action, including extra actions. Status chips have hover descriptions and can be tapped to put the explanation in the combat log.
 
 Guard expires after 2 Bandit actions; Bandit Evade expires after 2 player actions. Gaining more refreshes the duration. Veilstep halves damage (round up) through the next 2 Bandit actions. Venom, regeneration and Resonance tick at the end of a Bandit action. Reactivating a timed effect refreshes its duration rather than stacking. Timed healing cannot revive a defeated fighter.
 
