@@ -12,6 +12,8 @@ const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},localS
  assert.equal(a.ITEMS.length,64);assert.equal(new Set(a.ITEMS.map(i=>i.id)).size,64);
  assert.equal(a.sackIsValid(['dagger','shield','salve','boots','charm']),true,'five unique gems are a legal Sack');
  assert.equal(a.sackIsValid(['dagger','dagger','shield','salve','boots']),false,'exact duplicate gems are illegal');
+ assert.equal(a.sackIsValid(['dagger',null,null,null,null]),true,'a level-1 one-gem Sack is legal');
+ assert.equal(a.sackIsValid([null,null,null,null,null]),false,'zero-gem Sack cannot fight');
  assert.equal(a.sackIsValid(['dagger','spear','longbow','rapier','hand-crossbow']),true,'different gems of one color are legal');
  const uniqueSackFor=id=>[id,...['dagger','shield','salve','boots','charm','axe','buckler','poultice','cloak','seal'].filter(x=>x!==id).slice(0,4)];
  for(const item of a.ITEMS.filter(i=>cases[i.id])){
