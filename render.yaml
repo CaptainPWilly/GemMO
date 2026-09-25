@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: gemmo-captainpwilly-api-20260925
+    runtime: node
+    region: oregon
+    plan: starter
+    rootDir: server
+    buildCommand: npm install --omit=dev
+    startCommand: node server.cjs
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: GEMMO_ORIGIN
+        value: https://captainpwilly.github.io
+      - key: GEMMO_DB
+        value: /var/data/gemmo.db
+      - key: TRUST_PROXY
+        value: "1"
+    disk:
+      name: gemmo-data
+      mountPath: /var/data
+      sizeGB: 1

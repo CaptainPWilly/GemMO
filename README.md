@@ -41,8 +41,18 @@ GitHub Pages runs the browser prototype. The Godot directory contains editable s
 
 GitHub Free requires a public repository for Pages. Private repositories require an eligible paid plan. Do not change repository visibility without the owner's explicit approval. See [GitHub Pages requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site).
 
-A root-based static deployment also serves files under `godot/`; keeping the repository private does not make published site files private. The repository now includes a Node account authority under server/. GitHub Pages remains static and must be configured to call a separately deployed HTTPS account service for real persistent accounts.
+A root-based static deployment also serves files under `godot/`; keeping the repository private does not make published site files private. The repository now includes a Node account authority under server/. GitHub Pages remains static and calls the production account authority at `https://gemmo-captainpwilly-api-20260925.onrender.com` once the Render Blueprint is instantiated.
 
+
+## Production account API deployment
+
+The repository includes a root `render.yaml` Blueprint for the account authority. It provisions one Node web service in Oregon with a persistent 1 GB disk mounted at `/var/data`, runs `server/server.cjs`, stores SQLite at `/var/data/gemmo.db`, allows the GitHub Pages origin, and health-checks `/health`.
+
+The expected public API URL is:
+
+`https://gemmo-captainpwilly-api-20260925.onrender.com`
+
+The browser client already uses that URL by default. Creating the Render service requires authorizing Render to deploy this GitHub repository and accepting the Render compute/disk cost shown before creation. The account database must use a persistent disk; an ephemeral/free filesystem would violate GemMO's account-as-save-file design.
 
 ## Accounts, persistence, security and anti-cheat
 

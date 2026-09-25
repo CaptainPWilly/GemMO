@@ -275,7 +275,7 @@ const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,nec
 let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
 let account=null,accountToken=null,accountSyncTimer=0,lastAccountSync='';
 try{accountToken=sessionStorage.getItem('gemmo.session')}catch{}
-let apiBase=String(window.GEMMO_API||localStorage.getItem('gemmo.apiBase')||'http://127.0.0.1:8787').replace(/\/+$/,'');
+let apiBase=String(window.GEMMO_API||localStorage.getItem('gemmo.apiBase')||'https://gemmo-captainpwilly-api-20260925.onrender.com').replace(/\/+$/,'');
 const gearById=id=>GEAR.find(g=>g.id===id);
 const gearSlotById=id=>EQUIPMENT_SLOTS.find(s=>s.id===id);
 function gearStats(loadout=equipment){return Object.values(loadout).reduce((out,id)=>{const g=gearById(id);if(g){out.hp+=g.hp||0;out.guard+=g.guard||0}return out},{hp:0,guard:0})}
@@ -707,7 +707,7 @@ $('equipBuild').onclick=()=>{if(account)return;const builds={vanguard:['warhamme
 $('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
-$('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'http://127.0.0.1:8787';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
+$('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo-captainpwilly-api-20260925.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
 $('historyBtn').onclick=()=>$('historyPanel').hidden=false;$('closeHistory').onclick=()=>$('historyPanel').hidden=true;$('leaveFight').onclick=leaveFight;$('resultMenu').onclick=leaveFight;
 
