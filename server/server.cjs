@@ -1,7 +1,7 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,createSession,sessionUser,revokeSession,cleanupSessions}=require('./db.cjs');
+const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,createSession,sessionUser,revokeSession,cleanupSessions}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
@@ -58,6 +58,7 @@ function createGemmoServer(options={}){
 
       if(req.method==='POST'&&pathname==='/v1/auth/logout'){const token=bearer(req);revokeSession(db,token);send(req,res,200,{ok:true});return}
       if(req.method==='GET'&&pathname==='/v1/account'){const {user}=requireUser(req);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
+      if(req.method==='POST'&&pathname==='/v1/account/starter'){const {user}=requireUser(req),body=await json(req);chooseStarter(db,user.id,body.gemId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/sack'){const {user}=requireUser(req),body=await json(req);updateSack(db,user.id,body.sack);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/equipment'){const {user}=requireUser(req),body=await json(req);updateEquipment(db,user.id,body.equipment);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
 
