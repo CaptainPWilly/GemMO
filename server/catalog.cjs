@@ -22,9 +22,19 @@ const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
 const STARTER_GEMS=Object.freeze({red:'dagger',blue:'shield',green:'salve',yellow:'boots',purple:'charm'});
 const STARTER_GEM_SET=new Set(Object.values(STARTER_GEMS));
 const WORLD_NODES=Object.freeze({
-  camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['crossroads']},
+  camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','item-shop','crossroads']},
+  'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem',neighbors:['camp']},
+  'item-shop':{id:'item-shop',name:'Roadside Outfitter',kind:'shop',shop:'item',neighbors:['camp']},
   crossroads:{id:'crossroads',name:'Old Crossroads',kind:'road',neighbors:['camp','shrine','bandit-pass']},
   shrine:{id:'shrine',name:'Broken Shrine',kind:'landmark',neighbors:['crossroads']},
   'bandit-pass':{id:'bandit-pass',name:'Bandit Toll',kind:'encounter',encounter:'bandit',neighbors:['crossroads']}
 });
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES};
+const SHOP_CATALOG=Object.freeze({
+  'gem-shop':Object.freeze({
+    'hand-crossbow':18,'quarterstaff':18,'willow-wand':18,'sling':18,'crystal-wand':18
+  }),
+  'item-shop':Object.freeze({
+    'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15
+  })
+});
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG};
