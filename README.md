@@ -8,7 +8,7 @@ The existing v2 browser prototype is `index.html`. It is self-contained HTML, CS
 
 Play: https://CaptainPWilly.github.io/GemMO/
 
-Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Use **View Sacks** for both fighters' color effects. Return to camp to start a new match. Sack choices and settings are saved locally; combat progress is not saved.
+Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Open **GEMOLOGY** from the main menu for the live board rules and tile meanings. Use **View Sacks** for both fighters' equipped abilities. Return to camp to start a new match. Sack choices and settings are saved locally; combat progress is not saved.
 
 For a local playtest, open `index.html` in a modern browser, or serve this directory with a static HTTP server. Portrait phone layout is the intended experience.
 
@@ -45,9 +45,9 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 ## Sack-building playtest
 
-Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 60 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
+Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 64 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
 
-Red matches deal base damage and blue matches grant base Guard for every loadout. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
+Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
 These items are provisional sidegrades, not a verified competitive balance. The Godot prototype has not been updated to match the browser's new menu and item system.
 
@@ -136,3 +136,17 @@ The Sack screen offers six optional original starting builds: Vanguard, Shade, W
 | purple | Star Lens | Wildcraft | 11 | Choose a tile and make it Wild. Any resulting matches resolve for you. |
 | blue | Tide Chain | Row Current | 8 | Choose a row. Rotate it one cell right; resulting matches resolve for you. |
 | purple | Echo Knife | Siphon | 7 | Deal 2 damage and steal up to 3 charge from the Bandit’s fullest color into your purple reservoir. |
+
+
+## Attunement prototype
+
+Attunements are the first explicitly match-reactive duration gems. Activating one spends a normal action and refreshes a three-player-action window; reactivation does not stack. Each Attunement triggers only on the first qualifying color match in an action, so cascades cannot multiply the flat bonus indefinitely.
+
+| Color | Item | Ability | Cost | Effect |
+|---|---|---|---:|---|
+| red | Bloodstone Whet | Redwake | 7 | Next 3 actions: first Red match each action deals +2 flat bonus damage. |
+| blue | Bastion Sigil | Holdfast | 7 | Next 3 actions: first Blue match each action grants +2 bonus Guard. |
+| green | Heartseed | Aftergrowth | 7 | Next 3 actions: first Green match each action heals 2 HP. |
+| yellow | Gambler’s Thread | Momentum | 7 | Next 3 actions: first Yellow match each action sends +2 charge to the most depleted other equipped reservoir. |
+
+These are deliberately conditional sidegrades to immediate 7-charge effects: their theoretical ceiling is similar, but value is delayed and depends on making the right board matches. They are a prototype mechanic family, not final balance.
