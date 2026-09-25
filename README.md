@@ -45,7 +45,7 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 ## Sack-building playtest
 
-Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 64 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
+Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 64 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
 
 Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
