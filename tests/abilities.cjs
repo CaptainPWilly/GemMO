@@ -81,11 +81,11 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
 
  // Level-1 inventory and physical equipment stay separate from the Sack.
  assert.equal(a.EQUIPMENT_SLOTS.length,8);assert.equal(a.GEAR.length,16);assert.equal(new Set(a.GEAR.map(g=>g.id)).size,16);
- a.resetEquipment();assert.equal(a.playerMaxHP(),24);assert.deepEqual(a.gearStats(),{hp:0,guard:0});
+ a.resetEquipment();assert.equal(a.playerMaxHP(),24);{const s=a.gearStats();assert.deepEqual([s.hp,s.guard],[0,0])};
  assert.equal(a.canEquipGear('chest','padded-tunic'),true);assert.equal(a.canEquipGear('head','padded-tunic'),false);
  assert.equal(a.equipGear('chest','padded-tunic'),true);assert.equal(a.playerMaxHP(),26);
  assert.equal(a.equipGear('ring1','tin-ring'),true);assert.equal(a.playerMaxHP(),27);assert.equal(a.equipGear('ring2','tin-ring'),false,'one physical item cannot occupy both rings');
- assert.equal(a.equipGear('ring2','iron-band'),true);assert.deepEqual(a.gearStats(),{hp:3,guard:1});
+ assert.equal(a.equipGear('ring2','iron-band'),true);{const s=a.gearStats();assert.deepEqual([s.hp,s.guard],[3,1])};
  a.startFight();assert.equal(a.get().pHP,27);assert.equal(a.get().pGuard,1);assert.equal(a.get().guardTurns,2);
  a.resetEquipment();
  console.log('PASS: 64 gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
