@@ -45,7 +45,7 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 ## Sack-building playtest
 
-Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 50 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
+Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 60 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
 
 Red matches deal base damage and blue matches grant base Guard for every loadout. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
@@ -111,3 +111,28 @@ The combat chronicle retains the latest 100 events for the current fight. Both f
 Wilds substitute for any of the eight normal tile types in horizontal or vertical matches of three or more. A line must contain at least one normal tile; Wild-only lines do not match. Every matched cell is removed and credited at most once. At intersections, a Wild is credited to the first detected qualifying run (horizontal before vertical, normal type order). Four- and five-match rewards still apply. Swapping a Wild must make a legal match unless Quickstep is active; Wilds no longer erase colors or the whole board.
 
 When no legal swaps remain, the game explicitly logs a reshuffle, deals a fresh board, and preserves HP and reservoirs. Cascades, extra turns, and Wild creation are also logged.
+
+## Controls and original specialist builds
+
+Swipe one cell horizontally or vertically, or tap adjacent cells. After 30 seconds without input on your turn, a legal pair glows. When no legal swaps remain, an animated wipe and refill preserves HP and reservoirs. The turn badge counts each completed action, including extra actions. Status chips have hover descriptions and can be tapped to put the explanation in the combat log.
+
+Guard expires after 2 Bandit actions; Bandit Evade expires after 2 player actions. Gaining more refreshes the duration. Veilstep halves damage (round up) through the next 2 Bandit actions. Venom, regeneration and Resonance tick at the end of a Bandit action. Reactivating a timed effect refreshes its duration rather than stacking. Timed healing cannot revive a defeated fighter.
+
+Earthbind pins the selected column through the next Bandit action: matched gaps refill in place while surviving tiles stay in their cells. It does not prevent swapping or matching. Kindle changes one chosen tile to red, Wildcraft creates one Wild, and Row Current wraps one chosen row one cell right. These effects resolve any resulting matches for the player. Borrowed Beat spends charge to grant another action. Siphon steals up to 3 charge from the Bandit's fullest color, subject to the player's purple capacity.
+
+The Sack screen offers six optional original starting builds: Vanguard, Shade, Warden, Spellweaver, Minstrel and Tinkerer. These are editable loadouts, not fixed classes. Item names, descriptions and build text are original genre material. Balance is provisional and requires playtesting.
+
+### Specialist items
+
+| Color | Item | Ability | Cost | Effect |
+|---|---|---|---:|---|
+| blue | Anchor Maul | Earthbind | 7 | Choose a column. It refills in place without falling through the next Bandit action. |
+| yellow | Mist Mantle | Veilstep | 7 | Halve incoming damage, rounded up, for the next 2 Bandit actions. |
+| green | Venom Needle | Lingering Venom | 7 | Deal 2 damage after each of the next 2 Bandit actions. |
+| green | Wayfarer Lyre | Restoring Verse | 7 | Heal 2 HP after each of the next 3 Bandit actions. |
+| purple | Prism Orb | Resonance | 9 | After each of the next 2 Bandit actions, add 1 charge to every equipped color. |
+| yellow | Clockwork Spur | Borrowed Beat | 8 | Spend charge to act again immediately. |
+| red | Ember Rod | Kindle | 7 | Choose a tile and turn it red. Any resulting matches resolve for you. |
+| purple | Star Lens | Wildcraft | 11 | Choose a tile and make it Wild. Any resulting matches resolve for you. |
+| blue | Tide Chain | Row Current | 8 | Choose a row. Rotate it one cell right; resulting matches resolve for you. |
+| purple | Echo Knife | Siphon | 7 | Deal 2 damage and steal up to 3 charge from the Bandit’s fullest color into your purple reservoir. |
