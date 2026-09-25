@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: gemmo-captainpwilly-api-20260925
+    name: gemmo
     runtime: node
     region: oregon
     plan: starter
