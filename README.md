@@ -58,20 +58,32 @@ The browser account token is kept in sessionStorage rather than long-lived local
 
 ## Isometric overworld
 
-PLAY no longer jumps directly into combat. After the one-time starter choice, the player enters **Brackenreach: The Old Road**, a rendered isometric overworld with terrain elevation, roads, trees, rocks, landmarks, camera panning/zoom, and tappable destinations.
+PLAY no longer jumps directly into combat. After the one-time starter choice, the player enters **Brackenreach: The Old Road**, a rendered isometric overworld with terrain elevation, roads, trees, rocks, landmarks, camera panning/zoom, tappable destinations, and an animated player traveler. Mobile map controls support one-finger panning and anchored two-finger pinch zoom.
 
 The initial level-1 route is intentionally small:
 
 - **Ember Camp** — starting safe node
+- **Facet Cart** — level-1 Gem Shop connected to camp
+- **Roadside Outfitter** — level-1 Item Shop connected to camp
 - **Old Crossroads** — road junction
 - **Broken Shrine** — landmark branch
 - **Bandit Toll** — first combat encounter
 
 Travel follows explicit connected roads. Logged-in movement is validated and persisted by the account server, so the client cannot teleport from Ember Camp directly to Bandit Toll. The route is Camp → Crossroads → Bandit Toll; the Broken Shrine branches from Crossroads.
 
-Selecting the Bandit Toll while standing there exposes **FIGHT BANDIT**, which enters the existing match-3 combat scene. Leaving or finishing combat returns to the world instead of the camp menu.
+Selecting the Bandit Toll while standing there exposes **FIGHT BANDIT**, which enters the existing match-3 combat scene. Standing at either merchant node exposes its shop. Purchases are server-authoritative: the server validates the current world node, fixed stock, price, ownership and Gold balance before granting an item. Leaving or finishing combat returns to the world instead of the camp menu.
 
 The current browser map uses an isometric terrain renderer rather than a flat node menu. It is intentionally data-driven so later regions can add towns, dungeons, shops, quests, roaming encounters and larger maps without changing the combat board.
+
+## Level-1 shops
+
+Two merchants sit beside Ember Camp.
+
+**Facet Cart — Gem Shop** currently offers five common alternatives, one from each color family: Hand Crossbow, Quarterstaff, Willow Wand, Leather Sling, and Crystal Wand, each for 18 Gold.
+
+**Roadside Outfitter — Item Shop** sells early physical gear including Frayed Hood, Padded Tunic, Cloth Wraps, Linen Trousers, Scuffed Boots, Copper Pendant, Tin Ring, and Iron Band.
+
+Shop stock and prices live on the server. A client cannot buy from a merchant while standing elsewhere, cannot buy an already-owned unique item, and cannot invent a price or item ID. Persistent Gold is still not awarded by local combat, so the shop economy remains locked until reward settlement moves to the authoritative combat server.
 
 ## Level 1 inventory and equipment
 
@@ -104,7 +116,7 @@ Equipment and inventory persist on the account server when logged in. The invent
 
 ## Sack-building playtest
 
-Start at the splash screen and enter the camp. New accounts begin with an empty inventory and empty five-slot Sack. The first PLAY opens the one-time starter choice; after choosing, only that single gem is owned and equipped. A Sack may contain 1–5 owned gems, with empty slots allowed. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed.
+Tapping the splash now gates into account creation/login before the camp is accessible. New accounts begin with an empty inventory and empty five-slot Sack. This release also performs a one-time wipe of legacy local prototype inventory/equipment/Sack/world state and clears the old browser session token so stale demo state does not leak into the new onboarding. The first PLAY opens the one-time starter choice; after choosing, only that single gem is owned and equipped. A Sack may contain 1–5 owned gems, with empty slots allowed. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed.
 
 Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
@@ -173,7 +185,7 @@ When no legal swaps remain, the game explicitly logs a reshuffle, deals a fresh 
 
 ## Controls and original specialist builds
 
-Swipe one cell horizontally or vertically, or tap adjacent cells. Settings → Automatic hints offers 15 seconds, 30 seconds (default), or Off. After the selected idle time on your turn, a legal pair glows. Off disables the hint timer. The preference persists in browser storage. When no legal swaps remain, an animated wipe and refill preserves HP and reservoirs. The turn badge counts each completed action, including extra actions. Status chips have hover descriptions and can be tapped to put the explanation in the combat log.
+Swipe one cell horizontally or vertically, or tap adjacent cells. On mobile, the dragged gem now follows the finger toward the neighboring cell, glows while moving, nudges the destination gem, and hands its partial drag distance into the final swap animation instead of snapping back before the swap. Settings → Automatic hints offers 15 seconds, 30 seconds (default), or Off. After the selected idle time on your turn, a legal pair glows. Off disables the hint timer. The preference persists in browser storage. When no legal swaps remain, an animated wipe and refill preserves HP and reservoirs. The turn badge counts each completed action, including extra actions. Status chips have hover descriptions and can be tapped to put the explanation in the combat log.
 
 Guard expires after 2 Bandit actions; Bandit Evade expires after 2 player actions. Gaining more refreshes the duration. Veilstep halves damage (round up) through the next 2 Bandit actions. Venom, regeneration and Resonance tick at the end of a Bandit action. Reactivating a timed effect refreshes its duration rather than stacking. Timed healing cannot revive a defeated fighter.
 
