@@ -8,7 +8,7 @@ The existing v2 browser prototype is `index.html`. It is self-contained HTML, CS
 
 Play: https://CaptainPWilly.github.io/GemMO/
 
-Use **INVENTORY** to equip ordinary armor and accessories, and **SACK** to build your five-gem combat kit. Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Open **GEMOLOGY** from the main menu for the live board rules and tile meanings. Use **View Sacks** for both fighters' equipped abilities. Return to camp to start a new match. Sack choices and settings are saved locally; combat progress is not saved.
+Use **INVENTORY** to equip ordinary armor and accessories, and **SACK** to build your five-gem combat kit. Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Open **GEMOLOGY** from the main menu for the live board rules and tile meanings. Use **View Sacks** for both fighters' equipped abilities. Return to camp to start a new match. Device preferences are saved locally; character state is not. Sack, inventory, equipment, progression and world position are tied to the account server.
 
 For a local playtest, open `index.html` in a modern browser, or serve this directory with a static HTTP server. Portrait phone layout is the intended experience.
 
@@ -50,11 +50,11 @@ GemMO now has a separate server authority in server/. Accounts use username/pass
 
 The persistent server owns the player's level, XP, gold, item ownership, Sack and physical equipment. A newly created account owns **nothing**: zero gems, zero armor and zero accessories. On the first press of PLAY, the player must permanently choose exactly one starter gem: Iron Dagger (Red), Oak Shield (Blue), Herbal Salve (Green), Worn Boots (Yellow), or Rune Charm (Purple). Only that gem is granted and placed in Sack slot 1; the other four slots remain empty. The browser may request later loadout changes, but ownership, unique-gem rules and gear-slot compatibility are revalidated server-side before saving.
 
-The client has no API that can directly set level, XP, Gold, inventory grants or combat rewards. Attempts to write profile progression or submit a self-declared match settlement are rejected and audited. This means browser devtools/localStorage edits cannot create persistent wealth.
+The client has no API that can directly set level, XP, Gold, inventory grants or combat rewards. Attempts to write profile progression or submit a self-declared match settlement are rejected and audited. The browser is not a save-file authority. Browser devtools/localStorage edits cannot create persistent wealth, inventory, equipment, Sack ownership, progression or world position.
 
 Combat resolution itself is still local. For that reason, local fight XP/Gold deliberately does not sync into the persistent account yet. The next anti-cheat gate is to move the deterministic board engine to the server so the client sends only intents such as swap, activate and target; the server then owns the board state and reward settlement.
 
-The browser account token is kept in sessionStorage rather than long-lived localStorage. The account service also enforces origin allowlisting, prepared SQL, request-size limits, auth rate limits, repeated-password-failure lockouts, session expiry/revocation and security headers.
+The browser account token is kept in sessionStorage rather than long-lived localStorage. That token is only an authentication credential, not character state. Logging into the same account on another device reconstructs the character from the server snapshot. The account service also enforces origin allowlisting, prepared SQL, request-size limits, auth rate limits, repeated-password-failure lockouts, session expiry/revocation and security headers.
 
 ## Isometric overworld
 
@@ -112,13 +112,13 @@ The following 16 basic level-1 pieces exist in the catalog, but **new players do
 | Ring | Twine Ring | +1 Max HP |
 | Ring | Copper Band | +1 Starting Guard |
 
-Equipment and inventory persist on the account server when logged in. The inventory structure is separate from equipped slots so future drops, shops, rarity, affixes, and item removal can be layered on without changing the combat Sack.
+Equipment and inventory persist only on the account server. The inventory structure is separate from equipped slots so future drops, shops, rarity, affixes, and item removal can be layered on without changing the combat Sack.
 
 ## Sack-building playtest
 
 Tapping the splash now gates into account creation/login before the camp is accessible. New accounts begin with an empty inventory and empty five-slot Sack. This release also performs a one-time wipe of legacy local prototype inventory/equipment/Sack/world state and clears the old browser session token so stale demo state does not leak into the new onboarding. The first PLAY opens the one-time starter choice; after choosing, only that single gem is owned and equipped. A Sack may contain 1–5 owned gems, with empty slots allowed. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed.
 
-Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
+Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Only device settings persist locally. Loadouts and all other character state come from the authenticated account.
 
 These items are provisional sidegrades, not a verified competitive balance. The Godot prototype has not been updated to match the browser's new menu and item system.
 
