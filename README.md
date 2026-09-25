@@ -41,8 +41,20 @@ GitHub Pages runs the browser prototype. The Godot directory contains editable s
 
 GitHub Free requires a public repository for Pages. Private repositories require an eligible paid plan. Do not change repository visibility without the owner's explicit approval. See [GitHub Pages requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site).
 
-A root-based static deployment also serves files under `godot/`; keeping the repository private does not make published site files private. This prototype has no backend, multiplayer service, or persistent save system.
+A root-based static deployment also serves files under `godot/`; keeping the repository private does not make published site files private. The repository now includes a Node account authority under server/. GitHub Pages remains static and must be configured to call a separately deployed HTTPS account service for real persistent accounts.
 
+
+## Accounts, persistence, security and anti-cheat
+
+GemMO now has a separate server authority in server/. Accounts use username/password login. Passwords are salted with scrypt; opaque 256-bit session tokens are stored server-side only as SHA-256 hashes and are revocable/expiring.
+
+The persistent server owns the player's level, XP, gold, item ownership, Sack and physical equipment. The browser may request valid loadout changes, but ownership, unique-gem rules and gear-slot compatibility are revalidated server-side before saving.
+
+The client has no API that can directly set level, XP, Gold, inventory grants or combat rewards. Attempts to write profile progression or submit a self-declared match settlement are rejected and audited. This means browser devtools/localStorage edits cannot create persistent wealth.
+
+Combat resolution itself is still local. For that reason, local fight XP/Gold deliberately does not sync into the persistent account yet. The next anti-cheat gate is to move the deterministic board engine to the server so the client sends only intents such as swap, activate and target; the server then owns the board state and reward settlement.
+
+The browser account token is kept in sessionStorage rather than long-lived localStorage. The account service also enforces origin allowlisting, prepared SQL, request-size limits, auth rate limits, repeated-password-failure lockouts, session expiry/revocation and security headers.
 
 ## Level 1 inventory and equipment
 
