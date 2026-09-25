@@ -2,7 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
-const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES}=require('./catalog.cjs');
+const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG}=require('./catalog.cjs');
 const {hashToken}=require('./security.cjs');
 
 function createDb(dbPath=':memory:'){
@@ -40,9 +40,25 @@ function moveWorld(db,userId,nodeId){
   db.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach',?,?) ON CONFLICT(user_id) DO UPDATE SET current_node=excluded.current_node,updated_at=excluded.updated_at").run(userId,nodeId,now);
   audit(db,userId,'world_moved',current+'>'+nodeId);
 }
+function buyShopItem(db,userId,shopId,itemId){
+  const catalog=SHOP_CATALOG[shopId],price=catalog?.[itemId];
+  if(!catalog||!Number.isInteger(price))throw Object.assign(new Error('item_not_sold_here'),{status:400});
+  const world=db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId);
+  if(world?.current_node!==shopId)throw Object.assign(new Error('not_at_shop'),{status:409});
+  if(owns(db,userId,itemId))throw Object.assign(new Error('already_owned'),{status:409});
+  const kind=GEAR[itemId]?'gear':GEM_SET.has(itemId)?'gem':null;
+  if(!kind)throw Object.assign(new Error('invalid_shop_item'),{status:400});
+  return transaction(db,()=>{
+    const profile=db.prepare('SELECT gold FROM profiles WHERE user_id=?').get(userId);
+    if(!profile||profile.gold<price)throw Object.assign(new Error('insufficient_gold'),{status:409});
+    db.prepare('UPDATE profiles SET gold=gold-?,updated_at=? WHERE user_id=?').run(price,Date.now(),userId);
+    db.prepare('INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,?,1)').run(userId,itemId,kind);
+    audit(db,userId,'shop_purchase',shopId+':'+itemId+':'+price);
+  });
+}
 function updateEquipment(db,userId,equipment){if(!equipment||typeof equipment!=='object'||Array.isArray(equipment))throw Object.assign(new Error('invalid_equipment'),{status:400});const slots=Object.keys(EQUIPMENT_SLOTS);if(Object.keys(equipment).some(k=>!slots.includes(k)))throw Object.assign(new Error('invalid_equipment'),{status:400});const used=new Set();for(const slot of slots){const itemId=equipment[slot]??null;if(itemId===null)continue;const gear=GEAR[itemId];if(!gear||gear.slot!==EQUIPMENT_SLOTS[slot])throw Object.assign(new Error('wrong_slot'),{status:400});if(used.has(itemId))throw Object.assign(new Error('duplicate_physical_item'),{status:400});if(!owns(db,userId,itemId))throw Object.assign(new Error('unowned_item'),{status:403});used.add(itemId)}transaction(db,()=>{const stmt=db.prepare('UPDATE equipment_slots SET item_id=? WHERE user_id=? AND slot=?');for(const slot of slots)stmt.run(equipment[slot]??null,userId,slot);audit(db,userId,'equipment_updated')})}
 function createSession(db,userId,token,ttlMs){const now=Date.now();db.prepare('INSERT INTO sessions(token_hash,user_id,created_at,expires_at,last_seen_at) VALUES(?,?,?,?,?)').run(hashToken(token),userId,now,now+ttlMs,now)}
 function sessionUser(db,token){if(!token)return null;const now=Date.now(),hash=hashToken(token),row=db.prepare('SELECT s.token_hash,s.user_id,s.expires_at,s.revoked_at,u.username_display FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?').get(hash);if(!row||row.revoked_at||row.expires_at<=now)return null;db.prepare('UPDATE sessions SET last_seen_at=? WHERE token_hash=?').run(now,hash);return {id:row.user_id,username:row.username_display,tokenHash:hash}}
 function revokeSession(db,token){if(token)db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 function cleanupSessions(db){db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
-module.exports={createDb,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
