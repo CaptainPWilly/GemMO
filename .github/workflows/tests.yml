@@ -13,3 +13,4 @@ jobs:
         with:
           node-version: 22
       - run: node tests/abilities.cjs
+      - run: node server/test.cjs
