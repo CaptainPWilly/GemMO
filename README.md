@@ -48,7 +48,7 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 GemMO now has a separate server authority in server/. Accounts use username/password login. Passwords are salted with scrypt; opaque 256-bit session tokens are stored server-side only as SHA-256 hashes and are revocable/expiring.
 
-The persistent server owns the player's level, XP, gold, item ownership, Sack and physical equipment. The browser may request valid loadout changes, but ownership, unique-gem rules and gear-slot compatibility are revalidated server-side before saving.
+The persistent server owns the player's level, XP, gold, item ownership, Sack and physical equipment. A newly created account owns **nothing**: zero gems, zero armor and zero accessories. On the first press of PLAY, the player must permanently choose exactly one starter gem: Iron Dagger (Red), Oak Shield (Blue), Herbal Salve (Green), Worn Boots (Yellow), or Rune Charm (Purple). Only that gem is granted and placed in Sack slot 1; the other four slots remain empty. The browser may request later loadout changes, but ownership, unique-gem rules and gear-slot compatibility are revalidated server-side before saving.
 
 The client has no API that can directly set level, XP, Gold, inventory grants or combat rewards. Attempts to write profile progression or submit a self-declared match settlement are rejected and audited. This means browser devtools/localStorage edits cannot create persistent wealth.
 
@@ -62,7 +62,7 @@ Physical gear is separate from gems. The player has eight non-gem equipment slot
 
 The first gear tier is intentionally small. Level-1 armor and accessories only modify **Max HP** or **Starting Guard** so the RPG layer does not overwhelm the match board. Base Max HP remains 24. Starting Guard behaves like normal Guard and expires after two Bandit actions.
 
-All 16 starter pieces are currently placed in the test inventory:
+The following 16 basic level-1 pieces exist in the catalog, but **new players do not own any of them**:
 
 | Slot | Item | Level-1 effect |
 |---|---|---|
@@ -83,11 +83,11 @@ All 16 starter pieces are currently placed in the test inventory:
 | Ring | Twine Ring | +1 Max HP |
 | Ring | Copper Band | +1 Starting Guard |
 
-Equipment and inventory persist in browser storage. The inventory structure is separate from the equipped-slot structure so future drops, shops, rarity, affixes, and item removal can be layered on without changing the combat Sack.
+Equipment and inventory persist on the account server when logged in. The inventory structure is separate from equipped slots so future drops, shops, rarity, affixes, and item removal can be layered on without changing the combat Sack.
 
 ## Sack-building playtest
 
-Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 64 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
+Start at the splash screen and enter the camp. New accounts begin with an empty inventory and empty five-slot Sack. The first PLAY opens the one-time starter choice; after choosing, only that single gem is owned and equipped. A Sack may contain 1–5 owned gems, with empty slots allowed. Any color mix is allowed, but the same exact gem cannot occupy more than one Sack slot. Multiple different gems of the same color are allowed.
 
 Red matches deal base damage and blue matches grant base Guard for every loadout. Green, Yellow and Purple have no universal combat effect: by default they only charge equipped gems of their color. Gold grants Gold, XP grants XP, Environment hurts both fighters, and Wild substitutes inside legal lines. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
