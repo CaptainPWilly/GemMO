@@ -140,13 +140,13 @@ The Sack screen offers six optional original starting builds: Vanguard, Shade, W
 
 ## Attunement prototype
 
-Attunements are the first explicitly match-reactive duration gems. Activating one spends a normal action and refreshes a three-player-action window; reactivation does not stack. Each Attunement triggers only on the first qualifying color match in an action, so cascades cannot multiply the flat bonus indefinitely.
+Attunements are the first explicitly match-reactive duration gems. Activating one spends a normal action and refreshes a three-player-action window; reactivation does not stack. Every qualifying match resolution can trigger an Attunement while its three-action window is active, including cascades. A cascade chain can therefore trigger the same Attunement more than once in one action.
 
 | Color | Item | Ability | Cost | Effect |
 |---|---|---|---:|---|
-| red | Bloodstone Whet | Redwake | 7 | Next 3 actions: first Red match each action deals +2 flat bonus damage. |
-| blue | Bastion Sigil | Holdfast | 7 | Next 3 actions: first Blue match each action grants +2 bonus Guard. |
-| green | Heartseed | Aftergrowth | 7 | Next 3 actions: first Green match each action heals 2 HP. |
-| yellow | Gambler’s Thread | Momentum | 7 | Next 3 actions: first Yellow match each action sends +2 charge to the most depleted other equipped reservoir. |
+| red | Bloodstone Whet | Redwake | 7 | Next 3 actions: every Red match resolution deals +2 flat bonus damage; cascades included. |
+| blue | Bastion Sigil | Holdfast | 7 | Next 3 actions: every Blue match resolution grants +2 bonus Guard; cascades included. |
+| green | Heartseed | Aftergrowth | 7 | Next 3 actions: every Green match resolution heals 2 HP; cascades included. |
+| yellow | Gambler’s Thread | Momentum | 7 | Next 3 actions: every Yellow match resolution sends +2 charge to the most depleted other equipped reservoir; cascades included. |
 
-These are deliberately conditional sidegrades to immediate 7-charge effects: their theoretical ceiling is similar, but value is delayed and depends on making the right board matches. They are a prototype mechanic family, not final balance.
+These are deliberately conditional sidegrades to immediate 7-charge effects. Their value is delayed and board-dependent, but cascade construction can raise their ceiling. Unless an ability explicitly says otherwise, cascades count as real match resolutions for match-reactive effects. They are a prototype mechanic family, not final balance.
