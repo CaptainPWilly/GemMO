@@ -1,6 +1,6 @@
 # GemMO
 
-GemMO v0.2 is a mobile-first, turn-based match-3 combat prototype. Both fighters share one random board; each fighter's Sack determines what matching each color does.
+GemMO v0.2 is a mobile-first RPG prototype built around turn-based match-3 combat. Players travel an isometric overworld, collect gems and gear, and enter encounters where both fighters share one board.
 
 ## Browser playtest
 
@@ -55,6 +55,23 @@ The client has no API that can directly set level, XP, Gold, inventory grants or
 Combat resolution itself is still local. For that reason, local fight XP/Gold deliberately does not sync into the persistent account yet. The next anti-cheat gate is to move the deterministic board engine to the server so the client sends only intents such as swap, activate and target; the server then owns the board state and reward settlement.
 
 The browser account token is kept in sessionStorage rather than long-lived localStorage. The account service also enforces origin allowlisting, prepared SQL, request-size limits, auth rate limits, repeated-password-failure lockouts, session expiry/revocation and security headers.
+
+## Isometric overworld
+
+PLAY no longer jumps directly into combat. After the one-time starter choice, the player enters **Brackenreach: The Old Road**, a rendered isometric overworld with terrain elevation, roads, trees, rocks, landmarks, camera panning/zoom, and tappable destinations.
+
+The initial level-1 route is intentionally small:
+
+- **Ember Camp** — starting safe node
+- **Old Crossroads** — road junction
+- **Broken Shrine** — landmark branch
+- **Bandit Toll** — first combat encounter
+
+Travel follows explicit connected roads. Logged-in movement is validated and persisted by the account server, so the client cannot teleport from Ember Camp directly to Bandit Toll. The route is Camp → Crossroads → Bandit Toll; the Broken Shrine branches from Crossroads.
+
+Selecting the Bandit Toll while standing there exposes **FIGHT BANDIT**, which enters the existing match-3 combat scene. Leaving or finishing combat returns to the world instead of the camp menu.
+
+The current browser map uses an isometric terrain renderer rather than a flat node menu. It is intentionally data-driven so later regions can add towns, dungeons, shops, quests, roaming encounters and larger maps without changing the combat board.
 
 ## Level 1 inventory and equipment
 
