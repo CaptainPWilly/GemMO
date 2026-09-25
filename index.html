@@ -87,12 +87,15 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .accountBox{border:1px solid #695735;background:#211e17;padding:14px;border-radius:5px;margin:14px 0}.accountBox label{display:block;font-size:9px;letter-spacing:1.5px;color:#d6bf90;margin:11px 0 5px}.accountBox input,.settingsPage input[type=url]{width:100%;padding:11px;background:#17150f;color:#f4db9e;border:1px solid #695735;border-radius:4px;font:inherit}.accountActions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.accountActions button,.accountButton{padding:11px;border:1px solid #8e7447;background:#3b301e;color:#f1dbad;border-radius:4px;font-size:10px}.accountSecurity{border-left:3px solid #6f9f7f;padding-left:10px}.accountDanger{border-left:3px solid #b96953;padding-left:10px}.accountStats{display:flex;gap:7px;flex-wrap:wrap}.accountStats b{border:1px solid #695735;padding:7px;background:#17150f;font-size:9px}.accountStatus{min-height:22px;color:#e3c67f!important}
 .starterGrid{display:grid;grid-template-columns:1fr;gap:9px;margin-top:18px}.starterGem{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;text-align:left;background:linear-gradient(145deg,#332c20,#1d1b15);border:1px solid #655537;border-left:4px solid var(--c);padding:13px;color:#eadbb9;border-radius:5px}.starterGem .itemGem{margin:0}.starterGem b{display:block;font:18px Georgia,serif}.starterGem strong{display:block;color:var(--c);font-size:9px;margin:3px 0}.starterGem p{margin:0!important;font-size:10px!important}.starterWarning{border-left:3px solid #c8924f;padding-left:10px}
 .worldPage{padding:0!important;overflow:hidden!important;background:linear-gradient(#8a9a78,#3f4937 58%,#20251e)!important}.worldHud{position:absolute;z-index:4;left:0;right:0;top:0;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 10px 9px;background:linear-gradient(#1c211bbb,#171b16dd);border-bottom:1px solid #7b704f;backdrop-filter:blur(5px)}.worldHud button{background:#2b2b20;border:1px solid #88734b;color:#efdcae;padding:8px 9px;border-radius:4px;font-size:9px}.worldTitle{text-align:center}.worldTitle b{display:block;font:18px Georgia,serif;color:#ffe2a7}.worldTitle small{font-size:7px;letter-spacing:2px;color:#c9b788}.worldZoom{display:flex;gap:4px}.worldZoom button{width:32px;padding:8px 0}.worldViewport{position:absolute;inset:0 0 142px;touch-action:none;cursor:grab}.worldViewport.dragging{cursor:grabbing}.worldViewport canvas{display:block;width:100%;height:100%}.worldCard{position:absolute;z-index:4;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));min-height:122px;background:linear-gradient(145deg,#2e291eeb,#151713f2);border:1px solid #96774b;box-shadow:0 8px 28px #0008;padding:12px;border-radius:6px;backdrop-filter:blur(5px)}.worldCardTop{display:flex;justify-content:space-between;align-items:start;gap:10px}.worldCard small{font-size:8px;letter-spacing:1.6px;color:#c9b27c}.worldCard h2{font:22px Georgia,serif;color:#f6dca3;margin:2px 0}.worldCard p{font-size:10px!important;line-height:1.4!important;margin:5px 0!important;color:#cbbd98!important}.worldAction{min-width:108px;padding:11px;border:1px solid #bd9655;background:linear-gradient(#76562b,#3c301d);color:#ffebbd;font-weight:800;letter-spacing:1px;border-radius:4px;font-size:9px}.worldAction:disabled{opacity:.38}.worldLegend{font-size:8px;color:#a99772;margin-top:5px}.worldLegend span{margin-right:9px}.worldNodePulse{animation:worldPulse 1s ease-in-out infinite alternate}@keyframes worldPulse{to{filter:brightness(1.25)}}
+.gem.draggingGem,.gem.movingGem{z-index:12!important;filter:brightness(1.35) saturate(1.25) drop-shadow(0 0 7px #fff4bf) drop-shadow(0 0 13px currentColor);will-change:transform,filter}.gem.dragNeighbor{z-index:7;filter:brightness(1.12) drop-shadow(0 0 5px #ffe7a877);will-change:transform}.cell.swipeOrigin{z-index:4}.cell.swipeTarget{outline:2px solid #ffe7a8;outline-offset:-3px}
+.shopPage h1{margin-bottom:5px}.shopBar{display:flex;justify-content:space-between;align-items:center;border:1px solid #6e5b39;background:#211e17;padding:10px;margin:12px 0}.shopBar b{color:#f2cf7a}.shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.shopItem{min-height:155px;text-align:left;background:linear-gradient(145deg,#342d21,#1e1c16);border:1px solid #6b5737;border-top:3px solid var(--c,#b89558);color:#e9d9b5;padding:12px;border-radius:5px}.shopItem:disabled{opacity:.4}.shopItem b{display:block;font:16px Georgia,serif;margin:7px 0}.shopItem strong{color:#f0cd7c;font-size:10px}.shopItem p{font-size:9px!important;line-height:1.4!important;margin:6px 0!important}.shopStatus{min-height:26px;color:#e9c77b!important}.shopBack{background:transparent;border:1px solid #695735;color:#d8c49c;padding:9px;border-radius:4px;font-size:10px}
+@media(max-width:360px){.shopGrid{grid-template-columns:1fr}.shopItem{min-height:125px}}
 </style>
 </head>
 <body>
 <div class="app">
-<section class="page splashPage" id="splashPage"><div class="crest">◆</div><p class="eyebrow">IRON & EMBER</p><h1>GemMO</h1><p class="tagline">Five relics. One sack.<br>Make every match matter.</p><button class="primary" id="enterBtn">TAP TO START</button><small>COMBAT PROTOTYPE · ALL GEMS UNLOCKED</small></section>
-<section class="page menuPage" id="menuPage" hidden><p class="eyebrow">THE CAMPFIRE</p><h1>GemMO</h1><p class="tagline">Ready your sack.<br>The Bandit is waiting.</p><nav><button class="primary" id="playBtn">PLAY</button><button class="primary secondary" id="openSack">SACK</button><button class="primary secondary" id="openInventory">INVENTORY</button><button class="primary secondary" id="openAccount">ACCOUNT</button><button class="primary secondary" id="openGemology">GEMOLOGY</button><button class="primary secondary" id="openSettings">SETTINGS</button></nav><p id="sackSummary"></p><p id="gearSummary"></p><small>Fill all five gem slots to enter the arena.</small></section>
+<section class="page splashPage" id="splashPage"><div class="crest">◆</div><p class="eyebrow">IRON & EMBER</p><h1>GemMO</h1><p class="tagline">Five relics. One sack.<br>Make every match matter.</p><button class="primary" id="enterBtn">TAP TO START</button><small>ACCOUNT REQUIRED · LEVEL 1 BEGINS EMPTY</small></section>
+<section class="page menuPage" id="menuPage" hidden><p class="eyebrow">THE CAMPFIRE</p><h1>GemMO</h1><p class="tagline">Ready your sack.<br>The Bandit is waiting.</p><nav><button class="primary" id="playBtn">PLAY</button><button class="primary secondary" id="openSack">SACK</button><button class="primary secondary" id="openInventory">INVENTORY</button><button class="primary secondary" id="openAccount">ACCOUNT</button><button class="primary secondary" id="openGemology">GEMOLOGY</button><button class="primary secondary" id="openSettings">SETTINGS</button></nav><p id="sackSummary"></p><p id="gearSummary"></p><small>Travel the world. Earn your next gem.</small></section>
 <section class="page sackPage" id="sackPage" hidden><header><button class="menuBack">← BACK</button><span class="eyebrow">YOUR COLLECTION</span></header><h1>The Sack</h1><p>Five slots. 64 gems. One copy of each gem per Sack.</p><details class="buildIdeas"><summary>Try a fighting style</summary><p>Optional starting points. Mix any items afterward.</p><select id="buildSelect" aria-label="Fighting style"><option value="vanguard">Vanguard — Guard, damage, pinning</option><option value="shade">Shade — poison, evasion, extra actions</option><option value="warden">Warden — recovery and board control</option><option value="weaver">Spellweaver — Wilds, charge, transformation</option><option value="minstrel">Minstrel — lasting support and defense</option><option value="tinkerer">Tinkerer — rows, columns, charge theft</option></select><button id="equipBuild" class="buildButton">EQUIP THIS FIVE-GEM BUILD</button></details><div id="loadout"></div><p id="equipHint" aria-live="polite"></p><button id="emptySlot">EMPTY SELECTED SLOT</button><details><summary>How your sack works</summary><p>Red matches deal damage; blue matches grant Guard for every build. Each color has one shared reservoir. Its capacity is the sum of all equipped items' costs in that color. Matching adds charge once; any item of that color can spend from it. For example, several different Red gems share one combined Red pool. Unused-color charge is lost. Wilds substitute for any tile in a line of 3 or more with at least one non-Wild tile; they never clear a color or the entire board. Every active uses your turn; Quickstep uses that turn for a swap. Overdrive cannot stack. Same colors can stack, but the same exact gem cannot be equipped twice. These are provisional sidegrades for playtesting.</p></details><label for="itemSearch">SEARCH THE ARMORY</label><input id="itemSearch" type="search" placeholder="Weapon, ability, or effect…" autocomplete="off"><label for="colorFilter">FILTER BY COLOR</label><select id="colorFilter"><option value="all">All gems</option><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option></select><div id="collection"></div></section>
 <section class="page worldPage" id="worldPage" hidden>
 <div class="worldHud">
@@ -106,6 +109,14 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
   <p id="worldNodeDesc">A low fire, a bedroll, and the road ahead.</p>
   <div class="worldLegend"><span>◆ YOU</span><span>● DESTINATION</span><span>⚔ ENCOUNTER</span></div>
 </div>
+</section>
+<section class="page shopPage" id="shopPage" hidden>
+<header><button class="shopBack" id="shopBack">← WORLD</button><span class="eyebrow" id="shopEyebrow">MERCHANT</span></header>
+<h1 id="shopTitle">Shop</h1>
+<p id="shopDesc">Level-one wares. Every purchase belongs to your account.</p>
+<div class="shopBar"><span>YOUR PURSE</span><b id="shopGold">0 GOLD</b></div>
+<div class="shopGrid" id="shopGrid"></div>
+<p class="shopStatus" id="shopStatus" role="status"></p>
 </section>
 <section class="page starterPage" id="starterPage" hidden><header><span class="eyebrow">FIRST GEM · LEVEL 1</span></header><h1>Choose One</h1><p>Your inventory is empty. Pick the first gem of your journey. You get exactly one; the other four Sack slots stay empty.</p><p class="starterWarning">This choice is permanent for this account. More gems must be earned later.</p><div class="starterGrid" id="starterGrid"></div><p class="accountStatus" id="starterStatus" role="status"></p></section>
 <section class="page accountPage" id="accountPage" hidden>
@@ -136,7 +147,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 <p>Tap a slot, then tap a compatible item in your inventory.</p>
 <div class="equipmentGrid" id="equipmentGrid"></div>
 <button class="unequipGear" id="unequipGear">UNEQUIP SELECTED SLOT</button>
-<h2>Starter Inventory</h2>
+<h2>Owned Gear</h2>
 <p id="inventoryCount"></p>
 <div class="inventoryGrid" id="inventoryGrid"></div>
 </section>
@@ -201,10 +212,20 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 'use strict';
 const W=8,H=8;
 const WORLD_NODES={
- camp:{id:'camp',name:'Ember Camp',kind:'safe',x:1,y:7,desc:'A low fire, a bedroll, and the road ahead.',neighbors:['crossroads']},
+ camp:{id:'camp',name:'Ember Camp',kind:'safe',x:1,y:7,desc:'A low fire, a bedroll, and the road ahead.',neighbors:['gem-shop','item-shop','crossroads']},
+ 'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem-shop',x:0,y:6,desc:'A gemcutter sells a few common stones from a reinforced cart.',neighbors:['camp']},
+ 'item-shop':{id:'item-shop',name:'Roadside Outfitter',kind:'shop',shop:'item-shop',x:3,y:8,desc:'Padded cloth, cheap metal and practical road gear.',neighbors:['camp']},
  crossroads:{id:'crossroads',name:'Old Crossroads',kind:'road',x:3,y:5,desc:'Three weathered tracks meet beneath an old waystone.',neighbors:['camp','shrine','bandit-pass']},
  shrine:{id:'shrine',name:'Broken Shrine',kind:'landmark',x:1,y:3,desc:'A cracked stone shrine swallowed by moss. Quiet, for now.',neighbors:['crossroads']},
  'bandit-pass':{id:'bandit-pass',name:'Bandit Toll',kind:'encounter',x:6,y:2,desc:'A crude barricade blocks the old road. Someone is waiting.',encounter:'bandit',neighbors:['crossroads']}
+};
+const SHOP_STOCK={
+ 'gem-shop':[
+  {id:'hand-crossbow',price:18},{id:'quarterstaff',price:18},{id:'willow-wand',price:18},{id:'sling',price:18},{id:'crystal-wand',price:18}
+ ],
+ 'item-shop':[
+  {id:'frayed-hood',price:12},{id:'padded-tunic',price:20},{id:'cloth-wraps',price:12},{id:'linen-trousers',price:12},{id:'scuffed-boots',price:12},{id:'copper-pendant',price:15},{id:'tin-ring',price:15},{id:'iron-band',price:15}
+ ]
 };
 const WORLD_HEIGHT=[
  [1,1,2,2,3,3,2,2,1],
@@ -220,7 +241,7 @@ const WORLD_HEIGHT=[
 const WORLD_ROAD=new Set(['1,7','2,6','3,5','4,4','5,3','6,2','2,5','2,4','1,3']);
 const WORLD_TREES=[[0,6],[0,5],[1,5],[2,7],[3,7],[4,6],[5,6],[7,4],[7,3],[6,4],[4,2],[3,2],[2,2],[0,2],[8,2],[8,3],[7,1]];
 const WORLD_ROCKS=[[2,8],[4,7],[5,5],[6,5],[7,2],[3,1],[1,1]];
-let worldState={region:'brackenreach',currentNode:'camp'},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointer=null,activeEncounter=null;
+let worldState={region:'brackenreach',currentNode:'camp'},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,activeEncounter=null,currentShop=null;
 try{const saved=localStorage.getItem('gemmo.worldNode');if(WORLD_NODES[saved])worldState.currentNode=saved}catch{}
 function worldCanTravel(from,to){return from===to||!!WORLD_NODES[from]?.neighbors.includes(to)}
 
@@ -252,7 +273,7 @@ const GEAR=[
  {id:'copper-band',slot:'ring',name:'Copper Band',level:1,hp:0,guard:1,desc:'A flattened copper loop. +1 Starting Guard.'}
 ];
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
-let equipment={...DEFAULT_EQUIPMENT},inventory=GEAR.map(g=>g.id),chosenGearSlot='chest';
+let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
 let account=null,accountToken=null,accountSyncTimer=0,lastAccountSync='';
 try{accountToken=sessionStorage.getItem('gemmo.session')}catch{}
 let apiBase=String(window.GEMMO_API||localStorage.getItem('gemmo.apiBase')||'http://127.0.0.1:8787').replace(/\/+$/,'');
@@ -267,7 +288,7 @@ function canEquipGear(slot,id){
 function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slot]=id;return true}
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger','shield','salve','boots','charm'];
-let sack=DEFAULT_SACK.slice(),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
+let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
 let actionNumber=1,targetMode=null,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0;
 let buffs={dodge:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&playerTurn&&!busy&&!targetMode&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
@@ -372,9 +393,15 @@ function damageFlight(side,amount,blocked){
  void animate(label,[{transform:'translate(-50%,0) scale(.75)',opacity:0},{transform:'translate(-50%,-8px) scale(1.15)',opacity:1,offset:.18},{transform:'translate(-50%,-28px) scale(1)',opacity:0}],{duration:540,easing:'ease-out'}).then(()=>label.remove());
  })();damageAnimations.push(work);
 }
-async function swapMotion(a,b,reverse=false){
- const ea=cellAt(a).firstElementChild,eb=cellAt(b).firstElementChild,ra=cellAt(a).getBoundingClientRect(),rb=cellAt(b).getBoundingClientRect(),dx=rb.left-ra.left,dy=rb.top-ra.top;
- await Promise.all([[ea,dx,dy],[eb,-dx,-dy]].map(([el,x,y])=>animate(el,reverse?[{transform:'translate('+x+'px,'+y+'px) rotate(45deg)'},{transform:'translate(0,0) rotate(45deg)'}]:[{transform:'translate(0,0) rotate(45deg)'},{transform:'translate('+x+'px,'+y+'px) rotate(45deg)'}],{duration:MOTION.swap,easing:'cubic-bezier(.2,.8,.2,1)'})));
+async function swapMotion(a,b,reverse=false,startProgress=0){
+ const ea=cellAt(a).firstElementChild,eb=cellAt(b).firstElementChild;if(!ea||!eb)return;
+ const ra=cellAt(a).getBoundingClientRect(),rb=cellAt(b).getBoundingClientRect(),dx=rb.left-ra.left,dy=rb.top-ra.top;
+ const base=el=>el.classList.contains('gold')?'':' rotate(45deg)';
+ ea.classList.add('movingGem');eb.classList.add('movingGem');
+ const frames=(el,x,y)=>reverse?
+  [{transform:'translate3d('+x+'px,'+y+'px,0)'+base(el),filter:'brightness(1.35) drop-shadow(0 0 8px #fff1b5)'},{transform:'translate3d(0,0,0)'+base(el),filter:'brightness(1)'}]:
+  [{transform:'translate3d('+(x*startProgress)+'px,'+(y*startProgress)+'px,0)'+base(el),filter:'brightness(1.45) drop-shadow(0 0 9px #fff1b5)'},{transform:'translate3d('+x+'px,'+y+'px,0)'+base(el),filter:'brightness(1.25) drop-shadow(0 0 5px #ffe3a0)'}];
+ try{await Promise.all([[ea,dx,dy],[eb,-dx,-dy]].map(([el,x,y])=>animate(el,frames(el,x,y),{duration:Math.max(80,MOTION.swap*(reverse?1:1-startProgress*.55)),easing:'cubic-bezier(.18,.82,.22,1)'})))}finally{ea.classList.remove('movingGem');eb.classList.remove('movingGem')}
 }
 async function fallColumns(){
  const falling=[];for(let x=0;x<W;x++){if(x===pinColumn&&pinTurns>0){for(let y=0;y<H;y++)if(!board[y][x])board[y][x]=roll();continue}const kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push({type:board[y][x],from:y});
@@ -389,10 +416,10 @@ async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};f
  for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
  await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
-async function trySwap(a,b,actor,force=false){
+async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
 
- await swapMotion(a,b);swap(a,b);
+ await swapMotion(a,b,false,startProgress);swap(a,b);
 
  const m=findMatches();
  if(!m&&!force){swap(a,b);await swapMotion(a,b,true);setLog('That swap makes no match.');busy=false;render();return false}
@@ -547,35 +574,61 @@ function drawWorld(){
  for(const node of Object.values(WORLD_NODES)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom;
   if(node.id==='camp'){ctx.fillStyle='#7c4c2d';ctx.beginPath();ctx.moveTo(p.x,p.y-22*s);ctx.lineTo(p.x+15*s,p.y);ctx.lineTo(p.x-15*s,p.y);ctx.closePath();ctx.fill();ctx.fillStyle='#e69245';ctx.beginPath();ctx.arc(p.x+13*s,p.y-2*s,3*s,0,Math.PI*2);ctx.fill()}
   if(node.id==='shrine'){ctx.fillStyle='#8a897c';ctx.fillRect(p.x-5*s,p.y-23*s,10*s,22*s);ctx.fillStyle='#aaa899';ctx.fillRect(p.x-9*s,p.y-25*s,18*s,5*s)}
+  if(node.kind==='shop'){ctx.fillStyle=node.id==='gem-shop'?'#654f83':'#725135';ctx.fillRect(p.x-14*s,p.y-17*s,28*s,17*s);ctx.fillStyle='#d7bb82';ctx.beginPath();ctx.moveTo(p.x-18*s,p.y-18*s);ctx.lineTo(p.x+18*s,p.y-18*s);ctx.lineTo(p.x+12*s,p.y-28*s);ctx.lineTo(p.x-12*s,p.y-28*s);ctx.closePath();ctx.fill()}
   if(node.id==='bandit-pass'){ctx.strokeStyle='#4f3123';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-27*s);ctx.stroke();ctx.fillStyle='#9a3f32';ctx.beginPath();ctx.moveTo(p.x,p.y-27*s);ctx.lineTo(p.x+16*s,p.y-22*s);ctx.lineTo(p.x,p.y-15*s);ctx.closePath();ctx.fill()}
   ctx.beginPath();ctx.arc(p.x,p.y-5*s,(selected?11:8)*s,0,Math.PI*2);ctx.fillStyle=node.kind==='encounter'?'#a7493d':current?'#f2d68f':'#d3bf83';ctx.fill();ctx.strokeStyle=selected?'#fff1bc':'#4e432d';ctx.lineWidth=selected?3:2;ctx.stroke();
-  if(current){ctx.fillStyle='#fff3bd';ctx.beginPath();ctx.moveTo(p.x,p.y-31*s);ctx.lineTo(p.x+7*s,p.y-19*s);ctx.lineTo(p.x,p.y-14*s);ctx.lineTo(p.x-7*s,p.y-19*s);ctx.closePath();ctx.fill()}
   ctx.font=(selected?'bold ':'')+Math.max(9,10*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='#151713';ctx.strokeText(node.name,p.x,p.y-35*s);ctx.fillStyle='#f4dfab';ctx.fillText(node.name,p.x,p.y-35*s);
   worldHits.push({id:node.id,x:p.x,y:p.y-5*s,r:24*s});
  }
+ const fromNode=WORLD_NODES[worldTravelAnim?.from||worldState.currentNode],toNode=WORLD_NODES[worldTravelAnim?.to||worldState.currentNode],t=worldTravelAnim?.progress||0;
+ const wx=fromNode.x+(toNode.x-fromNode.x)*t,wy=fromNode.y+(toNode.y-fromNode.y)*t,wz=(WORLD_HEIGHT[fromNode.y]?.[fromNode.x]||0)+((WORLD_HEIGHT[toNode.y]?.[toNode.x]||0)-(WORLD_HEIGHT[fromNode.y]?.[fromNode.x]||0))*t;
+ const wp=worldIso(wx,wy,wz+.2,canvas),walk=worldTravelAnim?Math.sin(t*Math.PI*8):0,ss=worldCamera.zoom;
+ ctx.strokeStyle='#30261d';ctx.lineWidth=2.5*ss;ctx.beginPath();ctx.moveTo(wp.x-2*ss,wp.y-5*ss);ctx.lineTo(wp.x-6*ss-walk*2*ss,wp.y+5*ss);ctx.moveTo(wp.x+2*ss,wp.y-5*ss);ctx.lineTo(wp.x+6*ss+walk*2*ss,wp.y+5*ss);ctx.stroke();
+ ctx.strokeStyle='#e0c58f';ctx.beginPath();ctx.moveTo(wp.x,wp.y-14*ss);ctx.lineTo(wp.x+walk*5*ss,wp.y-4*ss);ctx.stroke();
+ ctx.fillStyle='#6d3e2c';ctx.fillRect(wp.x-5*ss,wp.y-16*ss,10*ss,12*ss);ctx.fillStyle='#e1b985';ctx.beginPath();ctx.arc(wp.x,wp.y-21*ss,5*ss,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f7df9d';ctx.beginPath();ctx.moveTo(wp.x,wp.y-31*ss);ctx.lineTo(wp.x+5*ss,wp.y-25*ss);ctx.lineTo(wp.x,wp.y-22*ss);ctx.lineTo(wp.x-5*ss,wp.y-25*ss);ctx.closePath();ctx.fill();
  drawWorldCard();
 }
 function drawWorldCard(){
  const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode];
  $('worldKind').textContent=node.kind==='encounter'?'⚔ ENCOUNTER':node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=node.desc;
  const btn=$('worldAction');btn.disabled=false;
- if(node.id===current.id){if(node.encounter){btn.textContent='FIGHT BANDIT';btn.dataset.action='fight'}else{btn.textContent='YOU ARE HERE';btn.disabled=true;btn.dataset.action='none'}}
+ if(node.id===current.id){if(node.encounter){btn.textContent='FIGHT BANDIT';btn.dataset.action='fight'}else if(node.shop){btn.textContent=node.shop==='gem-shop'?'OPEN GEM SHOP':'OPEN ITEM SHOP';btn.dataset.action='shop'}else{btn.textContent='YOU ARE HERE';btn.disabled=true;btn.dataset.action='none'}}
  else if(worldCanTravel(current.id,node.id)){btn.textContent='TRAVEL';btn.dataset.action='travel'}else{btn.textContent='ROAD BLOCKED';btn.disabled=true;btn.dataset.action='none'}
 }
+function animateWorldTravel(from,to){
+ if(reducedMotion()||from===to)return Promise.resolve();
+ return new Promise(resolve=>{const start=performance.now(),duration=620;worldTravelAnim={from,to,progress:0};const step=now=>{worldTravelAnim.progress=Math.min(1,(now-start)/duration);drawWorld();if(worldTravelAnim.progress<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
+}
 async function travelWorld(nodeId){
- if(!worldCanTravel(worldState.currentNode,nodeId))return;
+ if(!worldCanTravel(worldState.currentNode,nodeId)||worldTravelAnim)return;
+ const from=worldState.currentNode;let nextAccount=null;
  if(account){
-  try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId}});applyAccount(data.account)}
+  try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId}});nextAccount=data.account}
   catch(error){$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');return}
- }else{worldState.currentNode=nodeId;saveLocalOnly()}
+ }
+ selectedWorldNode=nodeId;await animateWorldTravel(from,nodeId);
+ if(nextAccount)applyAccount(nextAccount);else{worldState.currentNode=nodeId;saveLocalOnly()}
  selectedWorldNode=nodeId;drawWorld();
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;showScreen('world');requestAnimationFrame(drawWorld)}
+function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.name,desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
+function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
+function drawShop(){
+ const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
+ $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Roadside Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'GEM SHOP':'ITEM SHOP';$('shopGold').textContent=gold+' GOLD';
+ $('shopGrid').innerHTML=stock.map(entry=>{const v=shopItemData(entry.id),has=owned.has(entry.id);if(!v)return '';return '<button class="shopItem" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'><small>'+(v.color?v.color.toUpperCase():'GEAR')+'</small><b>'+v.name+'</b><strong>'+entry.price+' GOLD · '+(has?'OWNED':'BUY')+'</strong><p>'+v.sub+'<br>'+v.desc+'</p></button>'}).join('');
+ document.querySelectorAll('.shopItem:not(:disabled)').forEach(b=>b.onclick=()=>void buyShopItemClient(b.dataset.buy));
+}
+async function buyShopItemClient(itemId){
+ if(!account||!currentShop)return;$('shopStatus').textContent='Buying…';
+ try{const data=await accountRequest('/v1/shop/buy',{method:'POST',body:{shopId:currentShop,itemId}});applyAccount(data.account);$('shopStatus').textContent='Purchased.';drawShop()}
+ catch(error){$('shopStatus').textContent=error.message.replaceAll('_',' ')}
+}
 function clearAccountSession(){account=null;accountToken=null;lastAccountSync='';try{sessionStorage.removeItem('gemmo.session')}catch{}drawAccount()}
 async function refreshAccount(){
- if(!accountToken)return;
- try{const data=await accountRequest('/v1/account');applyAccount(data.account)}
- catch(error){if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Account server unavailable.'}
+ if(!accountToken)return false;
+ try{const data=await accountRequest('/v1/account');applyAccount(data.account);return true}
+ catch(error){if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Account server unavailable.';return false}
 }
 function drawAccount(){
  const logged=!!account;
@@ -586,16 +639,22 @@ async function submitAuth(mode){
  const username=$('accountUsername').value,password=$('accountPassword').value;$('accountStatus').textContent=mode==='register'?'Creating account…':'Logging in…';
  try{
   const data=await accountRequest('/v1/auth/'+mode,{method:'POST',body:{username,password}});
-  accountToken=data.token;try{sessionStorage.setItem('gemmo.session',accountToken)}catch{};$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Account secure and synced.';
+  accountToken=data.token;try{sessionStorage.setItem('gemmo.session',accountToken)}catch{};$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Account secure and synced.';showScreen('menu');
  }catch(error){$('accountStatus').textContent=error.message==='invalid_username_or_password'?'Invalid username or password.':error.message.replaceAll('_',' ')}
 }
 async function logoutAccount(){try{if(accountToken)await accountRequest('/v1/auth/logout',{method:'POST'})}catch{}clearAccountSession();$('accountStatus').textContent='Logged out.'}
 function save(){saveLocalOnly();scheduleAccountSync()}
+try{
+ if(localStorage.getItem('gemmo.blankAccountReset.v1')!=='done'){
+  localStorage.removeItem?.('gemmo.sack.v1');localStorage.removeItem?.('gemmo.equipment.v1');localStorage.removeItem?.('gemmo.inventory.v1');localStorage.removeItem?.('gemmo.worldNode');
+  sessionStorage.removeItem?.('gemmo.session');accountToken=null;localStorage.setItem('gemmo.blankAccountReset.v1','done');
+ }
+}catch{}
 try{const data=JSON.parse(localStorage.getItem('gemmo.sack.v1'));if(Array.isArray(data)&&data.length===5&&data.every(id=>id===null||itemById(id))){const seen=new Set();sack=data.map(id=>{if(!id||seen.has(id))return null;seen.add(id);return id})}
  const rawInventory=localStorage.getItem('gemmo.inventory.v1');if(rawInventory!==null){const savedInventory=JSON.parse(rawInventory);if(Array.isArray(savedInventory))inventory=[...new Set(savedInventory.filter(id=>gearById(id)))]}
  const savedEquipment=JSON.parse(localStorage.getItem('gemmo.equipment.v1'));if(savedEquipment&&typeof savedEquipment==='object'){const next={...DEFAULT_EQUIPMENT},used=new Set();for(const def of EQUIPMENT_SLOTS){const id=savedEquipment[def.id];if(id&&inventory.includes(id)&&gearById(id)?.slot===def.type&&!used.has(id)){next[def.id]=id;used.add(id)}}equipment=next}
  motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint)}catch{}
-function showScreen(next){clearTimeout(hintTimer);screen=next;document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';if(next==='sack')drawSack();if(next==='inventory')drawInventory();if(next==='starter')drawStarter();if(next==='world')requestAnimationFrame(drawWorld);if(next==='account'){drawAccount();if(accountToken&&!account)void refreshAccount()}if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!account.needsStarter&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}save()}
+function showScreen(next){clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';screen=next;document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';if(next==='sack')drawSack();if(next==='inventory')drawInventory();if(next==='starter')drawStarter();if(next==='world')requestAnimationFrame(drawWorld);if(next==='shop')drawShop();if(next==='account'){drawAccount();if(accountToken&&!account)void refreshAccount()}if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!account.needsStarter&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}save()}
 function drawSack(){
  document.querySelector('.buildIdeas').hidden=!!account;
  $('loadout').innerHTML=sack.map((id,i)=>{const v=itemById(id);return '<button class="equip '+(i===chosenSlot?'chosen':'')+'" data-index="'+i+'"><small>SLOT '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color:'Choose a gem')+'</span></button>'}).join('');
@@ -622,14 +681,36 @@ function startFight(){
  $('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];logSequence=0;$('historyEntries').innerHTML='';$('historyPanel').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');buildBoard();setLog((activeEncounter==='bandit'?'Bandit Toll · ':'')+'Level 1 gear: '+playerMaxHP()+' Max HP · '+gear.guard+' Starting Guard. Your Sack is ready.');render();touchActivity();
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);$('historyPanel').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
-$('enterBtn').onclick=()=>showScreen('menu');$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
-document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen('menu'));
+$('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
+document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen(account?'menu':'splash'));$('shopBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldZoomIn').onclick=()=>{worldCamera.zoom=Math.min(1.55,worldCamera.zoom+.12);drawWorld()};$('worldZoomOut').onclick=()=>{worldCamera.zoom=Math.max(.68,worldCamera.zoom-.12);drawWorld()};
-$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='travel')void travelWorld(selectedWorldNode);if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}};
-$('worldViewport').addEventListener('pointerdown',e=>{worldPointer={x:e.clientX,y:e.clientY,panX:worldCamera.panX,panY:worldCamera.panY,moved:false};$('worldViewport').classList.add('dragging');$('worldViewport').setPointerCapture?.(e.pointerId)});
-$('worldViewport').addEventListener('pointermove',e=>{if(!worldPointer)return;const dx=e.clientX-worldPointer.x,dy=e.clientY-worldPointer.y;if(Math.hypot(dx,dy)>5)worldPointer.moved=true;worldCamera.panX=worldPointer.panX+dx;worldCamera.panY=worldPointer.panY+dy;drawWorld()});
-$('worldViewport').addEventListener('pointerup',e=>{if(!worldPointer)return;const moved=worldPointer.moved;worldPointer=null;$('worldViewport').classList.remove('dragging');if(moved)return;const rect=$('worldCanvas').getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,hit=worldHits.filter(h=>Math.hypot(h.x-x,h.y-y)<=h.r).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(hit){selectedWorldNode=hit.id;drawWorld()}});
-$('worldViewport').addEventListener('pointercancel',()=>{worldPointer=null;$('worldViewport').classList.remove('dragging')});
+$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='travel')void travelWorld(selectedWorldNode);if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
+function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
+function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function worldMid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+$('worldViewport').addEventListener('pointerdown',e=>{
+ worldPointers.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});$('worldViewport').setPointerCapture?.(e.pointerId);$('worldViewport').classList.add('dragging');
+ const pair=worldPair();
+ if(pair){const mid=worldMid(...pair);worldGesture={type:'pinch',startDist:Math.max(1,worldDistance(...pair)),startMid:mid,startZoom:worldCamera.zoom,startPanX:worldCamera.panX,startPanY:worldCamera.panY,moved:true}}
+ else worldGesture={type:'pan',id:e.pointerId,startX:e.clientX,startY:e.clientY,startPanX:worldCamera.panX,startPanY:worldCamera.panY,moved:false};
+});
+$('worldViewport').addEventListener('pointermove',e=>{
+ const p=worldPointers.get(e.pointerId);if(!p)return;p.x=e.clientX;p.y=e.clientY;
+ const pair=worldPair();
+ if(pair){
+  if(worldGesture?.type!=='pinch'){const mid=worldMid(...pair);worldGesture={type:'pinch',startDist:Math.max(1,worldDistance(...pair)),startMid:mid,startZoom:worldCamera.zoom,startPanX:worldCamera.panX,startPanY:worldCamera.panY,moved:true}}
+  const mid=worldMid(...pair),ratio=worldDistance(...pair)/worldGesture.startDist,newZoom=Math.max(.68,Math.min(1.65,worldGesture.startZoom*ratio)),scale=newZoom/worldGesture.startZoom,rect=$('worldViewport').getBoundingClientRect(),cx=rect.width/2,cy=92;
+  worldCamera.zoom=newZoom;worldCamera.panX=(mid.x-rect.left)-cx-((worldGesture.startMid.x-rect.left)-cx-worldGesture.startPanX)*scale;worldCamera.panY=(mid.y-rect.top)-cy-((worldGesture.startMid.y-rect.top)-cy-worldGesture.startPanY)*scale;drawWorld();return;
+ }
+ if(worldGesture?.type==='pan'&&worldGesture.id===e.pointerId){const dx=e.clientX-worldGesture.startX,dy=e.clientY-worldGesture.startY;if(Math.hypot(dx,dy)>5)worldGesture.moved=true;worldCamera.panX=worldGesture.startPanX+dx;worldCamera.panY=worldGesture.startPanY+dy;drawWorld()}
+});
+function endWorldPointer(e,cancel=false){
+ const gesture=worldGesture,p=worldPointers.get(e.pointerId);worldPointers.delete(e.pointerId);
+ if(!cancel&&gesture?.type==='pan'&&!gesture.moved&&p&&worldPointers.size===0){const rect=$('worldCanvas').getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,hit=worldHits.filter(h=>Math.hypot(h.x-x,h.y-y)<=h.r).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(hit){selectedWorldNode=hit.id;drawWorld()}}
+ if(worldPointers.size===1){const [id,left]=worldPointers.entries().next().value;worldGesture={type:'pan',id,startX:left.x,startY:left.y,startPanX:worldCamera.panX,startPanY:worldCamera.panY,moved:true}}
+ else if(worldPointers.size===0){worldGesture=null;$('worldViewport').classList.remove('dragging')}
+}
+$('worldViewport').addEventListener('pointerup',e=>endWorldPointer(e));$('worldViewport').addEventListener('pointercancel',e=>endWorldPointer(e,true));
 window.addEventListener?.('resize',()=>{if(screen==='world')drawWorld()});
 $('equipBuild').onclick=()=>{if(account)return;const builds={vanguard:['warhammer','tower-shield','anchor-maul','salve','dagger'],shade:['venom-needle','mist-mantle','clockwork-spur','echo-knife','hand-crossbow'],warden:['druid-staff','grove-spear','anchor-maul','wayfarer-lyre','hunting-bow'],weaver:['star-lens','ember-rod','prism-orb','charm','crystal-wand'],minstrel:['wayfarer-lyre','mist-mantle','prism-orb','relic','shield'],tinkerer:['tide-chain','anchor-maul','echo-knife','clockwork-spur','light-crossbow']};sack=builds[$('buildSelect').value].slice();chosenSlot=0;save();drawSack()};
 $('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
@@ -657,24 +738,38 @@ function renderStatuses(){
  $('statusTags').innerHTML=tags.filter(t=>t[1]>0||t[0]==='Guard'||t[0]==='Bandit Evade').map(t=>'<button class="statusTag" title="'+t[3]+'" data-help="'+t[3]+'">'+t[0]+' '+(t[0]==='Guard'||t[0]==='Bandit Evade'?t[1]+' · ':'')+t[2]+' turns</button>').join('');
  document.querySelectorAll('.statusTag').forEach(b=>b.onclick=()=>setLog(b.dataset.help,'system'));
 }
+function clearSwipePreview(){
+ if(!swipeStart)return;for(const key of ['sourceEl','targetEl']){const el=swipeStart[key];if(el){el.style.transform='';el.classList.remove(key==='sourceEl'?'draggingGem':'dragNeighbor')}}
+ cellAt({x:swipeStart.x,y:swipeStart.y})?.classList.remove('swipeOrigin');if(swipeStart.target)cellAt(swipeStart.target)?.classList.remove('swipeTarget');
+}
+function updateSwipePreview(event){
+ if(!swipeStart||event.pointerId!==swipeStart.pointerId)return;const dx=event.clientX-swipeStart.clientX,dy=event.clientY-swipeStart.clientY,rect=boardEl.getBoundingClientRect(),cellW=rect.width/8,cellH=rect.height/8,horizontal=Math.abs(dx)>Math.abs(dy),sx=horizontal?Math.sign(dx):0,sy=horizontal?0:Math.sign(dy),target={x:swipeStart.x+sx,y:swipeStart.y+sy};
+ if(Math.max(Math.abs(dx),Math.abs(dy))<4||target.x<0||target.x>7||target.y<0||target.y>7)return;
+ if(swipeStart.target&&(swipeStart.target.x!==target.x||swipeStart.target.y!==target.y)){swipeStart.targetEl&&(swipeStart.targetEl.style.transform='',swipeStart.targetEl.classList.remove('dragNeighbor'));cellAt(swipeStart.target)?.classList.remove('swipeTarget')}
+ swipeStart.target=target;const sourceCell=cellAt({x:swipeStart.x,y:swipeStart.y}),targetCell=cellAt(target),source=sourceCell?.firstElementChild,targetEl=targetCell?.firstElementChild;if(!source||!targetEl)return;
+ swipeStart.sourceEl=source;swipeStart.targetEl=targetEl;source.classList.add('draggingGem');targetEl.classList.add('dragNeighbor');sourceCell.classList.add('swipeOrigin');targetCell.classList.add('swipeTarget');
+ const max=horizontal?cellW:cellH,raw=horizontal?dx:dy,move=Math.max(-max,Math.min(max,raw)),progress=Math.min(1,Math.abs(move)/max);swipeStart.progress=progress;
+ const base=source.classList.contains('gold')?'':' rotate(45deg)',otherBase=targetEl.classList.contains('gold')?'':' rotate(45deg)';
+ source.style.transform='translate3d('+(horizontal?move:0)+'px,'+(horizontal?0:move)+'px,0)'+base+' scale('+(1+.08*progress)+')';
+ targetEl.style.transform='translate3d('+(horizontal?-move*.22:0)+'px,'+(horizontal?0:-move*.22)+'px,0)'+otherBase+' scale('+(1-.04*progress)+')';
+}
 boardEl.addEventListener('pointerdown',event=>{
  if(screen!=='fight'||busy||!playerTurn)return;
  const rect=boardEl.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)/rect.width*8),y=Math.floor((event.clientY-rect.top)/rect.height*8);
- if(x<0||x>7||y<0||y>7)return;swipeStart={x,y,clientX:event.clientX,clientY:event.clientY};touchActivity();
+ if(x<0||x>7||y<0||y>7)return;swipeStart={x,y,clientX:event.clientX,clientY:event.clientY,pointerId:event.pointerId,target:null,progress:0};boardEl.setPointerCapture?.(event.pointerId);touchActivity();
 });
-boardEl.addEventListener('pointermove',event=>{if(swipeStart&&Math.max(Math.abs(event.clientX-swipeStart.clientX),Math.abs(event.clientY-swipeStart.clientY))>=16)boardEl.setPointerCapture?.(event.pointerId)});
+boardEl.addEventListener('pointermove',event=>{if(swipeStart)updateSwipePreview(event)});
 boardEl.addEventListener('pointerup',event=>{
- if(!swipeStart)return;const a=swipeStart;swipeStart=null;const dx=event.clientX-a.clientX,dy=event.clientY-a.clientY;
- if(Math.max(Math.abs(dx),Math.abs(dy))<16)return;
- suppressClickUntil=Date.now()+450;touchActivity();
+ if(!swipeStart||event.pointerId!==swipeStart.pointerId)return;const a={...swipeStart},dx=event.clientX-a.clientX,dy=event.clientY-a.clientY,progress=a.progress||0;clearSwipePreview();swipeStart=null;
+ if(Math.max(Math.abs(dx),Math.abs(dy))<16)return;suppressClickUntil=Date.now()+450;touchActivity();
  if(targetMode){tapCell(a.x,a.y);return}
  const b={x:a.x+(Math.abs(dx)>Math.abs(dy)?Math.sign(dx):0),y:a.y+(Math.abs(dx)>Math.abs(dy)?0:Math.sign(dy))};
- if(b.x<0||b.x>7||b.y<0||b.y>7||busy||!playerTurn)return;selected=null;const force=freeSwap;freeSwap=false;void trySwap(a,b,'player',force);
+ if(b.x<0||b.x>7||b.y<0||b.y>7||busy||!playerTurn)return;selected=null;const force=freeSwap;freeSwap=false;void trySwap(a,b,'player',force,progress);
 });
-boardEl.addEventListener('pointercancel',()=>{swipeStart=null});
+boardEl.addEventListener('pointercancel',event=>{if(swipeStart&&event.pointerId===swipeStart.pointerId){clearSwipePreview();swipeStart=null}});
 document.querySelector('.app').addEventListener('pointerdown',touchActivity);document.querySelector('.app').addEventListener('keydown',touchActivity);
 
-showScreen('splash');if(accountToken)void refreshAccount();
+showScreen('splash');
 })();
 </script>
 </body>
