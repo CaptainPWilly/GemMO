@@ -8,7 +8,8 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
 (async()=>{
  const cases={dagger:[10,18,0],axe:[10,16,0],spear:[10,21,3],shield:[10,24,6],buckler:[10,21,3],ward:[12,24,3],salve:[15,24,0],poultice:[13,24,0],briar:[12,21,0],boots:[10,24,0],cloak:[10,24,5],knife:[10,19,0],charm:[10,24,0],seal:[10,16,0],relic:[14,24,4]};
  Object.assign(cases,{"arming-sword":[10,17,0],"warhammer":[10,14,0],"longbow":[10,19,0],"rapier":[10,21,3],"halberd":[10,15,0],"hand-crossbow":[10,21,0],"flail":[10,16,0],"tower-shield":[10,24,10],"swordbreaker":[10,21,3],"quarterstaff":[10,24,4],"pavise":[10,24,8],"war-pick":[10,17,0],"kite-shield":[12,24,3],"hook-spear":[10,24,7],"sickle":[12,21,0],"druid-staff":[18,24,0],"hunting-bow":[10,18,0],"thorn-whip":[10,20,0],"grove-spear":[12,24,3],"woodland-club":[10,24,6],"willow-wand":[12,24,0],"twin-knives":[10,17,0],"light-crossbow":[10,18,0],"sling":[10,22,0],"duelist-sabre":[10,21,3],"glaive":[10,16,0],"parrying-dagger":[10,24,3],"javelin":[10,15,0],"rune-blade":[10,17,0],"hex-staff":[10,19,0],"relic-mace":[14,24,4],"moon-scythe":[12,21,0],"crystal-wand":[10,24,4],"spell-tome":[12,24,3],"ritual-dagger":[10,21,3]});
- assert.equal(a.ITEMS.length,60);assert.equal(new Set(a.ITEMS.map(i=>i.id)).size,60);
+ Object.assign(cases,{"bloodstone-whet":[10,24,0],"bastion-sigil":[10,24,0],"heartseed":[10,24,0],"gamblers-thread":[10,24,0]});
+ assert.equal(a.ITEMS.length,64);assert.equal(new Set(a.ITEMS.map(i=>i.id)).size,64);
  for(const item of a.ITEMS.filter(i=>cases[i.id])){
   a.setSack([item.id,'dagger','shield','salve','boots']);a.startFight();
   const initial=JSON.stringify(a.get());a.activate(0);assert.equal(JSON.stringify(a.get()),initial,item.id+' cannot activate without charge');
@@ -59,5 +60,20 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
  // Simulate a swipe from the first cell to its neighbor under Quickstep.
  equip('boots');a.setBoard(grid());es.get('board').events.pointerdown({clientX:20,clientY:20,pointerId:1});es.get('board').events.pointerup({clientX:65,clientY:20,pointerId:1});await new Promise(resolve=>setImmediate(resolve));assert.equal(a.get().board[0][0],'blue');assert.equal(a.get().freeSwap,false);
  equip('wayfarer-lyre');a.setHP(0);a.afterAction('enemy');assert.equal(a.get().pHP,0,'regeneration cannot revive a defeated fighter');
- console.log('PASS: 60 abilities, all timed-effect expiry boundaries, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
+
+ // Core board contract: Red always attacks, Blue always Guards; Green/Yellow/Purple are charge-only without equipped effects.
+ a.setSack(['dagger','shield','salve','boots','charm']);a.startFight();assert.equal(a.findMatches(),null,'fresh board starts without free matches');assert(a.legalMoves().length>0,'fresh board always has a legal move');a.setHP(20);
+ a.applyColor('red',3,'player');assert.equal(a.get().eHP,21);assert.equal(a.get().charges.red,3);await a.finish();
+ a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,3);assert.equal(a.get().charges.blue,3);
+ a.applyColor('green',3,'player');assert.equal(a.get().pHP,20);assert.equal(a.get().charges.green,3);
+ const hpBeforeUtility=a.get().pHP,enemyBeforeUtility=a.get().eHP,guardBeforeUtility=a.get().pGuard;
+ a.applyColor('yellow',3,'player');a.applyColor('purple',3,'player');assert.equal(a.get().pHP,hpBeforeUtility);assert.equal(a.get().eHP,enemyBeforeUtility);assert.equal(a.get().pGuard,guardBeforeUtility);assert.equal(a.get().charges.yellow,3);assert.equal(a.get().charges.purple,3);
+
+ // Attunements are flat first-match bonuses, do not cascade-stack inside one action, and expire after 3 future player actions.
+ equip('bloodstone-whet');assert.equal(a.get().buffs.redwake,3);a.applyColor('red',3,'player');assert.equal(a.get().eHP,19);a.applyColor('red',3,'player');assert.equal(a.get().eHP,16);await a.finish();a.afterAction('player');assert.equal(a.get().buffs.redwake,2);a.afterAction('player');assert.equal(a.get().buffs.redwake,1);a.afterAction('player');assert.equal(a.get().buffs.redwake,0);
+ equip('bastion-sigil');assert.equal(a.get().buffs.holdfast,3);a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,5);a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,8);
+ equip('heartseed');assert.equal(a.get().buffs.aftergrowth,3);a.applyColor('green',3,'player');assert.equal(a.get().pHP,12);a.applyColor('green',3,'player');assert.equal(a.get().pHP,12);
+ equip('gamblers-thread');assert.equal(a.get().buffs.momentum,3);a.applyColor('yellow',3,'player');assert.equal(a.get().charges.red,2);a.applyColor('yellow',3,'player');assert.equal(a.get().charges.red,2);
+
+ console.log('PASS: 64 abilities, core color rules, Attunement first-match limits and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
 })().catch(e=>{console.error(e);process.exitCode=1});
