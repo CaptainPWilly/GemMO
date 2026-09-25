@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const {createGemmoServer}=require('./server.cjs');
 
 (async()=>{
-  const {server}=createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test']});
+  const {server,db}=createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test']});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   async function call(path,{method='GET',token,body,origin='http://test'}={}){
@@ -33,6 +33,16 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'crossroads');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'bandit-pass');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,409,'bandit pass does not teleport to camp');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'must physically travel to the shop');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'zero-gold player cannot buy');
+    const userId=db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get().id;
+    db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(userId);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('hand-crossbow'));assert.equal(r.data.account.profile.gold,82);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'cannot buy an owned unique item');
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
 
     r=await call('/v1/account/profile',{method:'PUT',token,body:{gold:999999,xp:999999,level:99}});assert.equal(r.status,403);
     r=await call('/v1/matches/settle',{method:'POST',token,body:{won:true,gold:999999,xp:999999}});assert.equal(r.status,403);
@@ -42,6 +52,10 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/account',{token});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'CorrectHorseBattery!42'}});assert.equal(r.status,200);
+    assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
+    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');
+    assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');
+    assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
