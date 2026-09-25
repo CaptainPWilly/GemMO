@@ -1,0 +1,30 @@
+; Engine configuration file.
+; GemMO prototype
+config_version=5
+
+[application]
+config/name="GemMO"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+boot_splash/show_image=false
+boot_splash/bg_color=Color(0.015, 0.02, 0.035, 1)
+
+[display]
+window/size/viewport_width=390
+window/size/viewport_height=844
+window/size/window_width_override=390
+window/size/window_height_override=844
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.015, 0.02, 0.035, 1)
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[input]
+accept={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"physical_keycode":4194309,"unicode":13), Object(InputEventMouseButton,"button_index":1)]
+}
