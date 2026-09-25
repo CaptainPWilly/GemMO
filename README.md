@@ -8,7 +8,7 @@ The existing v2 browser prototype is `index.html`. It is self-contained HTML, CS
 
 Play: https://CaptainPWilly.github.io/GemMO/
 
-Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Open **GEMOLOGY** from the main menu for the live board rules and tile meanings. Use **View Sacks** for both fighters' equipped abilities. Return to camp to start a new match. Sack choices and settings are saved locally; combat progress is not saved.
+Use **INVENTORY** to equip ordinary armor and accessories, and **SACK** to build your five-gem combat kit. Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Open **GEMOLOGY** from the main menu for the live board rules and tile meanings. Use **View Sacks** for both fighters' equipped abilities. Return to camp to start a new match. Sack choices and settings are saved locally; combat progress is not saved.
 
 For a local playtest, open `index.html` in a modern browser, or serve this directory with a static HTTP server. Portrait phone layout is the intended experience.
 
@@ -42,6 +42,36 @@ GitHub Pages runs the browser prototype. The Godot directory contains editable s
 GitHub Free requires a public repository for Pages. Private repositories require an eligible paid plan. Do not change repository visibility without the owner's explicit approval. See [GitHub Pages requirements](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site).
 
 A root-based static deployment also serves files under `godot/`; keeping the repository private does not make published site files private. This prototype has no backend, multiplayer service, or persistent save system.
+
+
+## Level 1 inventory and equipment
+
+Physical gear is separate from gems. The player has eight non-gem equipment slots: **Head, Chest, Hands, Legs, Feet, Necklace, Ring I, and Ring II**. The two ring slots accept ring items independently; one physical item cannot occupy two slots at once.
+
+The first gear tier is intentionally small. Level-1 armor and accessories only modify **Max HP** or **Starting Guard** so the RPG layer does not overwhelm the match board. Base Max HP remains 24. Starting Guard behaves like normal Guard and expires after two Bandit actions.
+
+All 16 starter pieces are currently placed in the test inventory:
+
+| Slot | Item | Level-1 effect |
+|---|---|---|
+| Head | Frayed Hood | +1 Max HP |
+| Head | Leather Cap | +1 Starting Guard |
+| Chest | Padded Tunic | +2 Max HP |
+| Chest | Hide Vest | +2 Starting Guard |
+| Hands | Cloth Wraps | +1 Max HP |
+| Hands | Leather Gloves | +1 Starting Guard |
+| Legs | Linen Trousers | +1 Max HP |
+| Legs | Hide Leggings | +1 Starting Guard |
+| Feet | Scuffed Boots | +1 Max HP |
+| Feet | Leather Boots | +1 Starting Guard |
+| Necklace | Copper Pendant | +1 Max HP |
+| Necklace | Bone Talisman | +1 Starting Guard |
+| Ring | Tin Ring | +1 Max HP |
+| Ring | Iron Band | +1 Starting Guard |
+| Ring | Twine Ring | +1 Max HP |
+| Ring | Copper Band | +1 Starting Guard |
+
+Equipment and inventory persist in browser storage. The inventory structure is separate from the equipped-slot structure so future drops, shops, rarity, affixes, and item removal can be layered on without changing the combat Sack.
 
 ## Sack-building playtest
 
