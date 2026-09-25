@@ -1,3 +1,6 @@
 godot/.godot/
 .DS_Store
 Thumbs.db
+server/data/
+*.db-wal
+*.db-shm

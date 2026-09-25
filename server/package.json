@@ -1,0 +1,8 @@
+{
+  "name":"gemmo-account-server",
+  "private":true,
+  "version":"0.1.0",
+  "description":"GemMO persistent account authority",
+  "engines":{"node":">=22.18.0"},
+  "scripts":{"start":"node server.cjs","test":"node test.cjs"}
+}
