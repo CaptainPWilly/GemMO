@@ -13,8 +13,9 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
  assert.equal(a.sackIsValid(['dagger','shield','salve','boots','charm']),true,'five unique gems are a legal Sack');
  assert.equal(a.sackIsValid(['dagger','dagger','shield','salve','boots']),false,'exact duplicate gems are illegal');
  assert.equal(a.sackIsValid(['dagger','spear','longbow','rapier','hand-crossbow']),true,'different gems of one color are legal');
+ const uniqueSackFor=id=>[id,...['dagger','shield','salve','boots','charm','axe','buckler','poultice','cloak','seal'].filter(x=>x!==id).slice(0,4)];
  for(const item of a.ITEMS.filter(i=>cases[i.id])){
-  a.setSack([item.id,'dagger','shield','salve','boots']);a.startFight();
+  a.setSack(uniqueSackFor(item.id));a.startFight();
   const initial=JSON.stringify(a.get());a.activate(0);assert.equal(JSON.stringify(a.get()),initial,item.id+' cannot activate without charge');
   a.setReady(0);a.activate(0);const state=a.get(),expected=cases[item.id];
   assert.deepEqual([state.pHP,state.eHP,state.pGuard],expected,item.id+' exact effects');
@@ -26,7 +27,7 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
  }
  a.setSack(['dagger','spear','longbow','rapier','hand-crossbow']);a.startFight();a.applyColor('red',5,'player');assert.equal(a.get().charges.red,5);assert.equal(a.reservoirCap('red'),31);assert.equal(a.get().eHP,19);await a.finish();
  a.setReady(2);a.activate(2);assert.equal(a.get().charges.red,0);await a.finish();
- a.setSack(['charm','seal','dagger','shield','boots']);a.startFight();a.setReady(0);a.activate(0);a.setReady(1);a.activate(1);assert.equal(a.get().charges.purple,10);
+ a.setSack(['charm','seal','dagger','shield','boots']);a.startFight();a.setReady(0);a.activate(0);a.setReady(0);a.activate(0);assert.equal(a.get().charges.purple,10,'Overdrive cannot be re-activated while primed');
  a.applyColor('red',3,'player');assert.equal(a.get().eHP,18);assert.equal(a.get().charges.red,6);assert.equal(a.get().overdrive,false);await a.finish();a.applyColor('red',3,'player');assert.equal(a.get().eHP,15);await a.finish();
  a.setSack(['boots','dagger','shield','salve','charm']);a.startFight();const b=Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));a.setBoard(b);a.setReady(0);a.activate(0);a.tapCell(0,0);a.tapCell(1,0);await new Promise(resolve=>setImmediate(resolve));assert.equal(a.get().freeSwap,false);assert.equal(a.get().board[0][0],'blue');assert.equal(a.get().board[0][1],'red');assert.equal(a.get().playerTurn,false);
  a.setSack(['dagger','shield','salve','boots','charm']);a.startFight();a.setReady(0);a.setGuard(4);a.activate(0);assert.equal(a.get().eHP,22);assert.equal(a.get().eGuard,0);await a.finish();
@@ -45,7 +46,7 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
  for(const color of ['red','blue','green','yellow','purple']){a.startFight();a.setEnemyReady(color);assert.equal(a.enemyUseActive(),color!=='green');if(color!=='green')assert(es.get('abilityName').textContent.length>0)}
 
  // Timed defenses, damage, healing and charge generation.
- const equip=id=>{a.setSack([id,'dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0)};
+ const equip=id=>{a.setSack(uniqueSackFor(id));a.startFight();a.setReady(0);a.activate(0)};
  equip('mist-mantle');a.damagePlayer(5);assert.equal(a.get().pHP,7);await a.finish();a.afterAction('enemy');assert.equal(a.get().buffs.dodge,1);a.afterAction('enemy');assert.equal(a.get().buffs.dodge,0);a.damagePlayer(5);assert.equal(a.get().pHP,2);await a.finish();
  equip('venom-needle');a.afterAction('enemy');assert.equal(a.get().eHP,22);a.afterAction('enemy');assert.equal(a.get().eHP,20);assert.equal(a.get().buffs.poison,0);await a.finish();
  equip('wayfarer-lyre');for(let i=0;i<3;i++)a.afterAction('enemy');assert.equal(a.get().pHP,16);assert.equal(a.get().buffs.regen,0);
