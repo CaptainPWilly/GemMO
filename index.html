@@ -131,7 +131,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 <div id="accountLoggedIn" class="accountBox" hidden>
   <small>LOGGED IN AS</small><h2 id="accountName"></h2>
   <div class="accountStats"><b id="accountLevel"></b><b id="accountXP"></b><b id="accountGold"></b></div>
-  <p>Session token is kept in this browser tab only. Sack and equipment changes sync to the account.</p>
+  <p>Your character lives on the account server. Log in from another device to load the same inventory, Sack, equipment, progression and world position. This tab only keeps an authentication session token.</p>
   <button class="accountButton" id="syncAccountBtn">SYNC NOW</button>
   <button class="accountButton" id="logoutBtn">LOG OUT</button>
 </div>
@@ -190,7 +190,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
   </ul>
 </div>
 </section>
-<section class="page settingsPage" id="settingsPage" hidden><header><button class="menuBack">← BACK</button></header><h1>Settings</h1><label class="setting"><input type="checkbox" id="motionToggle"> Reduce animation</label><p>Your device's reduced-motion preference is also respected.</p><label for="hintDelay">AUTOMATIC HINTS</label><select id="hintDelay"><option value="15000">After 15 seconds</option><option value="30000">After 30 seconds</option><option value="0">Off — no timer</option></select><p>Highlight a legal move after this much idle time on your turn. Off disables automatic hints.</p><label for="apiBase">ACCOUNT API</label><input id="apiBase" type="url" spellcheck="false" placeholder="http://127.0.0.1:8787"><p>Local default: http://127.0.0.1:8787. A public build must point this at the HTTPS account service.</p><p>Your Sack, equipment, inventory, and settings are saved in this browser when storage is available.</p></section>
+<section class="page settingsPage" id="settingsPage" hidden><header><button class="menuBack">← BACK</button></header><h1>Settings</h1><label class="setting"><input type="checkbox" id="motionToggle"> Reduce animation</label><p>Your device's reduced-motion preference is also respected.</p><label for="hintDelay">AUTOMATIC HINTS</label><select id="hintDelay"><option value="15000">After 15 seconds</option><option value="30000">After 30 seconds</option><option value="0">Off — no timer</option></select><p>Highlight a legal move after this much idle time on your turn. Off disables automatic hints.</p><label for="apiBase">ACCOUNT API</label><input id="apiBase" type="url" spellcheck="false" placeholder="http://127.0.0.1:8787"><p>Local default: http://127.0.0.1:8787. A public build must point this at the HTTPS account service.</p><p>Only device preferences are stored in this browser. Character progress, inventory, Sack, equipment, Gold/XP and world position live on your account server.</p></section>
 <button id="leaveFight" hidden>← WORLD</button>
 <div class="game" hidden>
   <div class="top">
@@ -242,7 +242,6 @@ const WORLD_ROAD=new Set(['1,7','2,6','3,5','4,4','5,3','6,2','2,5','2,4','1,3']
 const WORLD_TREES=[[0,6],[0,5],[1,5],[2,7],[3,7],[4,6],[5,6],[7,4],[7,3],[6,4],[4,2],[3,2],[2,2],[0,2],[8,2],[8,3],[7,1]];
 const WORLD_ROCKS=[[2,8],[4,7],[5,5],[6,5],[7,2],[3,1],[1,1]];
 let worldState={region:'brackenreach',currentNode:'camp'},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,activeEncounter=null,currentShop=null;
-try{const saved=localStorage.getItem('gemmo.worldNode');if(WORLD_NODES[saved])worldState.currentNode=saved}catch{}
 function worldCanTravel(from,to){return from===to||!!WORLD_NODES[from]?.neighbors.includes(to)}
 
 const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
@@ -528,9 +527,9 @@ function applyAccount(next){
  if(Array.isArray(next.inventory))inventory=next.inventory.filter(id=>gearById(id));
  if(next.world&&WORLD_NODES[next.world.currentNode]){worldState={region:next.world.region||'brackenreach',currentNode:next.world.currentNode};selectedWorldNode=worldState.currentNode}
  lastAccountSync=JSON.stringify({sack,equipment});
- saveLocalOnly();drawAccount();
+ drawAccount();
 }
-function saveLocalOnly(){try{localStorage.setItem('gemmo.sack.v1',JSON.stringify(sack));localStorage.setItem('gemmo.equipment.v1',JSON.stringify(equipment));localStorage.setItem('gemmo.inventory.v1',JSON.stringify(inventory));localStorage.setItem('gemmo.motionOff',String(motionOff));localStorage.setItem('gemmo.hintDelay',String(hintDelay));localStorage.setItem('gemmo.apiBase',apiBase);localStorage.setItem('gemmo.worldNode',worldState.currentNode)}catch{}}
+function saveDeviceSettings(){try{localStorage.setItem('gemmo.motionOff',String(motionOff));localStorage.setItem('gemmo.hintDelay',String(hintDelay));localStorage.setItem('gemmo.apiBase',apiBase)}catch{}}
 function scheduleAccountSync(){
  if(!accountToken||!account||account.needsStarter||!sackIsValid())return;
  clearTimeout(accountSyncTimer);accountSyncTimer=setTimeout(()=>void syncAccountLoadout(),250);
@@ -600,15 +599,12 @@ function animateWorldTravel(from,to){
  return new Promise(resolve=>{const start=performance.now(),duration=620;worldTravelAnim={from,to,progress:0};const step=now=>{worldTravelAnim.progress=Math.min(1,(now-start)/duration);drawWorld();if(worldTravelAnim.progress<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
 }
 async function travelWorld(nodeId){
- if(!worldCanTravel(worldState.currentNode,nodeId)||worldTravelAnim)return;
- const from=worldState.currentNode;let nextAccount=null;
- if(account){
-  try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId}});nextAccount=data.account}
-  catch(error){$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');return}
- }
+ if(!account||!accountToken||!worldCanTravel(worldState.currentNode,nodeId)||worldTravelAnim)return;
+ const from=worldState.currentNode;let nextAccount;
+ try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId}});nextAccount=data.account}
+ catch(error){$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');return}
  selectedWorldNode=nodeId;await animateWorldTravel(from,nodeId);
- if(nextAccount)applyAccount(nextAccount);else{worldState.currentNode=nodeId;saveLocalOnly()}
- selectedWorldNode=nodeId;drawWorld();
+ applyAccount(nextAccount);selectedWorldNode=nodeId;drawWorld();
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;showScreen('world');requestAnimationFrame(drawWorld)}
 function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.name,desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
@@ -624,7 +620,10 @@ async function buyShopItemClient(itemId){
  try{const data=await accountRequest('/v1/shop/buy',{method:'POST',body:{shopId:currentShop,itemId}});applyAccount(data.account);$('shopStatus').textContent='Purchased.';drawShop()}
  catch(error){$('shopStatus').textContent=error.message.replaceAll('_',' ')}
 }
-function clearAccountSession(){account=null;accountToken=null;lastAccountSync='';try{sessionStorage.removeItem('gemmo.session')}catch{}drawAccount()}
+function clearAccountSession(){
+ account=null;accountToken=null;lastAccountSync='';sack=Array(5).fill(null);equipment={...DEFAULT_EQUIPMENT};inventory=[];worldState={region:'brackenreach',currentNode:'camp'};selectedWorldNode='camp';currentShop=null;
+ try{sessionStorage.removeItem('gemmo.session')}catch{}drawAccount()
+}
 async function refreshAccount(){
  if(!accountToken)return false;
  try{const data=await accountRequest('/v1/account');applyAccount(data.account);return true}
@@ -643,17 +642,14 @@ async function submitAuth(mode){
  }catch(error){$('accountStatus').textContent=error.message==='invalid_username_or_password'?'Invalid username or password.':error.message.replaceAll('_',' ')}
 }
 async function logoutAccount(){try{if(accountToken)await accountRequest('/v1/auth/logout',{method:'POST'})}catch{}clearAccountSession();$('accountStatus').textContent='Logged out.'}
-function save(){saveLocalOnly();scheduleAccountSync()}
+function save(){saveDeviceSettings();scheduleAccountSync()}
 try{
  if(localStorage.getItem('gemmo.blankAccountReset.v1')!=='done'){
   localStorage.removeItem?.('gemmo.sack.v1');localStorage.removeItem?.('gemmo.equipment.v1');localStorage.removeItem?.('gemmo.inventory.v1');localStorage.removeItem?.('gemmo.worldNode');
   sessionStorage.removeItem?.('gemmo.session');accountToken=null;localStorage.setItem('gemmo.blankAccountReset.v1','done');
  }
 }catch{}
-try{const data=JSON.parse(localStorage.getItem('gemmo.sack.v1'));if(Array.isArray(data)&&data.length===5&&data.every(id=>id===null||itemById(id))){const seen=new Set();sack=data.map(id=>{if(!id||seen.has(id))return null;seen.add(id);return id})}
- const rawInventory=localStorage.getItem('gemmo.inventory.v1');if(rawInventory!==null){const savedInventory=JSON.parse(rawInventory);if(Array.isArray(savedInventory))inventory=[...new Set(savedInventory.filter(id=>gearById(id)))]}
- const savedEquipment=JSON.parse(localStorage.getItem('gemmo.equipment.v1'));if(savedEquipment&&typeof savedEquipment==='object'){const next={...DEFAULT_EQUIPMENT},used=new Set();for(const def of EQUIPMENT_SLOTS){const id=savedEquipment[def.id];if(id&&inventory.includes(id)&&gearById(id)?.slot===def.type&&!used.has(id)){next[def.id]=id;used.add(id)}}equipment=next}
- motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint)}catch{}
+try{motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint)}catch{}
 function showScreen(next){clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';screen=next;document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';if(next==='sack')drawSack();if(next==='inventory')drawInventory();if(next==='starter')drawStarter();if(next==='world')requestAnimationFrame(drawWorld);if(next==='shop')drawShop();if(next==='account'){drawAccount();if(accountToken&&!account)void refreshAccount()}if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!account.needsStarter&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}save()}
 function drawSack(){
  document.querySelector('.buildIdeas').hidden=!!account;
@@ -716,7 +712,7 @@ $('equipBuild').onclick=()=>{if(account)return;const builds={vanguard:['warhamme
 $('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
-$('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'http://127.0.0.1:8787';saveLocalOnly();$('accountStatus').textContent='Account API updated.'};
+$('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'http://127.0.0.1:8787';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
 $('historyBtn').onclick=()=>$('historyPanel').hidden=false;$('closeHistory').onclick=()=>$('historyPanel').hidden=true;$('leaveFight').onclick=leaveFight;$('resultMenu').onclick=leaveFight;
 
