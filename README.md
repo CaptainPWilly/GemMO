@@ -47,7 +47,7 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 Start at the splash screen, tap to enter the camp menu, and choose **SACK** to equip five items. All 50 items are unlocked. Select a slot, then select an item to replace it; the selection advances to the next slot. Any color mix and duplicate items are allowed. PLAY requires all five slots to be filled and starts a fresh Bandit fight.
 
-Red matches deal base damage and blue matches grant base Guard for every loadout. Charge from a matched color is divided equally between equipped items of that color, including full items; absent-color charge is lost. This preserves the total charge budget when stacking duplicate colors. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
+Red matches deal base damage and blue matches grant base Guard for every loadout. Each color has one shared charge reservoir whose capacity is the sum of all equipped item costs of that color. A match adds charge once to that pool; activating an item spends only its cost and preserves the remainder for any same-color item. Absent-color charge is lost. Each active replaces a board move. Overdrive cannot stack. The settings page offers reduced animation. Loadouts and settings persist locally when browser storage is available.
 
 These items are provisional sidegrades, not a verified competitive balance. The Godot prototype has not been updated to match the browser's new menu and item system.
 
@@ -103,3 +103,11 @@ These items are provisional sidegrades, not a verified competitive balance. The 
 | purple | Crystal Wand | Prism Ward | 5 | Gain 4 Guard. |
 | purple | Spell Tome | Runic Shelter | 7 | Gain 3 Guard and heal 2 HP. |
 | purple | Ritual Dagger | Warding Cut | 7 | Deal 3 damage and gain 3 Guard. |
+
+## Combat feedback and Wild rules
+
+The combat chronicle retains the latest 100 events for the current fight. Both fighters' abilities have a prominent last-ability banner and highlighted history entries. The reservoir strip shows each color's shared current charge and capacity. Environment tiles are stone octagons and XP tiles are cyan starbursts.
+
+Wilds substitute for any of the eight normal tile types in horizontal or vertical matches of three or more. A line must contain at least one normal tile; Wild-only lines do not match. Every matched cell is removed and credited at most once. At intersections, a Wild is credited to the first detected qualifying run (horizontal before vertical, normal type order). Four- and five-match rewards still apply. Swapping a Wild must make a legal match unless Quickstep is active; Wilds no longer erase colors or the whole board.
+
+When no legal swaps remain, the game explicitly logs a reshuffle, deals a fresh board, and preserves HP and reservoirs. Cascades, extra turns, and Wild creation are also logged.

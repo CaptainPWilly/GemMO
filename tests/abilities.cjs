@@ -1,7 +1,7 @@
 const fs=require('fs'),vm=require('vm'),assert=require('assert/strict');
 class El{constructor(){this.style={};this.children=[];this.dataset={};this.classList={add(){},remove(){}};this.textContent='';this.value='all'}set innerHTML(v){this.children=Array.from({length:(v.match(/<button/g)||[]).length},()=>new El());if(v.includes('<span'))this.firstElementChild=new El()}appendChild(e){this.children.push(e)}setAttribute(){}addEventListener(){}remove(){}getBoundingClientRect(){return {left:0,top:0,width:320,height:320}}animate(){return {finished:Promise.resolve(),cancel(){}}}}
 const es=new Map(),document={getElementById(id){if(!es.has(id))es.set(id,new El());return es.get(id)},createElement:()=>new El(),querySelectorAll:()=>[],querySelector:()=>new El()};
-let src=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];src=src.replace("showScreen('splash');",`globalThis.api={ITEMS,startFight,applyColor,activate,trySwap,tapCell,get:()=>({charges,sack,pHP,eHP,pGuard,eGuard,freeSwap,overdrive,playerTurn,board}),setHP:v=>pHP=v,setGuard:v=>eGuard=v,setBoard:v=>{board=v;render()},setTurn:v=>playerTurn=v,setSack:v=>sack=v,setReady:i=>{charges[i]=itemById(sack[i]).cap;playerTurn=true;pHP=10},finish:async()=>{await Promise.all(damageAnimations.splice(0))}};showScreen('splash');`);
+let src=fs.readFileSync(require('path').join(__dirname,'..','index.html'),'utf8').match(/<script>([\s\S]*?)<\/script>/)[1];src=src.replace("showScreen('splash');",`globalThis.api={ITEMS,findMatches,legalMoves,reservoirCap,enemyUseActive,setEnemyReady:color=>ec[color]=ENEMY[color].cap,startFight,applyColor,activate,trySwap,tapCell,get:()=>({charges,sack,pHP,eHP,pGuard,eGuard,freeSwap,overdrive,playerTurn,board}),setHP:v=>pHP=v,setGuard:v=>eGuard=v,setBoard:v=>{board=v;render()},setTurn:v=>playerTurn=v,setSack:v=>sack=v,setReady:i=>{charges[itemById(sack[i]).color]=itemById(sack[i]).cap;playerTurn=true;pHP=10},finish:async()=>{await Promise.all(damageAnimations.splice(0))}};showScreen('splash');`);
 const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem:()=>null,setItem(){}},setTimeout:()=>0,clearTimeout(){},console};vm.runInNewContext(src,c);const a=c.api;
 
 (async()=>{
@@ -13,18 +13,30 @@ const c={document,window:{matchMedia:()=>({matches:true})},localStorage:{getItem
   const initial=JSON.stringify(a.get());a.activate(0);assert.equal(JSON.stringify(a.get()),initial,item.id+' cannot activate without charge');
   a.setReady(0);a.activate(0);const state=a.get(),expected=cases[item.id];
   assert.deepEqual([state.pHP,state.eHP,state.pGuard],expected,item.id+' exact effects');
-  assert.equal(state.charges[0],0,item.id+' spends charge');
+  assert.equal(state.charges[item.color],0,item.id+' spends charge');
   assert.equal(state.playerTurn,item.id==='boots',item.id+' turn cost');
   assert.equal(state.freeSwap,item.id==='boots');assert.equal(state.overdrive,item.id==='charm');
   await a.finish();console.log('PASS '+item.item+' / '+item.name);
   if(['heal','shelter','leech','renew'].includes(item.kind)){a.startFight();a.setReady(0);a.setHP(23);a.activate(0);assert.equal(a.get().pHP,24,item.id+' healing cap');await a.finish()}
  }
- a.setSack(Array(5).fill('dagger'));a.startFight();a.applyColor('red',5,'player');assert(a.get().charges.every(n=>n===1));assert.equal(a.get().eHP,19);await a.finish();
- a.setReady(2);a.activate(2);assert.equal(a.get().charges[2],0);assert.equal(a.get().charges[1],1);await a.finish();
- a.setSack(['charm','charm','dagger','shield','boots']);a.startFight();a.setReady(0);a.activate(0);a.setReady(1);a.activate(1);assert.equal(a.get().charges[1],10);
- a.applyColor('red',3,'player');assert.equal(a.get().eHP,18);assert.equal(a.get().charges[2],6);assert.equal(a.get().overdrive,false);await a.finish();a.applyColor('red',3,'player');assert.equal(a.get().eHP,15);await a.finish();
+ a.setSack(Array(5).fill('dagger'));a.startFight();a.applyColor('red',5,'player');assert.equal(a.get().charges.red,5);assert.equal(a.reservoirCap('red'),35);assert.equal(a.get().eHP,19);await a.finish();
+ a.setReady(2);a.activate(2);assert.equal(a.get().charges.red,0);await a.finish();
+ a.setSack(['charm','charm','dagger','shield','boots']);a.startFight();a.setReady(0);a.activate(0);a.setReady(1);a.activate(1);assert.equal(a.get().charges.purple,10);
+ a.applyColor('red',3,'player');assert.equal(a.get().eHP,18);assert.equal(a.get().charges.red,6);assert.equal(a.get().overdrive,false);await a.finish();a.applyColor('red',3,'player');assert.equal(a.get().eHP,15);await a.finish();
  a.setSack(['boots','dagger','shield','salve','charm']);a.startFight();const b=Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));a.setBoard(b);a.setReady(0);a.activate(0);a.tapCell(0,0);a.tapCell(1,0);await new Promise(resolve=>setImmediate(resolve));assert.equal(a.get().freeSwap,false);assert.equal(a.get().board[0][0],'blue');assert.equal(a.get().board[0][1],'red');assert.equal(a.get().playerTurn,false);
  a.setSack(['dagger','shield','salve','boots','charm']);a.startFight();a.setReady(0);a.setGuard(4);a.activate(0);assert.equal(a.get().eHP,22);assert.equal(a.get().eGuard,0);await a.finish();
- a.startFight();assert(a.get().charges.every(n=>n===0));assert.equal(a.get().pHP,24);assert.equal(a.get().eHP,24);
- console.log('PASS: healing caps, duplicate charge sharing, independent slots, Overdrive multiplier/consumption, Quickstep non-match swap, Guard absorption, fresh fight reset.');
+ a.startFight();assert(Object.values(a.get().charges).every(n=>n===0));assert.equal(a.get().pHP,24);assert.equal(a.get().eHP,24);
+
+ // Shared pool keeps unspent charge; either item can spend it.
+ a.setSack(['dagger','axe','shield','salve','boots']);a.startFight();a.applyColor('red',99,'player');assert.equal(a.get().charges.red,16);assert.equal(a.reservoirCap('red'),16);await a.finish();
+ a.setHP(24);a.startFight();a.applyColor('red',12,'player');await a.finish();a.activate(1);assert.equal(a.get().charges.red,3);
+ a.startFight();a.applyColor('purple',3,'player');assert.equal(a.get().charges.purple,0);
+ const grid=()=>Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));
+ for(const type of ['red','blue','green','yellow','purple','gold','xp','env']){
+  const g=grid();g[0][0]=type;g[0][1]='wild';g[0][2]=type;a.setBoard(g);const m=a.findMatches();assert(m&&m.runs.some(r=>r.type===type&&r.len>=3),type+' accepts Wild');assert.equal(new Set(m.cells.map(p=>p.x+','+p.y)).size,m.cells.length,'Wild counted once');
+ }
+ const all=grid();all[0][0]=all[0][1]=all[0][2]='wild';all[0][3]='';a.setBoard(all);assert(!a.findMatches()?.runs.some(r=>r.cells.every(p=>p.y===0)&&r.cells.length===3),'all-Wild trio needs a real type');
+ a.startFight();const g=grid();g[0][0]='wild';a.setBoard(g);const before=JSON.stringify(a.get().board);const valid=await a.trySwap({x:0,y:0},{x:1,y:0},'player');assert.equal(valid,false);assert.equal(JSON.stringify(a.get().board),before,'invalid Wild swap reverts, never clears board');
+ for(const color of ['red','blue','green','yellow','purple']){a.startFight();a.setEnemyReady(color);assert.equal(a.enemyUseActive(),color!=='green');if(color!=='green')assert(es.get('abilityName').textContent.length>0)}
+ console.log('PASS: all 50 abilities, shared pool capacity/spending, Wild substitution for all 8 types, deduplicated matches, invalid Wild swaps, enemy announcements, healing caps and turn rules.');
 })().catch(e=>{console.error(e);process.exitCode=1});

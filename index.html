@@ -60,13 +60,25 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 #leaveFight{position:absolute;bottom:3px;left:12px;z-index:35;background:#272116;color:#d9c18d;border:0;font-size:8px;padding:3px}.foot{padding-left:45px}#leaveFight:disabled{opacity:.3}
 @media(max-width:360px){.page{padding-left:12px;padding-right:12px}.equip b{font-size:10px}.itemCard{padding:10px}.itemCard b{font-size:15px}}
 #itemSearch{width:100%;padding:12px;background:#231f16;color:#f4db9e;border:1px solid #695735;border-radius:4px;font:inherit;font-size:13px}#itemSearch::placeholder{color:#ab9a76}
+
+.gem.env{border-radius:0;clip-path:polygon(22% 0,78% 0,100% 25%,100% 75%,78% 100%,22% 100%,0 75%,0 25%);background:linear-gradient(135deg,#c7ba98,#6b725d);outline:0}
+.gem.xp{border-radius:0;clip-path:polygon(50% 0,63% 28%,90% 10%,72% 38%,100% 50%,72% 63%,90% 90%,62% 72%,50% 100%,38% 72%,10% 90%,28% 62%,0 50%,28% 38%,10% 10%,38% 28%);background:linear-gradient(135deg,#d9feff,#42c8e8)}
+.log{white-space:normal;font-size:10px;line-height:1.35;max-height:28px;overflow:hidden;margin-top:3px}.status{min-height:40px}
+.abilityBanner{background:linear-gradient(110deg,#594220,#282116);border:1px solid #d3ab5e;border-left:4px solid #f4d084;padding:7px 10px;border-radius:4px;flex-shrink:0}
+.abilityBanner small{display:block;font-size:8px;letter-spacing:2px;color:#eac78a}.abilityBanner strong{display:block;font:700 19px Georgia,serif;color:#ffe7b1;margin:2px 0}.abilityBanner span{display:block;font-size:9px;color:#e8d5b0}.abilityBanner.enemyAbility{border-color:#d87864;background:linear-gradient(110deg,#522c22,#282016)}
+.reservoirs{display:flex;gap:3px;justify-content:space-between;flex-shrink:0}.reservoirs span{font-size:7px;color:var(--c);border-bottom:2px solid var(--c);padding:3px 1px}.reservoirs b{color:#f1e3bd}
+.historyBtn{background:#2b2419;border:1px solid #6a5535;color:#d5bd8b;font-size:9px;padding:5px;border-radius:3px;flex-shrink:0}
+.historyPanel{position:absolute;inset:0;z-index:60;background:#191810;padding:18px;display:flex;flex-direction:column}.historyPanel header{display:flex;align-items:center;justify-content:space-between;gap:10px}.historyPanel h2{font:22px Georgia;color:#e9cf93}.historyPanel button{background:#3a2f1d;color:#edd9ae;border:1px solid #8c713f;padding:10px;font-size:9px}.historyPanel p{color:#baa77e;font-size:11px}
+#historyEntries{overflow-y:auto;min-height:0;flex:1}.historyEntry{padding:10px 7px;border-bottom:1px solid #403722;font-size:12px;line-height:1.5;color:#cbbd9c}.historyEntry.ability{font-size:15px;font-weight:bold;color:#ffe1a1;border-left:3px solid #e3bc6b;background:#362c1d}.historyEntry.system{color:#8fd8eb;border-left:3px solid #8fd8eb}
+.boardShell{width:min(100%,calc(100dvh - 370px));align-self:center;flex-shrink:0}.slots{margin-top:auto}.game{gap:5px}
+@media(max-height:730px){.boardShell{width:min(100%,calc(100dvh - 352px))}.abilityBanner{padding:4px 7px}.abilityBanner strong{font-size:16px}.abilityBanner span{font-size:8px}.status{min-height:35px}.historyBtn{padding:4px}}
 </style>
 </head>
 <body>
 <div class="app">
 <section class="page splashPage" id="splashPage"><div class="crest">◆</div><p class="eyebrow">IRON & EMBER</p><h1>GemMO</h1><p class="tagline">Five relics. One sack.<br>Make every match matter.</p><button class="primary" id="enterBtn">TAP TO START</button><small>COMBAT PROTOTYPE · ALL GEMS UNLOCKED</small></section>
 <section class="page menuPage" id="menuPage" hidden><p class="eyebrow">THE CAMPFIRE</p><h1>GemMO</h1><p class="tagline">Ready your sack.<br>The Bandit is waiting.</p><nav><button class="primary" id="playBtn">PLAY</button><button class="primary secondary" id="openSack">SACK</button><button class="primary secondary" id="openSettings">SETTINGS</button></nav><p id="sackSummary"></p><small>Fill all five slots to enter the arena.</small></section>
-<section class="page sackPage" id="sackPage" hidden><header><button class="menuBack">← BACK</button><span class="eyebrow">YOUR COLLECTION</span></header><h1>The Sack</h1><p>Five slots. 50 gems. Every color. All unlocked.</p><div id="loadout"></div><p id="equipHint" aria-live="polite"></p><button id="emptySlot">EMPTY SELECTED SLOT</button><details><summary>How your sack works</summary><p>Red matches deal damage; blue matches grant Guard for every build. A match's charge is shared equally by equipped gems of that color. Five reds each receive one fifth of the red charge—not five times the power. Unused-color charge is lost. Full gems still take their share. Every active uses your turn; Quickstep uses that turn for a swap. Overdrive cannot stack. These are provisional sidegrades for playtesting.</p></details><label for="itemSearch">SEARCH THE ARMORY</label><input id="itemSearch" type="search" placeholder="Weapon, ability, or effect…" autocomplete="off"><label for="colorFilter">FILTER BY COLOR</label><select id="colorFilter"><option value="all">All gems</option><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option></select><div id="collection"></div></section>
+<section class="page sackPage" id="sackPage" hidden><header><button class="menuBack">← BACK</button><span class="eyebrow">YOUR COLLECTION</span></header><h1>The Sack</h1><p>Five slots. 50 gems. Every color. All unlocked.</p><div id="loadout"></div><p id="equipHint" aria-live="polite"></p><button id="emptySlot">EMPTY SELECTED SLOT</button><details><summary>How your sack works</summary><p>Red matches deal damage; blue matches grant Guard for every build. Each color has one shared reservoir. Its capacity is the sum of all equipped items' costs in that color. Matching adds charge once; any item of that color can spend from it. For example, five 7-cost reds share a 35-point pool. Unused-color charge is lost. Wilds substitute for any tile in a line of 3 or more with at least one non-Wild tile; they never clear a color or the entire board. Every active uses your turn; Quickstep uses that turn for a swap. Overdrive cannot stack. These are provisional sidegrades for playtesting.</p></details><label for="itemSearch">SEARCH THE ARMORY</label><input id="itemSearch" type="search" placeholder="Weapon, ability, or effect…" autocomplete="off"><label for="colorFilter">FILTER BY COLOR</label><select id="colorFilter"><option value="all">All gems</option><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option></select><div id="collection"></div></section>
 <section class="page settingsPage" id="settingsPage" hidden><header><button class="menuBack">← BACK</button></header><h1>Settings</h1><label class="setting"><input type="checkbox" id="motionToggle"> Reduce animation</label><p>Your device's reduced-motion preference is also respected.</p><p>Your sack and this setting are saved in this browser when storage is available.</p></section>
 <button id="leaveFight" hidden>← CAMP</button>
 <div class="game" hidden>
@@ -76,11 +88,11 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
     <div class="right"><div class="name">BANDIT</div><div class="stats" id="estats">24 HP · 0 EVADE</div><div class="health" id="ehealth" role="progressbar" aria-label="Bandit health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div></div>
   </div>
   <div class="boardShell"><div class="board" id="board"></div></div>
-  <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>ENV: RIFT</span><span>MATCH 4: +TURN</span></div><div class="log" id="log">Same board. Your colors use your Sack.</div></div>
-  <div class="slots" id="slots"></div>
-  <div class="foot">TAP 2 ADJACENT GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
+  <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>ENV: RIFT</span><span>MATCH 4: +TURN</span></div><div class="log" id="log" role="status">Same board. Your colors use your Sack.</div></div>
+  <div id="abilityBanner" class="abilityBanner" aria-live="polite" hidden><small id="abilityActor"></small><strong id="abilityName"></strong><span id="abilityDetail"></span></div><div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
+  <button id="historyBtn" class="historyBtn">COMBAT LOG</button><div class="foot">TAP 2 ADJACENT GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
 </div>
-<div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
+<section id="historyPanel" class="historyPanel" hidden><header><h2>Combat chronicle</h2><button id="closeHistory">BACK TO FIGHT</button></header><p>Matches, abilities, cascades, and reshuffles. Oldest first.</p><div id="historyEntries" role="log" aria-live="off"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard"><h2>Combat Sacks</h2><p>The board generates randomly. A Sack contains no gem counts — it only defines what each color does for that fighter.</p><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Slash</div><div class="line" style="--c:var(--b)"><b></b>Blue — Guard</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>BANDIT SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">BACK TO FIGHT</button></div></div>
 <div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p>The arena awaits your next build.</p><button class="close" id="resultMenu">MAIN MENU</button></div></div>
 </div>
@@ -90,10 +102,10 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 const W=8,H=8;
 const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
 const WEIGHTS=[15,15,15,15,15,10,8,7];
-const ICON={red:'╱',blue:'◇',green:'+',yellow:'»',purple:'✦',gold:'$',xp:'★',env:'◈',wild:'W'};
+const ICON={red:'╱',blue:'◇',green:'+',yellow:'»',purple:'✦',gold:'$',xp:'✧',env:'⌁',wild:'W'};
 const ITEMS=[{"id":"dagger","color":"red","item":"Iron Dagger","name":"Heavy Slash","cap":7,"desc":"Deal 6 damage.","kind":"damage","power":6},{"id":"axe","color":"red","item":"Notched Axe","name":"Cleave","cap":9,"desc":"Deal 8 damage. Slower to charge.","kind":"damage","power":8},{"id":"spear","color":"red","item":"Ash Spear","name":"Jab & Brace","cap":7,"desc":"Deal 3 damage and gain 3 Guard.","kind":"hybrid","power":3},{"id":"arming-sword","color":"red","item":"Arming Sword","name":"Measured Cut","cap":8,"desc":"Deal 7 damage.","kind":"damage","power":7},{"id":"warhammer","color":"red","item":"Warhammer","name":"Crushing Blow","cap":11,"desc":"Deal 10 damage. Slow to charge.","kind":"damage","power":10},{"id":"longbow","color":"red","item":"Longbow","name":"Aimed Shot","cap":6,"desc":"Deal 5 damage.","kind":"damage","power":5},{"id":"rapier","color":"red","item":"Rapier","name":"Parry & Thrust","cap":7,"desc":"Deal 3 damage and gain 3 Guard.","kind":"hybrid","power":3},{"id":"halberd","color":"red","item":"Halberd","name":"Sweeping Edge","cap":10,"desc":"Deal 9 damage.","kind":"damage","power":9},{"id":"hand-crossbow","color":"red","item":"Hand Crossbow","name":"Snap Shot","cap":4,"desc":"Deal 3 damage. Quick, smaller attack.","kind":"damage","power":3},{"id":"flail","color":"red","item":"Spiked Flail","name":"Chain Strike","cap":9,"desc":"Deal 8 damage.","kind":"damage","power":8},{"id":"shield","color":"blue","item":"Oak Shield","name":"Brace","cap":7,"desc":"Gain 6 Guard.","kind":"guard","power":6},{"id":"buckler","color":"blue","item":"Iron Buckler","name":"Riposte","cap":7,"desc":"Gain 3 Guard and deal 3 damage.","kind":"hybrid","power":3},{"id":"ward","color":"blue","item":"Ward Stone","name":"Shelter","cap":7,"desc":"Gain 3 Guard and heal 2 HP.","kind":"shelter","power":0},{"id":"tower-shield","color":"blue","item":"Tower Shield","name":"Hold the Line","cap":11,"desc":"Gain 10 Guard. Slow to charge.","kind":"guard","power":10},{"id":"swordbreaker","color":"blue","item":"Swordbreaker","name":"Catch & Cut","cap":7,"desc":"Gain 3 Guard and deal 3 damage.","kind":"hybrid","power":3},{"id":"quarterstaff","color":"blue","item":"Quarterstaff","name":"Defensive Stance","cap":5,"desc":"Gain 4 Guard.","kind":"guard","power":4},{"id":"pavise","color":"blue","item":"Pavise","name":"Fortify","cap":9,"desc":"Gain 8 Guard.","kind":"guard","power":8},{"id":"war-pick","color":"blue","item":"War Pick","name":"Driving Point","cap":8,"desc":"Deal 7 damage.","kind":"damage","power":7},{"id":"kite-shield","color":"blue","item":"Kite Shield","name":"Sheltering Wing","cap":7,"desc":"Gain 3 Guard and heal 2 HP.","kind":"shelter","power":0},{"id":"hook-spear","color":"blue","item":"Hook Spear","name":"Keep at Bay","cap":8,"desc":"Gain 7 Guard.","kind":"guard","power":7},{"id":"salve","color":"green","item":"Herbal Salve","name":"Mend","cap":6,"desc":"Heal 5 HP, up to 24.","kind":"heal","power":5},{"id":"poultice","color":"green","item":"Field Poultice","name":"Patch Up","cap":4,"desc":"Heal 3 HP. Quick, smaller healing.","kind":"heal","power":3},{"id":"briar","color":"green","item":"Briar Ring","name":"Thorn Balm","cap":6,"desc":"Heal 2 HP and deal 3 damage.","kind":"leech","power":0},{"id":"sickle","color":"green","item":"Briar Sickle","name":"Harvest Balm","cap":6,"desc":"Heal 2 HP and deal 3 damage.","kind":"leech","power":0},{"id":"druid-staff","color":"green","item":"Druid Staff","name":"Verdant Renewal","cap":9,"desc":"Heal 8 HP, up to 24.","kind":"heal","power":8},{"id":"hunting-bow","color":"green","item":"Hunting Bow","name":"Hunter’s Mark","cap":7,"desc":"Deal 6 damage.","kind":"damage","power":6},{"id":"thorn-whip","color":"green","item":"Thorn Whip","name":"Briar Lash","cap":5,"desc":"Deal 4 damage.","kind":"damage","power":4},{"id":"grove-spear","color":"green","item":"Grove Spear","name":"Rooted Stance","cap":7,"desc":"Gain 3 Guard and heal 2 HP.","kind":"shelter","power":0},{"id":"woodland-club","color":"green","item":"Woodland Club","name":"Barkguard","cap":7,"desc":"Gain 6 Guard.","kind":"guard","power":6},{"id":"willow-wand","color":"green","item":"Willow Wand","name":"Little Mending","cap":3,"desc":"Heal 2 HP. Very quick, small healing.","kind":"heal","power":2},{"id":"boots","color":"yellow","item":"Worn Boots","name":"Quickstep","cap":6,"desc":"Make one adjacent swap, even without a match.","kind":"swap","power":0},{"id":"cloak","color":"yellow","item":"Travel Cloak","name":"Take Cover","cap":6,"desc":"Gain 5 Guard.","kind":"guard","power":5},{"id":"knife","color":"yellow","item":"Throwing Knife","name":"Quick Throw","cap":6,"desc":"Deal 5 damage.","kind":"damage","power":5},{"id":"twin-knives","color":"yellow","item":"Twin Knives","name":"Double Cut","cap":8,"desc":"Deal 7 damage.","kind":"damage","power":7},{"id":"light-crossbow","color":"yellow","item":"Light Crossbow","name":"Loose Bolt","cap":7,"desc":"Deal 6 damage.","kind":"damage","power":6},{"id":"sling","color":"yellow","item":"Leather Sling","name":"Stone Shot","cap":3,"desc":"Deal 2 damage. Very quick, small attack.","kind":"damage","power":2},{"id":"duelist-sabre","color":"yellow","item":"Duelist Sabre","name":"Countercut","cap":7,"desc":"Deal 3 damage and gain 3 Guard.","kind":"hybrid","power":3},{"id":"glaive","color":"yellow","item":"Scout’s Glaive","name":"Reach","cap":9,"desc":"Deal 8 damage.","kind":"damage","power":8},{"id":"parrying-dagger","color":"yellow","item":"Parrying Dagger","name":"Deflect","cap":4,"desc":"Gain 3 Guard.","kind":"guard","power":3},{"id":"javelin","color":"yellow","item":"Javelin","name":"Committed Throw","cap":10,"desc":"Deal 9 damage.","kind":"damage","power":9},{"id":"charm","color":"purple","item":"Rune Charm","name":"Overdrive","cap":10,"desc":"Double your next colored match once.","kind":"boost","power":0},{"id":"seal","color":"purple","item":"Ember Seal","name":"Rune Strike","cap":10,"desc":"Deal 8 damage.","kind":"damage","power":8},{"id":"relic","color":"purple","item":"Moon Relic","name":"Renewal","cap":10,"desc":"Heal 4 HP and gain 4 Guard.","kind":"renew","power":0},{"id":"rune-blade","color":"purple","item":"Rune Blade","name":"Etched Strike","cap":8,"desc":"Deal 7 damage.","kind":"damage","power":7},{"id":"hex-staff","color":"purple","item":"Hex Staff","name":"Arcane Bolt","cap":6,"desc":"Deal 5 damage.","kind":"damage","power":5},{"id":"relic-mace","color":"purple","item":"Relic Mace","name":"Sanctuary","cap":10,"desc":"Heal 4 HP and gain 4 Guard.","kind":"renew","power":0},{"id":"moon-scythe","color":"purple","item":"Moon Scythe","name":"Reap & Restore","cap":6,"desc":"Heal 2 HP and deal 3 damage.","kind":"leech","power":0},{"id":"crystal-wand","color":"purple","item":"Crystal Wand","name":"Prism Ward","cap":5,"desc":"Gain 4 Guard.","kind":"guard","power":4},{"id":"spell-tome","color":"purple","item":"Spell Tome","name":"Runic Shelter","cap":7,"desc":"Gain 3 Guard and heal 2 HP.","kind":"shelter","power":0},{"id":"ritual-dagger","color":"purple","item":"Ritual Dagger","name":"Warding Cut","cap":7,"desc":"Deal 3 damage and gain 3 Guard.","kind":"hybrid","power":3}];
 const DEFAULT_SACK=['dagger','shield','salve','boots','charm'];
-let sack=DEFAULT_SACK.slice(),charges=[0,0,0,0,0],screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
+let sack=DEFAULT_SACK.slice(),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
 const itemById=id=>ITEMS.find(i=>i.id===id);
 const ENEMY={
  red:{name:'BOLT',cap:7}, blue:{name:'EVADE',cap:7}, green:{name:'BANDAGE',cap:6}, yellow:{name:'RELOAD',cap:6}, purple:{name:'DEADEYE',cap:10}
@@ -106,16 +118,30 @@ function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(Math.rando
 function buildBoard(){board=[];for(let y=0;y<H;y++){let row=[];for(let x=0;x<W;x++){let k=roll(),tries=0;while(tries++<30&&((x>=2&&row[x-1]===k&&row[x-2]===k)||(y>=2&&board[y-1][x]===k&&board[y-2][x]===k)))k=roll();row.push(k)}board.push(row)}if(!legalMoves().length)return buildBoard();render()}
 function swap(a,b){[board[a.y][a.x],board[b.y][b.x]]=[board[b.y][b.x],board[a.y][a.x]]}
 function k(x,y){return x+','+y}
-function findMatches(){let cells=new Map(),runs=[];for(let y=0;y<H;y++){for(let x=0;x<W;){let type=board[y][x];if(!type||type==='wild'){x++;continue}let e=x+1;while(e<W&&board[y][e]===type)e++;if(e-x>=3){let r=[];for(let xx=x;xx<e;xx++){let p={x:xx,y};cells.set(k(xx,y),p);r.push(p)}runs.push({type,len:e-x,cells:r})}x=e}}for(let x=0;x<W;x++){for(let y=0;y<H;){let type=board[y][x];if(!type||type==='wild'){y++;continue}let e=y+1;while(e<H&&board[e][x]===type)e++;if(e-y>=3){let r=[];for(let yy=y;yy<e;yy++){let p={x,y:yy};cells.set(k(x,yy),p);r.push(p)}runs.push({type,len:e-y,cells:r})}y=e}}return cells.size?{cells:[...cells.values()],runs}:null}
-function legalMoves(){let list=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){let a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){let nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;let b={x:nx,y:ny};if(board[y][x]==='wild'||board[ny][nx]==='wild'){list.push([a,b]);continue}swap(a,b);if(findMatches())list.push([a,b]);swap(a,b)}}return list}
+function findMatches(){
+ const cells=new Map(),runs=[];
+ function scan(line){
+  for(const type of TYPES){
+   let run=[];
+   const flush=()=>{if(run.length>=3&&run.some(p=>board[p.y][p.x]===type)){
+    runs.push({type,len:run.length,cells:run.slice()});
+    for(const p of run){const key=k(p.x,p.y);if(!cells.has(key))cells.set(key,{...p,type:board[p.y][p.x]==='wild'?type:board[p.y][p.x]})}
+   }run=[]};
+   for(const p of line){const t=board[p.y][p.x];if(t===type||t==='wild')run.push(p);else flush()}flush();
+  }
+ }
+ for(let y=0;y<H;y++)scan(Array.from({length:W},(_,x)=>({x,y})));
+ for(let x=0;x<W;x++)scan(Array.from({length:H},(_,y)=>({x,y})));
+ return cells.size?{cells:[...cells.values()],runs}:null
+}
+function reservoirCap(color){return sack.reduce((sum,id)=>sum+(itemById(id)?.color===color?itemById(id).cap:0),0)}
+function legalMoves(){let list=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){let a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){let nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;let b={x:nx,y:ny};swap(a,b);if(findMatches())list.push([a,b]);swap(a,b)}}return list}
 function damageEnemy(n){let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
 function damagePlayer(n){let blocked=Math.min(pGuard,n);pGuard-=blocked;pHP-=n-blocked;damageFlight('p',n-blocked,blocked)}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  const colored=['red','blue','green','yellow','purple'].includes(type),mult=overdrive&&colored?2:1;
- const equipped=sack.map((id,i)=>({item:itemById(id),i})).filter(v=>v.item.color===type);
- // One shared charge budget per color: stacking adds choices, never multiplies income.
- for(const {item,i} of equipped)charges[i]=Math.min(item.cap,charges[i]+n*mult/equipped.length);
+ if(colored){const cap=reservoirCap(type),before=charges[type];charges[type]=Math.min(cap,charges[type]+n*mult);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+' ('+charges[type]+'/'+cap+')')}
  if(type==='red'){damageEnemy(n*mult);notes.push('Strike '+n*mult)}
  if(type==='blue'){pGuard+=n*mult;notes.push('Guard +'+n*mult)}
  if(mult===2){overdrive=false;notes.push('Overdrive ×2')}
@@ -131,11 +157,11 @@ function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  if(notes.length)setLog((actor==='player'?'You':'Bandit')+': '+notes.join(' • '));
 }
 function enemyUseActive(){
- if(ec.purple>=ENEMY.purple.cap){ec.purple=0;damagePlayer(6);setLog('Bandit uses DEADEYE: 6 damage.');playerTurn=true;render();checkEnd();return true}
- if(ec.green>=ENEMY.green.cap&&eHP<=18){ec.green=0;eHP=Math.min(24,eHP+5);setLog('Bandit uses BANDAGE: +5 HP.');playerTurn=true;render();return true}
- if(ec.red>=ENEMY.red.cap){ec.red=0;damagePlayer(5);setLog('Bandit uses QUICK SHOT: 5 damage.');playerTurn=true;render();checkEnd();return true}
- if(ec.blue>=ENEMY.blue.cap&&eGuard<=2){ec.blue=0;eGuard+=6;setLog('Bandit uses SIDESTEP: +6 Evade.');playerTurn=true;render();return true}
- if(ec.yellow>=ENEMY.yellow.cap){ec.yellow=0;enemyReload=true;setLog('Bandit uses RELOAD: next Bolt +2.');playerTurn=true;render();return true}
+ if(ec.purple>=ENEMY.purple.cap){ec.purple=0;damagePlayer(6);announceAbility('Bandit','DEADEYE','6 damage.');playerTurn=true;render();checkEnd();return true}
+ if(ec.green>=ENEMY.green.cap&&eHP<=18){ec.green=0;eHP=Math.min(24,eHP+5);announceAbility('Bandit','BANDAGE','+5 HP.');playerTurn=true;render();return true}
+ if(ec.red>=ENEMY.red.cap){ec.red=0;damagePlayer(5);announceAbility('Bandit','QUICK SHOT','5 damage.');playerTurn=true;render();checkEnd();return true}
+ if(ec.blue>=ENEMY.blue.cap&&eGuard<=2){ec.blue=0;eGuard+=6;announceAbility('Bandit','SIDESTEP','+6 Evade.');playerTurn=true;render();return true}
+ if(ec.yellow>=ENEMY.yellow.cap){ec.yellow=0;enemyReload=true;announceAbility('Bandit','RELOAD','next Bolt +2.');playerTurn=true;render();return true}
  return false
 }
 
@@ -181,36 +207,30 @@ async function fallColumns(){
  const missing=H-kept.length;for(let y=H-1,i=0;y>=0;y--,i++){const entry=kept[i];board[y][x]=entry?entry.type:roll();const from=entry?entry.from:y-missing;if(from!==y)falling.push({x,y,from})}}
  render();const step=cellAt({x:0,y:1}).getBoundingClientRect().top-cellAt({x:0,y:0}).getBoundingClientRect().top;
  await Promise.all(falling.map(p=>animate(cellAt(p).firstElementChild,[{transform:'translate3d(0,'+((p.from-p.y)*step)+'px,0) rotate(45deg)',opacity:p.from<0?0:1},{transform:'translate3d(0,3px,0) rotate(45deg) scale(1.04,.96)',opacity:1,offset:.78},{transform:'translate3d(0,-1px,0) rotate(45deg)',opacity:1,offset:.9},{transform:'translate3d(0,0,0) rotate(45deg)',opacity:1}],{duration:280+Math.sqrt(p.y-p.from)*55,delay:p.x*9,easing:'cubic-bezier(.33,0,.67,1)'})));
- if(!legalMoves().length)buildBoard();
+ if(!legalMoves().length){setLog('RESHUFFLE: no legal swaps remain. A fresh board is dealt; HP and charge are kept.','system');buildBoard()};
 }
 
-async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};for(const p of matches.cells){let type=board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
- render();await popCells(matches.cells);
- for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>board[p.y][p.x]===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
- for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog(logEl.textContent+' • WILD FORGED')}if(match4&&actor==='player'){extraTurn=true;setLog(logEl.textContent+' • +TURN')}
+async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};for(const p of matches.cells){let type=p.type||board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
+ render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
+ for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
+ for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
  await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
-async function wildSwap(a,b,actor){busy=true;render();let wp=board[a.y][a.x]==='wild'?a:b,op=wp===a?b:a,type=board[op.y][op.x],cells=[];
-for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(type==='wild'||board[y][x]===type||(x===wp.x&&y===wp.y))cells.push({x,y});
-await popCells(cells);effectOrigin=center(cellAt(wp));
-if(type==='wild'){for(const p of cells)board[p.y][p.x]='';setLog('Double Wild fractures the board.')}
-else{for(const p of cells)board[p.y][p.x]='';applyColor(type,cells.length-1,actor,0);setLog(logEl.textContent+' • Wild consumed '+type.toUpperCase())}
-effectOrigin=null;await fallColumns();await Promise.all(damageAnimations.splice(0));busy=false;checkEnd();if(pHP>0&&eHP>0)afterAction(actor)}
 async function trySwap(a,b,actor,force=false){
  if(busy)return false;busy=true;
- const wild=board[a.y][a.x]==='wild'||board[b.y][b.x]==='wild';
+
  await swapMotion(a,b);swap(a,b);
- if(wild){await wildSwap(a,b,actor);return true}
+
  const m=findMatches();
  if(!m&&!force){swap(a,b);await swapMotion(a,b,true);setLog('That swap makes no match.');busy=false;render();return false}
  if(m)await resolve(m,actor,b,0);else{busy=false;setLog('Quickstep repositions the board.');afterAction(actor);render()}return true
 }
 function collapse(){for(let x=0;x<W;x++){let kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push(board[y][x]);let i=0;for(let y=H-1;y>=0;y--)board[y][x]=i<kept.length?kept[i++]:roll()}if(!legalMoves().length)buildBoard()}
-function afterAction(actor){if(actor==='player'){if(extraTurn){extraTurn=false;playerTurn=true;setLog(logEl.textContent+' • You keep the turn.')}else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}}else playerTurn=true;render();checkEnd()}
+function afterAction(actor){if(actor==='player'){if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}}else playerTurn=true;render();checkEnd()}
 function activate(index){
  if(screen!=='fight'||!playerTurn||busy||freeSwap||pHP<=0||eHP<=0)return;
- const spec=itemById(sack[index]);if(charges[index]+.00001<spec.cap){setLog(spec.name+' needs '+Math.ceil(spec.cap-charges[index])+' more charge.');return}
+ const spec=itemById(sack[index]);if(charges[spec.color]<spec.cap){setLog(spec.name+' needs '+spec.cap-charges[spec.color]+' more charge.');return}
  if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
- charges[index]=0;effectOrigin=center($('slots').children[index]);
+ charges[spec.color]-=spec.cap;effectOrigin=center($('slots').children[index]);
  if(spec.kind==='damage')damageEnemy(spec.power);
  if(spec.kind==='guard')pGuard+=spec.power;
  if(spec.kind==='heal')pHP=Math.min(24,pHP+spec.power);
@@ -219,19 +239,33 @@ function activate(index){
  if(spec.kind==='leech'){pHP=Math.min(24,pHP+2);damageEnemy(3)}
  if(spec.kind==='renew'){pHP=Math.min(24,pHP+4);pGuard+=4}
  if(spec.kind==='boost')overdrive=true;
- effectOrigin=null;setLog(spec.name.toUpperCase()+': '+spec.desc);
+ effectOrigin=null;announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.');
  if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player');
  checkEnd();render();
 }
-function enemyMove(){if(screen!=='fight'||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){buildBoard();playerTurn=true;return}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
+function enemyMove(){if(screen!=='fight'||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){setLog('RESHUFFLE: the Bandit has no legal swaps. A fresh board is dealt; HP and charge are kept.','system');buildBoard();playerTurn=true;render();return}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
 function tapCell(x,y){if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
 function checkEnd(){if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);$('resultTitle').textContent=eHP<=0?'VICTORY':'DEFEAT';$('result').classList.add('show');render()}}
-function setLog(s){logEl.textContent=s}
+let combatHistory=[],logSequence=0;
+function setLog(message,kind='event'){
+ logEl.textContent=message;
+ combatHistory.push({message,kind,seq:++logSequence});if(combatHistory.length>100)combatHistory.shift();
+ const entry=document.createElement('div');entry.className='historyEntry '+kind;entry.textContent=logSequence+' · '+message;$('historyEntries').appendChild(entry);
+ while($('historyEntries').children.length>100)$('historyEntries').firstElementChild.remove();
+ $('historyEntries').scrollTop=$('historyEntries').scrollHeight;
+}
+function announceAbility(actor,name,description){
+ $('abilityBanner').hidden=false;$('abilityBanner').className='abilityBanner '+(actor==='Bandit'?'enemyAbility':'');
+ $('abilityActor').textContent=actor==='Bandit'?'LAST ABILITY · BANDIT':'LAST ABILITY · YOU';$('abilityName').textContent=name.toUpperCase();$('abilityDetail').textContent=description;
+ setLog(actor+' uses '+name.toUpperCase()+' — '+description,'ability');
+ void animate($('abilityBanner'),[{transform:'translateY(6px) scale(.97)',opacity:.4},{transform:'translateY(0) scale(1)',opacity:1}],{duration:220,easing:'ease-out'});
+}
 function flash(){let f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function render(){boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.setAttribute('aria-label',(type||'Empty')+' gem, row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>tapCell(x,y));boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold;$('xp').textContent='XP '+xp;$('turnText').textContent=freeSwap?'QUICKSTEP':(playerTurn?'YOUR MOVE':'BANDIT MOVES');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side)}$('leaveFight').disabled=busy||!playerTurn||pendingHP.p>0||pendingHP.e>0;renderSlots()}
 function renderSlots(){
- $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id),ready=charges[i]+.00001>=v.cap;return '<button class="slot '+(ready?'ready':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(ready?'USE':Math.floor(charges[i]*10)/10+'/'+v.cap)+'</div></button>'}).join('');
+ $('reservoirs').innerHTML=['red','blue','green','yellow','purple'].map(color=>'<span style="--c:var(--'+color[0]+')">'+color.toUpperCase()+' <b>'+charges[color]+'/'+reservoirCap(color)+'</b></span>').join('');
+ $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id),ready=charges[v.color]>=v.cap;return '<button class="slot '+(ready?'ready':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(ready?'USE · '+v.cap:charges[v.color]+' / '+v.cap)+'</div></button>'}).join('');
  document.querySelectorAll('.slot').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)));
 }
 $('sacksBtn').onclick=()=>{document.querySelector('.sackGrid .sack').innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+v.item+' — '+v.name+'</div>'}).join('');$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
@@ -249,15 +283,15 @@ function drawSack(){
 function startFight(){
  if(sack.some(id=>!itemById(id)))return;
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;
- pHP=eHP=24;pGuard=eGuard=gold=xp=0;charges=[0,0,0,0,0];ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=shownHP.e=24;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
- $('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');showScreen('fight');buildBoard();setLog('Your Sack is ready. Challenge the Bandit.');render();
+ pHP=eHP=24;pGuard=eGuard=gold=xp=0;charges={red:0,blue:0,green:0,yellow:0,purple:0};ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=shownHP.e=24;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
+ $('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];logSequence=0;$('historyEntries').innerHTML='';$('historyPanel').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');buildBoard();setLog('Your Sack is ready. Challenge the Bandit.');render();
 }
-function leaveFight(){if(busy||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);$('result').classList.remove('show');$('modal').classList.remove('show');showScreen('menu')}
+function leaveFight(){if(busy||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);$('historyPanel').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');showScreen('menu')}
 $('enterBtn').onclick=()=>showScreen('menu');$('playBtn').onclick=startFight;$('openSack').onclick=()=>showScreen('sack');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen('menu'));
 $('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
-$('leaveFight').onclick=leaveFight;$('resultMenu').onclick=leaveFight;
+$('historyBtn').onclick=()=>$('historyPanel').hidden=false;$('closeHistory').onclick=()=>$('historyPanel').hidden=true;$('leaveFight').onclick=leaveFight;$('resultMenu').onclick=leaveFight;
 showScreen('splash');
 })();
 </script>
