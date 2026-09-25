@@ -21,4 +21,10 @@ const GEAR=Object.freeze({
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
 const STARTER_GEMS=Object.freeze({red:'dagger',blue:'shield',green:'salve',yellow:'boots',purple:'charm'});
 const STARTER_GEM_SET=new Set(Object.values(STARTER_GEMS));
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET};
+const WORLD_NODES=Object.freeze({
+  camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['crossroads']},
+  crossroads:{id:'crossroads',name:'Old Crossroads',kind:'road',neighbors:['camp','shrine','bandit-pass']},
+  shrine:{id:'shrine',name:'Broken Shrine',kind:'landmark',neighbors:['crossroads']},
+  'bandit-pass':{id:'bandit-pass',name:'Bandit Toll',kind:'encounter',encounter:'bandit',neighbors:['crossroads']}
+});
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES};
