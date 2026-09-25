@@ -52,6 +52,10 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/account',{token});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'CorrectHorseBattery!42'}});assert.equal(r.status,200);
+    assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
+    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');
+    assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');
+    assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
