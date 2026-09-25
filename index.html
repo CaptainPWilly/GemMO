@@ -46,11 +46,29 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .shard{position:absolute;width:5px;height:5px;border-radius:1px;pointer-events:none;box-shadow:0 0 5px currentColor}
 .damageSpark{width:10px;height:10px;border-radius:50%;background:#fff2c5;box-shadow:0 0 8px #ffd278,0 0 16px #ed7248}
 @media(prefers-reduced-motion:reduce){.healthFill{transition:none}.wild{animation:none}}
+
+[hidden]{display:none!important}
+.page{position:absolute;inset:0;overflow-y:auto;padding:28px 20px calc(24px + env(safe-area-inset-bottom));background:radial-gradient(ellipse at top,#433322,#181813 65%);z-index:50}
+.page h1{font:normal 42px Georgia,serif;color:#f4db9e;margin:16px 0}.page p{font-size:12px;line-height:1.65;color:#c7b995}.page small{font-size:9px;color:#a99b7d}
+.splashPage,.menuPage{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}.splashPage h1,.menuPage h1{font-size:72px;letter-spacing:-4px;margin:4px 0 20px}
+.crest{font-size:74px;color:#d6b36d;text-shadow:0 0 40px #bc813b77}.eyebrow{font-size:9px;letter-spacing:3px;color:#d8b975}.tagline{margin-bottom:30px!important}
+.primary{display:block;width:min(280px,80vw);padding:16px;margin:10px 0;border:1px solid #b99959;background:linear-gradient(#69502c,#382d1b);color:#ffeac1;font-size:12px;font-weight:800;letter-spacing:3px;border-radius:5px}.primary.secondary{background:#221f17}.primary:disabled{opacity:.35}.page header{display:flex;align-items:center;justify-content:space-between}.page header button,#emptySlot{background:transparent;border:1px solid #695735;color:#d8c49c;padding:9px;border-radius:4px;font-size:10px}
+#loadout{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}.equip{background:#211e17;border:1px solid #695735;color:#daccab;min-height:85px;border-radius:5px;padding:7px 3px}.equip.chosen{border-color:#f4d58d;box-shadow:0 0 0 1px #f4d58d}.equip b{display:block;font:12px Georgia,serif;margin:7px 0}.equip span{font-size:8px;text-transform:uppercase}.equip small{font-size:7px}
+#equipHint{min-height:38px}.page details{margin:18px 0;color:#d6bf90;font-size:12px}.page label[for]{display:block;font-size:9px;letter-spacing:2px;margin:20px 0 8px}.page select{width:100%;padding:10px;background:#231f16;color:#f4db9e;border:1px solid #695735;border-radius:4px}
+#collection{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.itemCard{text-align:left;background:linear-gradient(145deg,#332c20,#201e17);border:1px solid #655537;border-top:2px solid var(--c);border-radius:7px;padding:13px;color:#e8d8b8;min-height:196px}.itemCard b{display:block;font:17px Georgia,serif;margin:10px 0 5px}.itemCard strong{font-size:10px;color:var(--c)}.itemCard p{font-size:11px;min-height:48px;margin:8px 0}.itemCard em{font-style:normal;font-size:9px;color:#dfc181}.itemCard small{font-size:8px}.itemGem{display:block;width:19px;height:19px;transform:rotate(45deg);border-radius:4px;margin:0 0 14px;box-shadow:inset 2px 2px #fff5}
+.setting{display:flex;gap:12px;align-items:center;margin:24px 0;font-size:15px}.setting input{width:22px;height:22px;accent-color:#d6b36d}
+#leaveFight{position:absolute;bottom:3px;left:12px;z-index:35;background:#272116;color:#d9c18d;border:0;font-size:8px;padding:3px}.foot{padding-left:45px}#leaveFight:disabled{opacity:.3}
+@media(max-width:360px){.page{padding-left:12px;padding-right:12px}.equip b{font-size:10px}.itemCard{padding:10px}.itemCard b{font-size:15px}}
 </style>
 </head>
 <body>
 <div class="app">
-<div class="game">
+<section class="page splashPage" id="splashPage"><div class="crest">◆</div><p class="eyebrow">IRON & EMBER</p><h1>GemMO</h1><p class="tagline">Five relics. One sack.<br>Make every match matter.</p><button class="primary" id="enterBtn">TAP TO START</button><small>COMBAT PROTOTYPE · ALL GEMS UNLOCKED</small></section>
+<section class="page menuPage" id="menuPage" hidden><p class="eyebrow">THE CAMPFIRE</p><h1>GemMO</h1><p class="tagline">Ready your sack.<br>The Bandit is waiting.</p><nav><button class="primary" id="playBtn">PLAY</button><button class="primary secondary" id="openSack">SACK</button><button class="primary secondary" id="openSettings">SETTINGS</button></nav><p id="sackSummary"></p><small>Fill all five slots to enter the arena.</small></section>
+<section class="page sackPage" id="sackPage" hidden><header><button class="menuBack">← BACK</button><span class="eyebrow">YOUR COLLECTION</span></header><h1>The Sack</h1><p>Five slots. Any colors. Every gem unlocked.</p><div id="loadout"></div><p id="equipHint" aria-live="polite"></p><button id="emptySlot">EMPTY SELECTED SLOT</button><details><summary>How your sack works</summary><p>Red matches deal damage; blue matches grant Guard for every build. A match's charge is shared equally by equipped gems of that color. Five reds each receive one fifth of the red charge—not five times the power. Unused-color charge is lost. Full gems still take their share. Every active uses your turn; Quickstep uses that turn for a swap. Overdrive cannot stack. These are provisional sidegrades for playtesting.</p></details><label for="colorFilter">FILTER BY COLOR</label><select id="colorFilter"><option value="all">All gems</option><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option></select><div id="collection"></div></section>
+<section class="page settingsPage" id="settingsPage" hidden><header><button class="menuBack">← BACK</button></header><h1>Settings</h1><label class="setting"><input type="checkbox" id="motionToggle"> Reduce animation</label><p>Your device's reduced-motion preference is also respected.</p><p>Your sack and this setting are saved in this browser when storage is available.</p></section>
+<button id="leaveFight" hidden>← CAMP</button>
+<div class="game" hidden>
   <div class="top">
     <div><div class="name">YOU</div><div class="stats" id="pstats">24 HP · 0 GUARD</div><div class="health" id="phealth" role="progressbar" aria-label="Your health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="pfill"></div></div></div>
     <div class="turn"><div id="turnText">YOUR MOVE</div><small>ONE BOARD · TWO SACKS</small><button class="sacksBtn" id="sacksBtn">VIEW SACKS</button></div>
@@ -63,7 +81,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 </div>
 <div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard"><h2>Combat Sacks</h2><p>The board generates randomly. A Sack contains no gem counts — it only defines what each color does for that fighter.</p><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Slash</div><div class="line" style="--c:var(--b)"><b></b>Blue — Guard</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>BANDIT SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">BACK TO FIGHT</button></div></div>
-<div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p>Refresh to rematch.</p></div></div>
+<div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p>The arena awaits your next build.</p><button class="close" id="resultMenu">MAIN MENU</button></div></div>
 </div>
 <script>
 (()=>{
@@ -72,19 +90,16 @@ const W=8,H=8;
 const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
 const WEIGHTS=[15,15,15,15,15,10,8,7];
 const ICON={red:'╱',blue:'◇',green:'+',yellow:'»',purple:'✦',gold:'$',xp:'★',env:'◈',wild:'W'};
-const PLAYER={
- red:{item:'Iron Dagger',name:'SLASH',cap:7,effect:'MATCH: DAMAGE',active:'HEAVY SLASH'},
- blue:{item:'Oak Shield',name:'GUARD',cap:7,effect:'MATCH: GUARD',active:'BRACE'},
- green:{item:'Herbal Salve',name:'MEND',cap:6,effect:'MATCH: CHARGE',active:'HEAL 5'},
- yellow:{item:'Worn Boots',name:'QUICKSTEP',cap:6,effect:'MATCH: CHARGE',active:'FREE SWAP'},
- purple:{item:'Rune Charm',name:'OVERDRIVE',cap:10,effect:'MATCH: CHARGE',active:'NEXT ×2'}
-};
+const ITEMS=[{"id":"dagger","color":"red","item":"Iron Dagger","name":"Heavy Slash","cap":7,"desc":"Deal 6 damage.","kind":"damage","power":6},{"id":"axe","color":"red","item":"Notched Axe","name":"Cleave","cap":9,"desc":"Deal 8 damage. Slower to charge.","kind":"damage","power":8},{"id":"spear","color":"red","item":"Ash Spear","name":"Jab & Brace","cap":7,"desc":"Deal 3 damage and gain 3 Guard.","kind":"hybrid","power":3},{"id":"shield","color":"blue","item":"Oak Shield","name":"Brace","cap":7,"desc":"Gain 6 Guard.","kind":"guard","power":6},{"id":"buckler","color":"blue","item":"Iron Buckler","name":"Riposte","cap":7,"desc":"Gain 3 Guard and deal 3 damage.","kind":"hybrid","power":3},{"id":"ward","color":"blue","item":"Ward Stone","name":"Shelter","cap":7,"desc":"Gain 3 Guard and heal 2 HP.","kind":"shelter","power":0},{"id":"salve","color":"green","item":"Herbal Salve","name":"Mend","cap":6,"desc":"Heal 5 HP, up to 24.","kind":"heal","power":5},{"id":"poultice","color":"green","item":"Field Poultice","name":"Patch Up","cap":4,"desc":"Heal 3 HP. Quick, smaller healing.","kind":"heal","power":3},{"id":"briar","color":"green","item":"Briar Ring","name":"Thorn Balm","cap":6,"desc":"Heal 2 HP and deal 3 damage.","kind":"leech","power":0},{"id":"boots","color":"yellow","item":"Worn Boots","name":"Quickstep","cap":6,"desc":"Make one adjacent swap, even without a match.","kind":"swap","power":0},{"id":"cloak","color":"yellow","item":"Travel Cloak","name":"Take Cover","cap":6,"desc":"Gain 5 Guard.","kind":"guard","power":5},{"id":"knife","color":"yellow","item":"Throwing Knife","name":"Quick Throw","cap":6,"desc":"Deal 5 damage.","kind":"damage","power":5},{"id":"charm","color":"purple","item":"Rune Charm","name":"Overdrive","cap":10,"desc":"Double your next colored match once.","kind":"boost","power":0},{"id":"seal","color":"purple","item":"Ember Seal","name":"Rune Strike","cap":10,"desc":"Deal 8 damage.","kind":"damage","power":8},{"id":"relic","color":"purple","item":"Moon Relic","name":"Renewal","cap":10,"desc":"Heal 4 HP and gain 4 Guard.","kind":"renew","power":0}];
+const DEFAULT_SACK=['dagger','shield','salve','boots','charm'];
+let sack=DEFAULT_SACK.slice(),charges=[0,0,0,0,0],screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
+const itemById=id=>ITEMS.find(i=>i.id===id);
 const ENEMY={
  red:{name:'BOLT',cap:7}, blue:{name:'EVADE',cap:7}, green:{name:'BANDAGE',cap:6}, yellow:{name:'RELOAD',cap:6}, purple:{name:'DEADEYE',cap:10}
 };
 let board=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=false,overdrive=false,enemyReload=false;
 let pHP=24,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
-let pc={red:0,blue:0,green:0,yellow:0,purple:0},ec={red:0,blue:0,green:0,yellow:0,purple:0};
+let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(Math.random()*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function buildBoard(){board=[];for(let y=0;y<H;y++){let row=[];for(let x=0;x<W;x++){let k=roll(),tries=0;while(tries++<30&&((x>=2&&row[x-1]===k&&row[x-2]===k)||(y>=2&&board[y-1][x]===k&&board[y-2][x]===k)))k=roll();row.push(k)}board.push(row)}if(!legalMoves().length)return buildBoard();render()}
@@ -96,10 +111,12 @@ function damageEnemy(n){let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-bl
 function damagePlayer(n){let blocked=Math.min(pGuard,n);pGuard-=blocked;pHP-=n-blocked;damageFlight('p',n-blocked,blocked)}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
- let mult=(overdrive&&['red','blue','green','yellow','purple'].includes(type))?2:1;
- if(['red','blue','green','yellow','purple'].includes(type))charge(pc,type,n*mult,PLAYER[type].cap);
- if(type==='red'){let dm=n*mult;damageEnemy(dm);notes.push('Slash '+dm)}
- if(type==='blue'){pGuard+=n*mult;notes.push('Guard +'+(n*mult))}
+ const colored=['red','blue','green','yellow','purple'].includes(type),mult=overdrive&&colored?2:1;
+ const equipped=sack.map((id,i)=>({item:itemById(id),i})).filter(v=>v.item.color===type);
+ // One shared charge budget per color: stacking adds choices, never multiplies income.
+ for(const {item,i} of equipped)charges[i]=Math.min(item.cap,charges[i]+n*mult/equipped.length);
+ if(type==='red'){damageEnemy(n*mult);notes.push('Strike '+n*mult)}
+ if(type==='blue'){pGuard+=n*mult;notes.push('Guard +'+n*mult)}
  if(mult===2){overdrive=false;notes.push('Overdrive ×2')}
  if(type==='gold'){gold+=n;notes.push('Gold +'+n)}
  if(type==='xp'){xp+=n;notes.push('XP +'+n)}
@@ -121,7 +138,7 @@ function enemyUseActive(){
  return false
 }
 
-const reducedMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let effectOrigin=null,damageAnimations=[];
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
@@ -187,24 +204,60 @@ async function trySwap(a,b,actor,force=false){
  if(m)await resolve(m,actor,b,0);else{busy=false;setLog('Quickstep repositions the board.');afterAction(actor);render()}return true
 }
 function collapse(){for(let x=0;x<W;x++){let kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push(board[y][x]);let i=0;for(let y=H-1;y>=0;y--)board[y][x]=i<kept.length?kept[i++]:roll()}if(!legalMoves().length)buildBoard()}
-function afterAction(actor){if(actor==='player'){if(extraTurn){extraTurn=false;playerTurn=true;setLog(logEl.textContent+' • You keep the turn.')}else{playerTurn=false;setTimeout(enemyMove,520)}}else playerTurn=true;render();checkEnd()}
-function activate(type){if(!playerTurn||busy||freeSwap||pHP<=0||eHP<=0)return;let spec=PLAYER[type];if(pc[type]<spec.cap){setLog(spec.name+' needs '+(spec.cap-pc[type])+' more charge.');return}pc[type]=0;
- if(type==='red'){effectOrigin=center(document.querySelector('.slot[data-type="red"]'));damageEnemy(6);effectOrigin=null;setLog('HEAVY SLASH: 6 damage.');afterAction('player')}
- else if(type==='blue'){pGuard+=6;setLog('BRACE: +6 Guard.');afterAction('player')}
- else if(type==='green'){pHP=Math.min(24,pHP+5);setLog('MEND: +5 HP.');afterAction('player')}
- else if(type==='yellow'){freeSwap=true;selected=null;setLog('QUICKSTEP: choose any gem, then an adjacent gem.');render()}
- else if(type==='purple'){overdrive=true;setLog('OVERDRIVE: your next colored match triggers ×2.');afterAction('player')}
- checkEnd();render()}
-function enemyMove(){if(playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){buildBoard();playerTurn=true;return}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
-function tapCell(x,y){if(!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
-function checkEnd(){if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);$('resultTitle').textContent=eHP<=0?'VICTORY':'DEFEAT';$('result').classList.add('show');render()}}
+function afterAction(actor){if(actor==='player'){if(extraTurn){extraTurn=false;playerTurn=true;setLog(logEl.textContent+' • You keep the turn.')}else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}}else playerTurn=true;render();checkEnd()}
+function activate(index){
+ if(screen!=='fight'||!playerTurn||busy||freeSwap||pHP<=0||eHP<=0)return;
+ const spec=itemById(sack[index]);if(charges[index]+.00001<spec.cap){setLog(spec.name+' needs '+Math.ceil(spec.cap-charges[index])+' more charge.');return}
+ if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
+ charges[index]=0;effectOrigin=center($('slots').children[index]);
+ if(spec.kind==='damage')damageEnemy(spec.power);
+ if(spec.kind==='guard')pGuard+=spec.power;
+ if(spec.kind==='heal')pHP=Math.min(24,pHP+spec.power);
+ if(spec.kind==='hybrid'){damageEnemy(3);pGuard+=3}
+ if(spec.kind==='shelter'){pGuard+=3;pHP=Math.min(24,pHP+2)}
+ if(spec.kind==='leech'){pHP=Math.min(24,pHP+2);damageEnemy(3)}
+ if(spec.kind==='renew'){pHP=Math.min(24,pHP+4);pGuard+=4}
+ if(spec.kind==='boost')overdrive=true;
+ effectOrigin=null;setLog(spec.name.toUpperCase()+': '+spec.desc);
+ if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player');
+ checkEnd();render();
+}
+function enemyMove(){if(screen!=='fight'||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){buildBoard();playerTurn=true;return}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
+function tapCell(x,y){if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
+function checkEnd(){if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);$('resultTitle').textContent=eHP<=0?'VICTORY':'DEFEAT';$('result').classList.add('show');render()}}
 function setLog(s){logEl.textContent=s}
 function flash(){let f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-function render(){boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.setAttribute('aria-label',(type||'Empty')+' gem, row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>tapCell(x,y));boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold;$('xp').textContent='XP '+xp;$('turnText').textContent=freeSwap?'QUICKSTEP':(playerTurn?'YOUR MOVE':'BANDIT MOVES');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side)}renderSlots()}
-function renderSlots(){const colors={red:'var(--r)',blue:'var(--b)',green:'var(--g)',yellow:'var(--y)',purple:'var(--p)'};$('slots').innerHTML=['red','blue','green','yellow','purple'].map(type=>{let s=PLAYER[type],ready=pc[type]>=s.cap;return '<button class="slot '+(ready?'ready':'')+'" data-type="'+type+'" style="--c:'+colors[type]+'"><div class="orb"></div><div class="slotName">'+s.item+'</div><div class="effect">'+s.name+'</div><div class="charge">'+(ready?'USE · '+s.active:pc[type]+'/'+s.cap)+'</div></button>'}).join('');document.querySelectorAll('.slot').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.type)))}
-$('sacksBtn').onclick=()=>$('modal').classList.add('show');$('closeModal').onclick=()=>$('modal').classList.remove('show');
-buildBoard();render();
+function render(){boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.setAttribute('aria-label',(type||'Empty')+' gem, row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>tapCell(x,y));boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold;$('xp').textContent='XP '+xp;$('turnText').textContent=freeSwap?'QUICKSTEP':(playerTurn?'YOUR MOVE':'BANDIT MOVES');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side)}$('leaveFight').disabled=busy||!playerTurn||pendingHP.p>0||pendingHP.e>0;renderSlots()}
+function renderSlots(){
+ $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id),ready=charges[i]+.00001>=v.cap;return '<button class="slot '+(ready?'ready':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(ready?'USE':Math.floor(charges[i]*10)/10+'/'+v.cap)+'</div></button>'}).join('');
+ document.querySelectorAll('.slot').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)));
+}
+$('sacksBtn').onclick=()=>{document.querySelector('.sackGrid .sack').innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+v.item+' — '+v.name+'</div>'}).join('');$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
+
+function save(){try{localStorage.setItem('gemmo.sack.v1',JSON.stringify(sack));localStorage.setItem('gemmo.motionOff',String(motionOff))}catch{}}
+try{const data=JSON.parse(localStorage.getItem('gemmo.sack.v1'));if(Array.isArray(data)&&data.length===5&&data.every(id=>id===null||itemById(id)))sack=data;motionOff=localStorage.getItem('gemmo.motionOff')==='true'}catch{}
+function showScreen(next){screen=next;document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';if(next==='sack')drawSack();if(next==='menu'){$('playBtn').disabled=sack.some(id=>!id);$('sackSummary').textContent=sack.filter(Boolean).length+'/5 gems equipped · all items unlocked'}save()}
+function drawSack(){
+ $('loadout').innerHTML=sack.map((id,i)=>{const v=itemById(id);return '<button class="equip '+(i===chosenSlot?'chosen':'')+'" data-index="'+i+'"><small>SLOT '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color:'Choose a gem')+'</span></button>'}).join('');
+ document.querySelectorAll('.equip').forEach(b=>b.onclick=()=>{chosenSlot=Number(b.dataset.index);drawSack()});
+ $('collection').innerHTML=ITEMS.filter(v=>$('colorFilter').value==='all'||v.color===$('colorFilter').value).map(v=>'<button class="itemCard" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')"><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+' · '+v.cap+' CHARGE</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>Equip in slot '+(chosenSlot+1)+'</em></button>').join('');
+ document.querySelectorAll('.itemCard').forEach(b=>b.onclick=()=>{sack[chosenSlot]=b.dataset.item;chosenSlot=(chosenSlot+1)%5;save();drawSack()});
+ $('equipHint').textContent='Choose an item for slot '+(chosenSlot+1)+'. Duplicates and any color mix are allowed.';
+}
+function startFight(){
+ if(sack.some(id=>!itemById(id)))return;
+ clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;
+ pHP=eHP=24;pGuard=eGuard=gold=xp=0;charges=[0,0,0,0,0];ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=shownHP.e=24;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
+ $('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');showScreen('fight');buildBoard();setLog('Your Sack is ready. Challenge the Bandit.');render();
+}
+function leaveFight(){if(busy||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);$('result').classList.remove('show');$('modal').classList.remove('show');showScreen('menu')}
+$('enterBtn').onclick=()=>showScreen('menu');$('playBtn').onclick=startFight;$('openSack').onclick=()=>showScreen('sack');$('openSettings').onclick=()=>showScreen('settings');
+document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen('menu'));
+$('colorFilter').onchange=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};
+$('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
+$('leaveFight').onclick=leaveFight;$('resultMenu').onclick=leaveFight;
+showScreen('splash');
 })();
 </script>
 </body>
