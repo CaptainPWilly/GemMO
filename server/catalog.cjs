@@ -19,5 +19,6 @@ const GEAR=Object.freeze({
   'twine-ring':{slot:'ring',hp:1,guard:0},'copper-band':{slot:'ring',hp:0,guard:1}
 });
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
-const STARTER_ITEMS=Object.freeze([...GEM_IDS,...Object.keys(GEAR)]);
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_ITEMS};
+const STARTER_GEMS=Object.freeze({red:'dagger',blue:'shield',green:'salve',yellow:'boots',purple:'charm'});
+const STARTER_GEM_SET=new Set(Object.values(STARTER_GEMS));
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET};
