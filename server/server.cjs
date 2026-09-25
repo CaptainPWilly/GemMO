@@ -8,8 +8,8 @@ const SESSION_TTL=7*24*60*60*1000;
 const MAX_BODY=16*1024;
 
 function createGemmoServer(options={}){
-  const db=createDb(options.dbPath||process.env.GEMMO_DB||'server/data/gemmo.db');
-  const allowedOrigins=new Set(options.allowedOrigins||String(process.env.GEMMO_ORIGIN||'http://localhost:8000,http://127.0.0.1:8000').split(',').map(s=>s.trim()).filter(Boolean));
+  const db=createDb(options.dbPath||process.env.GEMMO_DB||require('node:path').join(__dirname,'data','gemmo.db'));
+  const allowedOrigins=new Set(options.allowedOrigins||String(process.env.GEMMO_ORIGIN||'https://captainpwilly.github.io,http://localhost:8000,http://127.0.0.1:8000').split(',').map(s=>s.trim()).filter(Boolean));
   const trustProxy=options.trustProxy??process.env.TRUST_PROXY==='1';
   const limits=new Map();
 
@@ -76,5 +76,5 @@ function createGemmoServer(options={}){
   return {server,db};
 }
 
-if(require.main===module){const port=Number(process.env.PORT||8787),host=process.env.HOST||'127.0.0.1';const {server}=createGemmoServer();server.listen(port,host,()=>console.log('GemMO account server listening on http://'+host+':'+port))}
+if(require.main===module){const port=Number(process.env.PORT||8787),host=process.env.HOST||'0.0.0.0';const {server}=createGemmoServer();server.listen(port,host,()=>console.log('GemMO account server listening on http://'+host+':'+port))}
 module.exports={createGemmoServer};
