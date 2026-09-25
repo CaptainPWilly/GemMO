@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#07101b">
-<title>GemMO v0.2 — Sack Model</title>
+<title>GemMO — Iron & Ember</title>
 <style>
 :root{--bg:#07101b;--panel:#0d1728;--panel2:#101c31;--line:#263753;--text:#f4f7ff;--muted:#8291aa;--r:#f05a67;--b:#599dff;--g:#54d78b;--y:#f1c44c;--p:#a778ff;--gold:#f1b83f;--xp:#5fddf6;--env:#8e9a8c}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#050a12;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden;touch-action:manipulation}button{font:inherit;color:inherit}.app{width:min(100vw,540px);height:100dvh;margin:auto;position:relative;background:radial-gradient(circle at 50% 0,#172743 0,#08111f 42%,#050a12 100%);overflow:hidden}.game{height:100%;display:flex;flex-direction:column;gap:7px;padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(13,23,40,.9);border:1px solid var(--line);border-radius:15px;padding:8px 10px;min-height:61px}.name{font-size:10px;letter-spacing:1.25px;color:var(--muted);font-weight:800}.stats{font-size:13px;font-weight:850;margin-top:4px}.right{text-align:right}.turn{text-align:center;font-size:10px;letter-spacing:1px;font-weight:900;color:var(--g)}.turn small{display:block;color:var(--muted);font-size:8px;margin-top:4px;font-weight:650;letter-spacing:.8px}.sacksBtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;font-size:9px;padding:6px 8px;margin-top:5px;color:var(--muted)}
@@ -12,22 +12,49 @@
 .status{min-height:50px;padding:1px 4px}.resource{display:flex;gap:12px;font-size:9px;letter-spacing:.8px;color:var(--muted);font-weight:700}.log{font-size:12px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mode{color:var(--y);font-weight:850}.slots{margin-top:auto;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.slot{height:88px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,var(--panel2),var(--panel));padding:5px 2px;position:relative;overflow:hidden}.slot:before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--c)}.orb{width:16px;height:16px;border-radius:50%;margin:2px auto 5px;background:var(--c);box-shadow:0 0 14px color-mix(in srgb,var(--c) 42%,transparent)}.slotName{font-size:8px;font-weight:950;letter-spacing:.25px;white-space:nowrap}.effect{font-size:7px;color:var(--muted);margin-top:4px;white-space:nowrap}.charge{font-size:9px;font-weight:850;margin-top:7px;color:var(--c)}.slot.ready{border-color:color-mix(in srgb,var(--c) 75%,white);box-shadow:0 0 16px color-mix(in srgb,var(--c) 15%,transparent)}.slot.ready .charge{color:white}.foot{text-align:center;font-size:8px;color:#596880;letter-spacing:.6px}.flash{position:absolute;inset:0;background:white;pointer-events:none;opacity:0;z-index:9}.flash.go{animation:flash .18s ease-out}@keyframes flash{0%{opacity:.12}100%{opacity:0}}
 .modal{display:none;position:absolute;inset:0;z-index:20;background:rgba(1,4,9,.82);backdrop-filter:blur(9px);padding:calc(20px + env(safe-area-inset-top)) 18px}.modal.show{display:block}.modalCard{max-width:500px;margin:5vh auto 0;background:#0b1525;border:1px solid var(--line);border-radius:18px;padding:16px}.modal h2{margin:0 0 5px;font-size:22px}.modal p{margin:0 0 14px;color:var(--muted);font-size:11px;line-height:1.45}.sackGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sack{background:#08111e;border:1px solid #1f2d45;border-radius:13px;padding:10px}.sack h3{margin:0 0 9px;font-size:11px;letter-spacing:1px}.line{font-size:10px;margin:6px 0;color:#dfe7f7}.line b{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--c)}.close{width:100%;margin-top:14px;border:1px solid var(--line);background:#132039;border-radius:11px;padding:10px;font-weight:850}.result{display:none;position:absolute;inset:0;z-index:30;background:rgba(1,4,9,.8);place-items:center;text-align:center}.result.show{display:grid}.result h1{font-size:46px;margin:0}.result p{color:var(--muted)}
 @media(max-height:730px){.game{gap:4px}.top{min-height:53px}.boardShell{width:min(100%,calc(100dvh - 245px));align-self:center}.slots{height:73px}.slot{height:72px}.effect{display:none}.charge{margin-top:4px}.status{min-height:38px}.log{margin-top:4px}}
+
+/* The iron-and-amber arena */
+:root{--bg:#171510;--panel:#252118;--panel2:#332b1e;--line:#665336;--text:#f8edcf;--muted:#b8a782;--gold:#e5b75f}
+html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#55432a 0,#241f16 43%,#12120f 100%)}
+.game{gap:9px;padding-top:calc(10px + env(safe-area-inset-top))}
+.top{background:linear-gradient(135deg,#342c1f,#1e1d17);border-color:#80663c;border-radius:5px;box-shadow:inset 0 0 0 3px #191710,0 5px 18px #0006;padding:12px 10px}
+.name,.slotName,.modal h2,.result h1{font-family:Georgia,'Times New Roman',serif;letter-spacing:.5px}.name{color:#d9bd7e;font-size:11px}.stats{font-size:10px;white-space:nowrap}
+.turn{font-size:9px;color:#e9c67d}.turn small{font-size:7px;letter-spacing:.4px}.sacksBtn{border-radius:3px;background:#1e1b14;color:#d9bd7e;font-size:8px}
+.health{height:8px;background:#100d09;border:1px solid #8a7048;margin-top:7px;overflow:hidden;box-shadow:0 1px #ffffff14}
+.healthFill{height:100%;width:100%;background:linear-gradient(#ed8c72,#b7373a);transition:width .3s ease;box-shadow:0 0 8px #ed735c66}
+.right .healthFill{background:linear-gradient(#c96d59,#8e2f32)}
+.boardShell{border-radius:6px;border:2px solid #8e7447;background:#15140f;box-shadow:inset 0 0 0 2px #332c1f,0 14px 32px #0007;padding:6px;overflow:hidden}
+.board{gap:4px}.cell{border-radius:4px;background:linear-gradient(145deg,#2c2b23,#1b1c17);box-shadow:inset 0 1px #b09c6f15;touch-action:manipulation}
+.gem{border-radius:14%;box-shadow:inset 3px 3px 0 #ffffff55,inset -4px -4px 0 #0003,0 4px 6px #0008}
+.gem.gold{border-radius:50%}.cell.sel{outline-color:#ffe4a0}.status{padding:3px 2px}.resource{font-size:8px;gap:9px;color:#cfb782}.log{color:#e9dec1;font-size:11px}
+.slots{gap:5px}.slot{height:112px;border-radius:4px;padding:8px 3px;background:linear-gradient(155deg,#3d3323,#211e16);border-color:#735e3e;box-shadow:inset 0 0 0 2px #17150f}
+.slot:before{height:2px}.orb{border:1px solid #ffe4aa88;box-shadow:0 0 10px var(--c);width:15px;height:15px;margin-bottom:8px}
+.slotName{font-size:11px;line-height:1.15;white-space:normal;min-height:26px;color:#f5e4b9}
+.effect{display:block;font-size:7px;letter-spacing:.2px;color:#c5b58f;margin-top:3px;white-space:normal}
+.charge{margin-top:7px;font-size:9px}.slot.ready{background:linear-gradient(155deg,#59482b,#2b2519)}
+.foot{color:#9b8965;font-size:7px;line-height:1.5}.modalCard{background:linear-gradient(135deg,#30291e,#171710);border-color:#8e7447;border-radius:5px}.sack{background:#1a1811;border-color:#655134;border-radius:4px}.close{background:#42351f;border-color:#8e7447;border-radius:3px}
+.fxLayer{position:absolute;inset:0;pointer-events:none;z-index:40;overflow:hidden}.damageSpark{position:absolute;width:12px;height:12px;border-radius:2px;background:#ffe3a0;box-shadow:0 0 9px #ffca6a,0 0 22px #e04d36;transform:rotate(45deg)}
+.damageNumber{position:absolute;color:#ffe0ab;font:bold 24px Georgia,serif;text-shadow:0 2px 3px #000,0 0 12px #dd4a32;white-space:nowrap}
+@media(max-height:730px){.game{gap:5px}.top{padding:8px;min-height:66px}.boardShell{width:min(100%,calc(100dvh - 264px))}.slots{height:97px}.slot{height:97px;padding-top:6px}.orb{margin-bottom:5px}.slotName{font-size:10px;min-height:23px}.effect{display:block;font-size:6px}.charge{margin-top:5px}.status{min-height:35px}}
+@media(max-width:360px){.slotName{font-size:9px}.resource{font-size:7px;gap:7px}.stats{font-size:9px}.turn{font-size:8px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+
 </style>
 </head>
 <body>
 <div class="app">
 <div class="game">
   <div class="top">
-    <div><div class="name">YOU</div><div class="stats" id="pstats">24 HP · 0 GUARD</div></div>
+    <div><div class="name">YOU</div><div class="stats" id="pstats">24 HP · 0 GUARD</div><div class="health" id="phealth" role="progressbar" aria-label="Your health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="pfill"></div></div></div>
     <div class="turn"><div id="turnText">YOUR MOVE</div><small>ONE BOARD · TWO SACKS</small><button class="sacksBtn" id="sacksBtn">VIEW SACKS</button></div>
-    <div class="right"><div class="name">BANDIT</div><div class="stats" id="estats">24 HP · 0 EVADE</div></div>
+    <div class="right"><div class="name">BANDIT</div><div class="stats" id="estats">24 HP · 0 EVADE</div><div class="health" id="ehealth" role="progressbar" aria-label="Bandit health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div></div>
   </div>
   <div class="boardShell"><div class="board" id="board"></div></div>
   <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>ENV: RIFT</span><span>MATCH 4: +TURN</span></div><div class="log" id="log">Same board. Your colors use your Sack.</div></div>
   <div class="slots" id="slots"></div>
   <div class="foot">TAP 2 ADJACENT GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
 </div>
-<div class="flash" id="flash"></div>
+<div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard"><h2>Combat Sacks</h2><p>The board generates randomly. A Sack contains no gem counts — it only defines what each color does for that fighter.</p><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Slash</div><div class="line" style="--c:var(--b)"><b></b>Blue — Guard</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>BANDIT SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">BACK TO FIGHT</button></div></div>
 <div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p>Refresh to rematch.</p></div></div>
 </div>
@@ -39,11 +66,11 @@ const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
 const WEIGHTS=[15,15,15,15,15,10,8,7];
 const ICON={red:'╱',blue:'◇',green:'+',yellow:'»',purple:'✦',gold:'$',xp:'★',env:'◈',wild:'W'};
 const PLAYER={
- red:{name:'SLASH',cap:7,effect:'MATCH: DAMAGE',active:'HEAVY SLASH'},
- blue:{name:'GUARD',cap:7,effect:'MATCH: GUARD',active:'BRACE'},
- green:{name:'MEND',cap:6,effect:'MATCH: CHARGE',active:'HEAL 5'},
- yellow:{name:'QUICKSTEP',cap:6,effect:'MATCH: CHARGE',active:'FREE SWAP'},
- purple:{name:'OVERDRIVE',cap:10,effect:'MATCH: CHARGE',active:'NEXT ×2'}
+ red:{item:'Iron Dagger',name:'SLASH',cap:7,effect:'MATCH: DAMAGE',active:'HEAVY SLASH'},
+ blue:{item:'Oak Shield',name:'GUARD',cap:7,effect:'MATCH: GUARD',active:'BRACE'},
+ green:{item:'Herbal Salve',name:'MEND',cap:6,effect:'MATCH: CHARGE',active:'HEAL 5'},
+ yellow:{item:'Worn Boots',name:'QUICKSTEP',cap:6,effect:'MATCH: CHARGE',active:'FREE SWAP'},
+ purple:{item:'Rune Charm',name:'OVERDRIVE',cap:10,effect:'MATCH: CHARGE',active:'NEXT ×2'}
 };
 const ENEMY={
  red:{name:'BOLT',cap:7}, blue:{name:'EVADE',cap:7}, green:{name:'BANDAGE',cap:6}, yellow:{name:'RELOAD',cap:6}, purple:{name:'DEADEYE',cap:10}
@@ -58,8 +85,8 @@ function swap(a,b){[board[a.y][a.x],board[b.y][b.x]]=[board[b.y][b.x],board[a.y]
 function k(x,y){return x+','+y}
 function findMatches(){let cells=new Map(),runs=[];for(let y=0;y<H;y++){for(let x=0;x<W;){let type=board[y][x];if(!type||type==='wild'){x++;continue}let e=x+1;while(e<W&&board[y][e]===type)e++;if(e-x>=3){let r=[];for(let xx=x;xx<e;xx++){let p={x:xx,y};cells.set(k(xx,y),p);r.push(p)}runs.push({type,len:e-x,cells:r})}x=e}}for(let x=0;x<W;x++){for(let y=0;y<H;){let type=board[y][x];if(!type||type==='wild'){y++;continue}let e=y+1;while(e<H&&board[e][x]===type)e++;if(e-y>=3){let r=[];for(let yy=y;yy<e;yy++){let p={x,y:yy};cells.set(k(x,yy),p);r.push(p)}runs.push({type,len:e-y,cells:r})}y=e}}return cells.size?{cells:[...cells.values()],runs}:null}
 function legalMoves(){let list=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){let a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){let nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;let b={x:nx,y:ny};if(board[y][x]==='wild'||board[ny][nx]==='wild'){list.push([a,b]);continue}swap(a,b);if(findMatches())list.push([a,b]);swap(a,b)}}return list}
-function damageEnemy(n){let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked}
-function damagePlayer(n){let blocked=Math.min(pGuard,n);pGuard-=blocked;pHP-=n-blocked}
+function damageEnemy(n){let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
+function damagePlayer(n){let blocked=Math.min(pGuard,n);pGuard-=blocked;pHP-=n-blocked;damageFlight('p',n-blocked,blocked)}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  let mult=(overdrive&&['red','blue','green','yellow','purple'].includes(type))?2:1;
@@ -86,16 +113,45 @@ function enemyUseActive(){
  if(ec.yellow>=ENEMY.yellow.cap){ec.yellow=0;enemyReload=true;setLog('Bandit uses RELOAD: next Bolt +2.');playerTurn=true;render();return true}
  return false
 }
+
+const reducedMotion=()=>window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let effectOrigin=null,damageAnimations=[];
+function cellAt(p){return boardEl.children[p.y*W+p.x]}
+function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
+function animate(el,frames,options){if(reducedMotion())return Promise.resolve();const animation=el.animate(frames,options);return Promise.race([animation.finished.catch(()=>{}),new Promise(resolve=>setTimeout(resolve,options.duration+120))])}
+async function popCells(cells){await Promise.all(cells.map(p=>{const el=cellAt(p).firstElementChild;return animate(el,[{transform:'rotate(45deg) scale(1)',opacity:1},{transform:'rotate(65deg) scale(1.32)',opacity:1,filter:'brightness(1.9)',offset:.35},{transform:'rotate(90deg) scale(.08)',opacity:0}],{duration:240,easing:'ease-out',fill:'forwards'})}))}
+function damageFlight(side,amount,blocked){
+ const destination=center($(side+'health')),origin=effectOrigin||center(boardEl),dot=document.createElement('span');
+ dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';$('fxLayer').appendChild(dot);
+ const work=(async()=>{await animate(dot,[{transform:'translate(-50%,-50%) rotate(45deg) scale(.7)',opacity:0},{opacity:1,offset:.12},{transform:'translate('+ (destination.x-origin.x-6)+'px,'+(destination.y-origin.y-6)+'px) rotate(225deg) scale(1.2)',opacity:1}],{duration:340,easing:'cubic-bezier(.4,0,.8,.5)'});
+ dot.remove();const label=document.createElement('span');label.className='damageNumber';label.textContent=amount?'−'+amount:'BLOCK';label.style.left=destination.x+'px';label.style.top=destination.y+'px';$('fxLayer').appendChild(label);
+ await Promise.all([animate($(side+'health'),[{filter:'brightness(2.7)',transform:'translateX(-3px)'},{transform:'translateX(3px)',offset:.3},{filter:'brightness(1)',transform:'translateX(0)'}],{duration:250}),animate(label,[{transform:'translate(-50%,0)',opacity:1},{transform:'translate(-50%,-35px)',opacity:0}],{duration:650,easing:'ease-out'})]);label.remove()})();
+ damageAnimations.push(work);
+}
+async function fallColumns(){
+ const falling=[];for(let x=0;x<W;x++){const kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push({type:board[y][x],from:y});
+ const missing=H-kept.length;for(let y=H-1,i=0;y>=0;y--,i++){const entry=kept[i];board[y][x]=entry?entry.type:roll();const from=entry?entry.from:y-missing;if(from!==y)falling.push({x,y,from})}}
+ render();const step=boardEl.getBoundingClientRect().height/H;
+ await Promise.all(falling.map(p=>animate(cellAt(p),[{transform:'translateY('+((p.from-p.y)*step)+'px)',opacity:p.from<0?.25:1},{transform:'translateY(0)',opacity:1}],{duration:260+Math.abs(p.y-p.from)*35,easing:'cubic-bezier(.32,.02,.68,1)',fill:'both'})));
+ if(!legalMoves().length)buildBoard();
+}
+
 async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};for(const p of matches.cells){let type=board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
- for(const [type,n] of Object.entries(counts))applyColor(type,n,actor,cascade);
+ render();await popCells(matches.cells);
+ for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>board[p.y][p.x]===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog(logEl.textContent+' • WILD FORGED')}if(match4&&actor==='player'){extraTurn=true;setLog(logEl.textContent+' • +TURN')}
- flash();render();await sleep(100);collapse();render();await sleep(95);checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
-async function wildSwap(a,b,actor){busy=true;let wp=board[a.y][a.x]==='wild'?a:b,op=wp===a?b:a,type=board[op.y][op.x];if(type==='wild'){for(let y=0;y<H;y++)for(let x=0;x<W;x++)board[y][x]='';setLog('Double Wild fractures the board.')}else{let count=0;for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===type){board[y][x]='';count++}board[wp.y][wp.x]='';applyColor(type,count,actor,0);setLog(logEl.textContent+' • Wild consumed '+type.toUpperCase())}flash();await sleep(90);collapse();render();busy=false;checkEnd();if(pHP>0&&eHP>0){afterAction(actor)}}
+ await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
+async function wildSwap(a,b,actor){busy=true;render();let wp=board[a.y][a.x]==='wild'?a:b,op=wp===a?b:a,type=board[op.y][op.x],cells=[];
+for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(type==='wild'||board[y][x]===type||(x===wp.x&&y===wp.y))cells.push({x,y});
+await popCells(cells);effectOrigin=center(cellAt(wp));
+if(type==='wild'){for(const p of cells)board[p.y][p.x]='';setLog('Double Wild fractures the board.')}
+else{for(const p of cells)board[p.y][p.x]='';applyColor(type,cells.length-1,actor,0);setLog(logEl.textContent+' • Wild consumed '+type.toUpperCase())}
+effectOrigin=null;await fallColumns();await Promise.all(damageAnimations.splice(0));busy=false;checkEnd();if(pHP>0&&eHP>0)afterAction(actor)}
 function trySwap(a,b,actor,force=false){if(busy)return false;if(board[a.y][a.x]==='wild'||board[b.y][b.x]==='wild'){swap(a,b);wildSwap(a,b,actor);return true}swap(a,b);let m=findMatches();if(!m&&!force){swap(a,b);setLog('That swap makes no match.');render();return false}if(m)resolve(m,actor,b,0);else{setLog('Quickstep repositions the board.');afterAction(actor);render()}return true}
 function collapse(){for(let x=0;x<W;x++){let kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push(board[y][x]);let i=0;for(let y=H-1;y>=0;y--)board[y][x]=i<kept.length?kept[i++]:roll()}if(!legalMoves().length)buildBoard()}
 function afterAction(actor){if(actor==='player'){if(extraTurn){extraTurn=false;playerTurn=true;setLog(logEl.textContent+' • You keep the turn.')}else{playerTurn=false;setTimeout(enemyMove,520)}}else playerTurn=true;render();checkEnd()}
-function activate(type){if(!playerTurn||busy||freeSwap)return;let spec=PLAYER[type];if(pc[type]<spec.cap){setLog(spec.name+' needs '+(spec.cap-pc[type])+' more charge.');return}pc[type]=0;
- if(type==='red'){damageEnemy(6);setLog('HEAVY SLASH: 6 damage.');afterAction('player')}
+function activate(type){if(!playerTurn||busy||freeSwap||pHP<=0||eHP<=0)return;let spec=PLAYER[type];if(pc[type]<spec.cap){setLog(spec.name+' needs '+(spec.cap-pc[type])+' more charge.');return}pc[type]=0;
+ if(type==='red'){effectOrigin=center(document.querySelector('.slot[data-type="red"]'));damageEnemy(6);effectOrigin=null;setLog('HEAVY SLASH: 6 damage.');afterAction('player')}
  else if(type==='blue'){pGuard+=6;setLog('BRACE: +6 Guard.');afterAction('player')}
  else if(type==='green'){pHP=Math.min(24,pHP+5);setLog('MEND: +5 HP.');afterAction('player')}
  else if(type==='yellow'){freeSwap=true;selected=null;setLog('QUICKSTEP: choose any gem, then an adjacent gem.');render()}
@@ -107,8 +163,8 @@ function checkEnd(){if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);$
 function setLog(s){logEl.textContent=s}
 function flash(){let f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-function render(){boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'red',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.innerHTML='<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>';c.addEventListener('click',()=>tapCell(x,y));boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold;$('xp').textContent='XP '+xp;$('turnText').textContent=freeSwap?'QUICKSTEP':(playerTurn?'YOUR MOVE':'BANDIT MOVES');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');renderSlots()}
-function renderSlots(){const colors={red:'var(--r)',blue:'var(--b)',green:'var(--g)',yellow:'var(--y)',purple:'var(--p)'};$('slots').innerHTML=['red','blue','green','yellow','purple'].map(type=>{let s=PLAYER[type],ready=pc[type]>=s.cap;return '<button class="slot '+(ready?'ready':'')+'" data-type="'+type+'" style="--c:'+colors[type]+'"><div class="orb"></div><div class="slotName">'+s.name+'</div><div class="effect">'+s.effect+'</div><div class="charge">'+(ready?s.active:pc[type]+'/'+s.cap)+'</div></button>'}).join('');document.querySelectorAll('.slot').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.type)))}
+function render(){boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.setAttribute('aria-label',(type||'Empty')+' gem, row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>tapCell(x,y));boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold;$('xp').textContent='XP '+xp;$('turnText').textContent=freeSwap?'QUICKSTEP':(playerTurn?'YOUR MOVE':'BANDIT MOVES');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');for(const [side,hp] of [['p',pHP],['e',eHP]]){$(side+'fill').style.width=(Math.max(0,hp)/24*100)+'%';$(side+'health').setAttribute('aria-valuenow',Math.max(0,hp))}renderSlots()}
+function renderSlots(){const colors={red:'var(--r)',blue:'var(--b)',green:'var(--g)',yellow:'var(--y)',purple:'var(--p)'};$('slots').innerHTML=['red','blue','green','yellow','purple'].map(type=>{let s=PLAYER[type],ready=pc[type]>=s.cap;return '<button class="slot '+(ready?'ready':'')+'" data-type="'+type+'" style="--c:'+colors[type]+'"><div class="orb"></div><div class="slotName">'+s.item+'</div><div class="effect">'+s.name+'</div><div class="charge">'+(ready?'USE · '+s.active:pc[type]+'/'+s.cap)+'</div></button>'}).join('');document.querySelectorAll('.slot').forEach(b=>b.addEventListener('click',()=>activate(b.dataset.type)))}
 $('sacksBtn').onclick=()=>$('modal').classList.add('show');$('closeModal').onclick=()=>$('modal').classList.remove('show');
 buildBoard();render();
 })();

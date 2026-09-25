@@ -4,9 +4,9 @@ GemMO v0.2 is a mobile-first, turn-based match-3 combat prototype. Both fighters
 
 ## Browser playtest
 
-The existing v2 browser prototype is `index.html`. It is self-contained HTML, CSS, and JavaScript with no build step or external assets. Its contents are unchanged from `GemMO_v2_sack_model.html`.
+The existing v2 browser prototype is `index.html`. It is self-contained HTML, CSS, and JavaScript with no build step or external assets. It retains the v2 combat rules with a medieval visual theme, animated match pops and column refills, and damage effects that travel to health bars. The five equipment cards show item names above their abilities. Reduced-motion preferences disable the animated effects.
 
-Expected GitHub Pages address once publishing is enabled: https://CaptainPWilly.github.io/GemMO/
+Play: https://CaptainPWilly.github.io/GemMO/
 
 Tap two adjacent gems to swap. Match colors to apply Sack effects and charge abilities. Tap a charged ability to use it in place of a board move. A four-match grants an extra turn; a five-match creates a Wild. Use **View Sacks** for both fighters' color effects. Refresh to start a new match; progress is not saved.
 
