@@ -21,8 +21,8 @@ jobs:
           TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "RENDER_DEPLOY_HOOK_URL is not configured; skipping Render deploy."
-            exit 0
+            echo "::error::RENDER_DEPLOY_HOOK_URL is not configured. Production backend was not deployed."
+            exit 1
           fi
           curl --fail --show-error --silent --request POST "${RENDER_DEPLOY_HOOK_URL}&ref=${TESTED_SHA}"
           echo
