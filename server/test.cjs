@@ -13,8 +13,9 @@ const {createGemmoServer}=require('./server.cjs');
     return {status:res.status,data};
   }
   try{
-    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);
-    r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'CorrectHorseBattery!42'}});
+    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);assert.equal(r.data.captcha,false);
+    r=await call('/v1/auth/register',{method:'POST',body:{username:'FiveChar',password:'12345'}});assert.equal(r.status,400,'five-character passwords stay invalid');
+    r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.inventory.length,0);assert.deepEqual(r.data.account.sack,[null,null,null,null,null]);assert.equal(r.data.account.needsStarter,true);
@@ -51,7 +52,7 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/auth/logout',{method:'POST',token});assert.equal(r.status,200);
     r=await call('/v1/account',{token});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
-    r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'CorrectHorseBattery!42'}});assert.equal(r.status,200);
+    r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
     assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
     assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');
@@ -59,4 +60,16 @@ const {createGemmoServer}=require('./server.cjs');
 
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
+
+  const captcha=createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],turnstileSiteKey:'site-test',turnstileSecretKey:'secret-test',turnstileExpectedHostname:'test.example',turnstileVerifier:async({token})=>token==='captcha-ok'?{success:true,hostname:'test.example',action:'auth'}:{success:false}});
+  await new Promise(resolve=>captcha.server.listen(0,'127.0.0.1',resolve));
+  const captchaBase='http://127.0.0.1:'+captcha.server.address().port;
+  async function captchaCall(path,{method='GET',body}={}){const headers={Origin:'http://test'};if(body!==undefined)headers['Content-Type']='application/json';const res=await fetch(captchaBase+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});let data={};try{data=await res.json()}catch{}return {status:res.status,data}}
+  try{
+    let r=await captchaCall('/v1/config');assert.equal(r.status,200);assert.equal(r.data.captcha.enabled,true);assert.equal(r.data.captcha.siteKey,'site-test');
+    r=await captchaCall('/v1/auth/register',{method:'POST',body:{username:'CaptchaHero',password:'abc123'}});assert.equal(r.status,403,'captcha is required when configured');
+    r=await captchaCall('/v1/auth/register',{method:'POST',body:{username:'CaptchaHero',password:'abc123',captchaToken:'bad'}});assert.equal(r.status,403,'invalid captcha is rejected');
+    r=await captchaCall('/v1/auth/register',{method:'POST',body:{username:'CaptchaHero',password:'abc123',captchaToken:'captcha-ok'}});assert.equal(r.status,201,'valid captcha permits registration');
+    console.log('PASS: six-character password minimum and Turnstile auth gate.');
+  }finally{await new Promise(resolve=>captcha.server.close(resolve))}
 })().catch(error=>{console.error(error);process.exitCode=1});
