@@ -3,6 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
 const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG}=require('./catalog.cjs');
+const {randomUUID}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 
 function createDb(dbPath=':memory:'){
@@ -18,6 +19,8 @@ function createDb(dbPath=':memory:'){
     'CREATE TABLE IF NOT EXISTS starter_choices(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,gem_id TEXT NOT NULL,chosen_at INTEGER NOT NULL) STRICT;',
     "CREATE TABLE IF NOT EXISTS world_state(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,region TEXT NOT NULL DEFAULT 'brackenreach',current_node TEXT NOT NULL DEFAULT 'camp',updated_at INTEGER NOT NULL) STRICT;",
     "CREATE TABLE IF NOT EXISTS world_flags(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,flag TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,flag)) STRICT;",
+    "CREATE TABLE IF NOT EXISTS matches(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,encounter_id TEXT NOT NULL,started_at INTEGER NOT NULL,settled_at INTEGER,won INTEGER,gold INTEGER NOT NULL DEFAULT 0,xp INTEGER NOT NULL DEFAULT 0) STRICT;",
+    "CREATE INDEX IF NOT EXISTS idx_matches_user_open ON matches(user_id,settled_at);",
     'CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,last_seen_at INTEGER NOT NULL,revoked_at INTEGER) STRICT;',
     'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);','CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);',
     "CREATE TABLE IF NOT EXISTS audit_events(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,type TEXT NOT NULL,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL) STRICT;"
@@ -50,6 +53,35 @@ function completeEncounter(db,userId,encounterId){
   db.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,flag,now);
   audit(db,userId,'encounter_cleared',encounterId);
 }
+const MATCH_REWARD_CAPS=Object.freeze({rat:{gold:40,xp:40},bandit:{gold:120,xp:120}});
+function startMatch(db,userId,encounterId){
+  const row=db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
+  if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
+  if(!MATCH_REWARD_CAPS[encounterId])throw Object.assign(new Error('invalid_encounter'),{status:400});
+  const id=randomUUID(),now=Date.now();
+  db.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
+  audit(db,userId,'match_started',encounterId+':'+id);
+  return {matchId:id,encounterId};
+}
+function settleMatch(db,userId,{matchId,won,gold,xp}){
+  if(typeof matchId!=='string'||matchId.length<16||matchId.length>80||won!==true||!Number.isInteger(gold)||!Number.isInteger(xp)||gold<0||xp<0)throw Object.assign(new Error('invalid_match_result'),{status:400});
+  const match=db.prepare('SELECT * FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
+  if(!match)throw Object.assign(new Error('match_not_found'),{status:404});
+  if(match.settled_at!==null){
+    return {alreadySettled:true,gold:match.gold,xp:match.xp,encounterId:match.encounter_id};
+  }
+  const row=db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
+  if(!node?.encounter||node.encounter!==match.encounter_id)throw Object.assign(new Error('encounter_not_here'),{status:409});
+  const caps=MATCH_REWARD_CAPS[match.encounter_id],awardGold=Math.min(gold,caps.gold),awardXp=Math.min(xp,caps.xp),now=Date.now();
+  transaction(db,()=>{
+    const changed=db.prepare('UPDATE matches SET settled_at=?,won=1,gold=?,xp=? WHERE id=? AND user_id=? AND settled_at IS NULL').run(now,awardGold,awardXp,matchId,userId);
+    if(!changed.changes)return;
+    db.prepare('UPDATE profiles SET gold=gold+?,xp=xp+?,updated_at=? WHERE user_id=?').run(awardGold,awardXp,now,userId);
+    if(match.encounter_id==='rat')db.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:rat',now);
+    audit(db,userId,'match_settled',match.encounter_id+':'+matchId+':g'+awardGold+':xp'+awardXp);
+  });
+  return {alreadySettled:false,gold:awardGold,xp:awardXp,encounterId:match.encounter_id};
+}
 function buyShopItem(db,userId,shopId,itemId){
   const catalog=SHOP_CATALOG[shopId],price=catalog?.[itemId];
   if(!catalog||!Number.isInteger(price))throw Object.assign(new Error('item_not_sold_here'),{status:400});
@@ -71,4 +103,4 @@ function createSession(db,userId,token,ttlMs){const now=Date.now();db.prepare('I
 function sessionUser(db,token){if(!token)return null;const now=Date.now(),hash=hashToken(token),row=db.prepare('SELECT s.token_hash,s.user_id,s.expires_at,s.revoked_at,u.username_display FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?').get(hash);if(!row||row.revoked_at||row.expires_at<=now)return null;db.prepare('UPDATE sessions SET last_seen_at=? WHERE token_hash=?').run(now,hash);return {id:row.user_id,username:row.username_display,tokenHash:hash}}
 function revokeSession(db,token){if(token)db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 function cleanupSessions(db){db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
-module.exports={createDb,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
