@@ -20,6 +20,12 @@ services:
         value: /var/data/gemmo.db
       - key: TRUST_PROXY
         value: "1"
+      - key: TURNSTILE_SITE_KEY
+        sync: false
+      - key: TURNSTILE_SECRET_KEY
+        sync: false
+      - key: TURNSTILE_EXPECTED_HOSTNAME
+        value: captainpwilly.github.io
     disk:
       name: gemmo-data
       mountPath: /var/data
