@@ -44,24 +44,17 @@ The server/database own:
 
 A browser request cannot directly set profile wealth/progression.
 
-### Still client-authoritative
+### Combat authority
 
-The live browser currently owns most combat simulation:
+**Rat is authoritative by deterministic replay.** Match start snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. The Rat clear and its Gold/XP are accepted only if that replay reaches a legal victory.
 
-- board RNG/state
-- swaps and match resolution
-- cascades and Wild creation
-- HP/Guard/buffs during the fight
-- enemy move selection
-- local Gold/XP finds submitted at victory
+The browser still renders and simulates the live Rat fight for responsiveness, but its claimed HP, enemy death, Gold, and XP are not trusted at settlement.
 
-The server now issues a per-match Gold/XP reward budget when the match ticket is created. The client can report fewer finds, but settlement cannot award more than that server-owned budget. Over-budget claims are clipped and audited.
+**Bandit is still on the bounded legacy path.** The browser owns its combat simulation and submits the result. The server binds it to a real match ticket and server-issued reward budget, so the client cannot exceed that match's economic ceiling, but it can still fabricate a Bandit victory.
 
-A modified client can still fabricate a valid `won:true` result and claim the full issued budget, so combat is still not fully authoritative. The important improvement is that the client no longer controls the maximum economic payout of a match.
+**Do not describe all combat as fully anti-cheat yet.** Rat victory is replay-verified; Bandit victory is not.
 
-**Do not describe the current combat system as fully anti-cheat.**
-
-The next major trust upgrade is a server-owned deterministic match engine where the client sends intents (swap, activate, target) and receives authoritative state.
+The next major trust upgrade is extending the deterministic verifier to the Bandit's active enemy abilities, then moving from after-the-fact replay toward server-owned live intent processing if latency/cost justify it.
 
 ## Persistence
 
@@ -113,12 +106,14 @@ Bandit is hidden/locked until Rat is cleared.
 3. Server verifies the player is physically at that encounter and creates a unique match ID.
 4. On victory, client calls `POST /v1/matches/settle` with `won:true`; on defeat/surrender it settles `won:false` with zero rewards.
 5. Match start also creates a server-owned randomized reward budget appropriate to the encounter.
-6. Victory settlement verifies match ownership, encounter location, reward shape, reward budget, and unsettled status.
-7. Gold/XP are capped to that issued budget; attempted overclaims are audited.
-8. Rewards + encounter unlock are committed transactionally only for victories.
-9. Loss settlement closes the ticket without rewards or encounter progress.
-10. Retrying any settled match is idempotent and cannot double-award.
-11. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
+6. Rat match start additionally snapshots Sack/equipment and issues a deterministic replay seed.
+7. Rat victory submits a compact player-intent transcript. The server rebuilds the board, replays swaps/abilities/targets, enemy turns, cascades, buffs, HP, and loot, and rejects any transcript that does not end in a legal Rat victory.
+8. Rat Gold/XP come from the replay result, not the browser's claimed totals.
+9. Bandit remains budget-bounded: Gold/XP are capped to the issued budget and attempted overclaims are audited.
+10. Rewards + encounter unlock are committed transactionally only for accepted victories.
+11. Loss settlement closes the ticket without rewards or encounter progress.
+12. Retrying any settled match is idempotent and cannot double-award.
+13. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
 
 The client retries transient victory-settlement failures and exposes a manual **RETRY SAVE** action. Defeat settlement is best-effort because abandoned tickets are safely closed server-side.
 
