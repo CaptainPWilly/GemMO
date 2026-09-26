@@ -29,10 +29,10 @@ function normalizeRun(result){
     lastInsertRowid:Number(result?.lastInsertRowid??result?.info?.lastInsertRowid??0)
   };
 }
-function localAdapter(conn,label){
+function localAdapter(conn,label,persistent=false){
   const api={
     kind:'local',
-    storage:{provider:'sqlite',location:label,persistent:label!==':memory:'},
+    storage:{provider:'sqlite',location:label,persistent},
     prepare(sql){
       const stmt=conn.prepare(sql);
       return {
@@ -100,7 +100,7 @@ async function createDb(options={}){
   const dbPath=options.dbPath||':memory:';
   if(dbPath!==':memory:')fs.mkdirSync(path.dirname(dbPath),{recursive:true});
   const conn=new DatabaseSync(dbPath,{open:true,timeout:5000});
-  const db=localAdapter(conn,dbPath);
+  const db=localAdapter(conn,dbPath,dbPath!==':memory:'&&process.env.RENDER!=='true');
   await db.exec(['PRAGMA foreign_keys=ON;','PRAGMA journal_mode=WAL;','PRAGMA synchronous=NORMAL;','PRAGMA trusted_schema=OFF;',...SCHEMA].join('\n'));
   return db;
 }
