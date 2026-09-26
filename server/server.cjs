@@ -84,7 +84,7 @@ function createGemmoServer(options={}){
       if(req.method==='PUT'&&pathname==='/v1/account/sack'){const {user}=requireUser(req),body=await json(req);updateSack(db,user.id,body.sack);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/equipment'){const {user}=requireUser(req),body=await json(req);updateEquipment(db,user.id,body.equipment);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/move'){const {user}=requireUser(req),body=await json(req);moveWorld(db,user.id,body.nodeId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
-      if(req.method==='POST'&&pathname==='/v1/world/complete-encounter'){const {user}=requireUser(req),body=await json(req);completeEncounter(db,user.id,body.encounterId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
+      if(req.method==='POST'&&pathname==='/v1/world/complete-encounter'){const {user}=requireUser(req);audit(db,user.id,'direct_encounter_clear_blocked');send(req,res,403,{error:'encounter_result_required'});return}
       if(req.method==='POST'&&pathname==='/v1/matches/start'){const {user}=requireUser(req),body=await json(req),match=startMatch(db,user.id,body.encounterId);send(req,res,201,{match,account:accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/shop/buy'){const {user}=requireUser(req),body=await json(req);buyShopItem(db,user.id,body.shopId,body.itemId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
 
