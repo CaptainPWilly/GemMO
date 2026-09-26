@@ -54,6 +54,18 @@ The expected public API URL is:
 
 The browser client already uses that URL by default. Creating the Render service requires authorizing Render to deploy this GitHub repository and accepting the Render compute/disk cost shown before creation. The account database must use a persistent disk; an ephemeral/free filesystem would violate GemMO's account-as-save-file design.
 
+## CAPTCHA / bot protection
+
+GemMO supports Cloudflare Turnstile on account creation and login. Create a Turnstile widget for `captainpwilly.github.io`, then set these environment variables on the Render web service:
+
+- `TURNSTILE_SITE_KEY` — public widget site key.
+- `TURNSTILE_SECRET_KEY` — private server verification key; never expose it in the browser.
+- `TURNSTILE_EXPECTED_HOSTNAME=captainpwilly.github.io`
+
+When both keys are present, `/v1/config` exposes only the public site key, the account page renders Turnstile, and the Render server verifies each login/register token with Cloudflare before auth. If the keys are absent, CAPTCHA remains disabled so local development and tests still work.
+
+Passwords accept 6–128 characters. Passwords remain scrypt-hashed server-side.
+
 ## Accounts, persistence, security and anti-cheat
 
 GemMO now has a separate server authority in server/. Accounts use username/password login. Passwords are salted with scrypt; opaque 256-bit session tokens are stored server-side only as SHA-256 hashes and are revocable/expiring.
