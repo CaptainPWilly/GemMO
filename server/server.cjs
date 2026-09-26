@@ -50,7 +50,7 @@ function createGemmoServer(options={}){
       if(!allowRate(req,'global',180,60_000)){send(req,res,429,{error:'rate_limited'});return}
       const url=new URL(req.url,'http://gemmo.local'),pathname=url.pathname;
 
-      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account',captcha:captchaEnabled});return}
+      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account',captcha:captchaEnabled,release:String(process.env.RENDER_GIT_COMMIT||'dev').slice(0,12)});return}
       if(req.method==='GET'&&pathname==='/v1/config'){send(req,res,200,{captcha:{enabled:captchaEnabled,provider:'turnstile',siteKey:captchaEnabled?turnstileSiteKey:null}});return}
 
       if(req.method==='POST'&&pathname==='/v1/auth/register'){
