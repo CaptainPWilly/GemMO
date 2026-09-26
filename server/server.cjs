@@ -11,6 +11,19 @@ function createGemmoServer(options={}){
   const db=createDb(options.dbPath||process.env.GEMMO_DB||require('node:path').join(__dirname,'data','gemmo.db'));
   const allowedOrigins=new Set(options.allowedOrigins||String(process.env.GEMMO_ORIGIN||'https://captainpwilly.github.io,http://localhost:8000,http://127.0.0.1:8000').split(',').map(s=>s.trim()).filter(Boolean));
   const trustProxy=options.trustProxy??process.env.TRUST_PROXY==='1';
+  const turnstileSiteKey=String(options.turnstileSiteKey??process.env.TURNSTILE_SITE_KEY??'').trim();
+  const turnstileSecretKey=String(options.turnstileSecretKey??process.env.TURNSTILE_SECRET_KEY??'').trim();
+  const turnstileExpectedHostname=String(options.turnstileExpectedHostname??process.env.TURNSTILE_EXPECTED_HOSTNAME??'captainpwilly.github.io').trim();
+  const captchaEnabled=Boolean(turnstileSiteKey&&turnstileSecretKey);
+  const turnstileVerifier=options.turnstileVerifier||async({token,remoteip})=>{
+    const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({secret:turnstileSecretKey,response:token,remoteip})
+    });
+    if(!response.ok)return {success:false};
+    return response.json();
+  };
   const limits=new Map();
 
   function ipOf(req){if(trustProxy){const first=String(req.headers['x-forwarded-for']||'').split(',')[0].trim();if(first)return first}return req.socket.remoteAddress||'unknown'}
@@ -21,6 +34,14 @@ function createGemmoServer(options={}){
   function bearer(req){const value=String(req.headers.authorization||'');if(!value.startsWith('Bearer '))return null;const token=value.slice(7).trim();return token.length>=32&&token.length<=128?token:null}
   function requireUser(req){const token=bearer(req),user=sessionUser(db,token);if(!user)throw Object.assign(new Error('unauthorized'),{status:401});return {user,token}}
   function corsAllowed(req){const origin=req.headers.origin;return !origin||allowedOrigins.has(origin)}
+  async function requireCaptcha(req,token){
+    if(!captchaEnabled)return;
+    if(typeof token!=='string'||token.length<1||token.length>2048)throw Object.assign(new Error('captcha_required'),{status:403});
+    let result;try{result=await turnstileVerifier({token,remoteip:ipOf(req)})}catch{throw Object.assign(new Error('captcha_unavailable'),{status:503})}
+    if(!result?.success)throw Object.assign(new Error('captcha_failed'),{status:403});
+    if(turnstileExpectedHostname&&result.hostname&&result.hostname!==turnstileExpectedHostname)throw Object.assign(new Error('captcha_failed'),{status:403});
+    if(result.action&&result.action!=='auth')throw Object.assign(new Error('captcha_failed'),{status:403});
+  }
 
   const server=http.createServer(async(req,res)=>{
     try{
@@ -29,11 +50,12 @@ function createGemmoServer(options={}){
       if(!allowRate(req,'global',180,60_000)){send(req,res,429,{error:'rate_limited'});return}
       const url=new URL(req.url,'http://gemmo.local'),pathname=url.pathname;
 
-      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account'});return}
+      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account',captcha:captchaEnabled});return}
+      if(req.method==='GET'&&pathname==='/v1/config'){send(req,res,200,{captcha:{enabled:captchaEnabled,provider:'turnstile',siteKey:captchaEnabled?turnstileSiteKey:null}});return}
 
       if(req.method==='POST'&&pathname==='/v1/auth/register'){
         if(!allowRate(req,'register',5,10*60_000)){send(req,res,429,{error:'rate_limited'});return}
-        const body=await json(req),name=validateUsername(body.username);
+        const body=await json(req);await requireCaptcha(req,body.captchaToken);const name=validateUsername(body.username);
         if(!name||!validatePassword(body.password)){send(req,res,400,{error:'invalid_credentials_format'});return}
         if(userByName(db,name.normalized)){send(req,res,409,{error:'username_unavailable'});return}
         const passwordHash=await hashPassword(body.password);
@@ -44,7 +66,7 @@ function createGemmoServer(options={}){
 
       if(req.method==='POST'&&pathname==='/v1/auth/login'){
         if(!allowRate(req,'login',10,10*60_000)){send(req,res,429,{error:'rate_limited'});return}
-        const body=await json(req),name=validateUsername(body.username);
+        const body=await json(req);await requireCaptcha(req,body.captchaToken);const name=validateUsername(body.username);
         if(!name||typeof body.password!=='string'){await burnPassword(body.password);send(req,res,401,{error:'invalid_username_or_password'});return}
         const user=userByName(db,name.normalized),now=Date.now();
         if(!user){await burnPassword(body.password);send(req,res,401,{error:'invalid_username_or_password'});return}
