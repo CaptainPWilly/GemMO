@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<meta name="theme-color" content="#07101b">
+<meta name="theme-color" content="#090a08">
 <title>geMMO</title>
 <style>
 :root{--bg:#07101b;--panel:#0d1728;--panel2:#101c31;--line:#263753;--text:#f4f7ff;--muted:#8291aa;--r:#f05a67;--b:#599dff;--g:#54d78b;--y:#f1c44c;--p:#a778ff;--gold:#f1b83f;--xp:#5fddf6;--env:#8e9a8c}
@@ -170,6 +170,266 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .starterPage{background:linear-gradient(180deg,#10151f,#0b0f16)}.starterPage h1{font:800 34px/1.05 Inter,ui-sans-serif,system-ui,sans-serif;color:#f7f9fc;letter-spacing:-1px}.starterPage .starterGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.starterPage .starterGem{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;aspect-ratio:.72;padding:30px 8px 10px;text-align:center;border:1px solid color-mix(in srgb,var(--c) 40%,#2a3546);border-top:4px solid var(--c);border-radius:14px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 16%,#192230),#111821);color:#eef3f9}.starterPage .starterCost{position:absolute;top:7px;right:7px;display:grid;place-items:center;width:23px;height:23px;border-radius:50%;background:#0b1018;border:1px solid #ffffff26;font-size:9px;font-weight:900}.starterPage .starterGemIcon{width:40px;height:40px;margin:6px 0 15px}.starterPage .starterGem small{font-size:7px;color:var(--c);font-weight:950;letter-spacing:.8px}.starterPage .starterGem b{font:800 11px Inter,ui-sans-serif,system-ui,sans-serif;margin:4px 0}.starterPage .starterGem strong{font-size:8px;color:#aeb8c6}.starterPage .starterGem p{font-size:8px!important;line-height:1.25!important;color:#738196!important;margin:7px 0 0!important}.starterPage .starterWarning{border:0;background:#151d28;border-radius:12px;padding:10px 12px;color:#8390a2!important}
 @media (min-width:700px){.sackPage{padding-left:max(32px,calc((100vw - 840px)/2));padding-right:max(32px,calc((100vw - 840px)/2))}.sackPage #loadout{gap:11px}.sackPage .sackSlot{aspect-ratio:.9}.sackPage #collection{grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}.sackPage .itemCard{min-height:190px}.starterPage .starterGrid{max-width:760px;margin-left:auto;margin-right:auto;gap:14px}}
 @media (max-width:360px){.sackPage{padding-left:10px;padding-right:10px}.sackPage #loadout{gap:5px}.sackPage .sackSlot{border-radius:10px}.sackGem{width:23px!important;height:23px!important}.sackPage #collection{gap:6px}.sackPage .itemCard{padding-left:5px;padding-right:5px;min-height:146px}.starterPage .starterGrid{gap:6px}}
+
+
+/* Dungeon palette — blackened stone, cold iron, aged bronze, warm bone. */
+:root{
+  --bg:#090a08;
+  --panel:#12130f;
+  --panel2:#1a1b16;
+  --line:#514837;
+  --text:#e9e0cf;
+  --muted:#958b79;
+  --r:#b34e47;
+  --b:#62809a;
+  --g:#687f63;
+  --y:#b4954d;
+  --p:#7d6a91;
+  --gold:#c3a05e;
+  --xp:#6f99a0;
+  --env:#77766d;
+}
+html,body{background:#060705;color:var(--text)}
+.app{
+  background:
+    radial-gradient(ellipse at 50% -8%,rgba(113,82,43,.20) 0,rgba(50,39,25,.12) 25%,transparent 52%),
+    linear-gradient(180deg,#11120f 0,#090a08 48%,#060705 100%);
+  box-shadow:0 0 0 1px #28261f,0 0 80px #000;
+}
+.page{
+  background:
+    radial-gradient(ellipse at 50% -2%,rgba(102,75,41,.17) 0,rgba(35,30,22,.12) 28%,transparent 55%),
+    linear-gradient(180deg,#12130f 0,#0b0c09 55%,#080906 100%);
+  color:var(--text);
+}
+.page:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(90deg,transparent 49.7%,rgba(255,255,255,.012) 50%,transparent 50.3%),
+    linear-gradient(180deg,rgba(255,255,255,.012),transparent 18%,transparent 82%,rgba(0,0,0,.18));
+  opacity:.45;
+}
+.page h1{color:#e7d7b7;text-shadow:0 2px 0 #000,0 0 22px rgba(161,120,63,.09)}
+.page p{color:#aaa08d}
+.page small,.eyebrow{color:#a58e69}
+
+/* Splash + main menu: dungeon gate, not tavern amber. */
+.splashPage,.menuPage{
+  background:
+    radial-gradient(ellipse at 50% 16%,rgba(142,101,49,.18) 0,rgba(49,38,24,.10) 25%,transparent 48%),
+    radial-gradient(ellipse at 50% 110%,rgba(0,0,0,.78),transparent 58%),
+    linear-gradient(180deg,#10110e 0,#0b0c09 42%,#070805 100%);
+  box-shadow:inset 0 0 110px #0009;
+}
+.splashPage:after,.menuPage:after{
+  content:"";
+  position:absolute;
+  inset:14px;
+  border:1px solid rgba(133,112,76,.15);
+  box-shadow:inset 0 0 0 1px #0008;
+  pointer-events:none;
+}
+.splashPage h1,.menuPage h1{
+  color:#ded0b2;
+  text-shadow:0 3px 0 #050504,0 0 26px rgba(178,139,76,.12);
+}
+.crest{
+  color:#a98751;
+  text-shadow:0 2px 0 #000,0 0 22px rgba(176,132,62,.18);
+  filter:saturate(.78);
+}
+.primary{
+  border:1px solid #846b45;
+  border-radius:4px;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.035),transparent 26%),
+    linear-gradient(180deg,#4b3a25 0,#30271b 48%,#211c15 100%);
+  color:#eadbb9;
+  box-shadow:inset 0 0 0 1px #17140f,0 4px 12px #0007;
+  text-shadow:0 1px 0 #000;
+}
+.primary.secondary{
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.02),transparent 28%),
+    linear-gradient(180deg,#20211d 0,#171814 100%);
+  border-color:#4d493d;
+  color:#c8bda7;
+}
+.primary:active{transform:translateY(1px);filter:brightness(.93)}
+.menuPage #sackSummary,.menuPage #gearSummary{color:#7f786b}
+
+/* Universal medieval controls. */
+.page header button,#emptySlot,.shopBack,.menuBack,
+.accountButton,.worldAction,.worldHud button,.worldZoom button,
+#unequipGear,.combatOverlay button,.equipDrawer button,.historyBtn,.close{
+  background:linear-gradient(180deg,#22231e,#151612);
+  border-color:#585041;
+  color:#cfc2a7;
+  box-shadow:inset 0 1px rgba(255,255,255,.025),0 2px 8px #0005;
+}
+.page input,.page select,
+#accountUsername,#accountPassword{
+  background:#10110e;
+  border-color:#484337;
+  color:#ded6c7;
+  box-shadow:inset 0 1px 8px #0007;
+}
+.page input::placeholder{color:#6f6b62}
+
+/* Cards and boxes: stone/iron shells, bronze only as trim. */
+.accountBox,.shopBar,.shopItem,.gearCard,.gearSlot,.gemologyCard,
+.modalCard,.sack,.combatEquipItem,.worldCard{
+  background:linear-gradient(180deg,#1b1c17,#11120f);
+  border-color:#4d473a;
+  color:#ddd2bc;
+  box-shadow:inset 0 1px rgba(255,255,255,.02),0 8px 22px #0005;
+}
+.accountStats b,.equipmentStats b,.ruleTag{
+  background:#151611;
+  border-color:#524a3b;
+  color:#cbb78f;
+}
+.shopBar b,.shopItem strong,.gemologyCard h2,.rulebook h2,.combatOverlay h2,.equipDrawer h2{color:#d4c19a}
+
+/* World chrome gets darker while terrain remains readable. */
+.worldPage{background:#090a08}
+.worldHud{
+  background:linear-gradient(180deg,rgba(14,15,12,.97),rgba(9,10,8,.92));
+  border-bottom-color:#4f4839;
+  box-shadow:0 8px 26px #0008;
+}
+.worldTitle small{color:#8a806e}
+.worldTitle b{color:#dfd3bb}
+.worldCard{
+  background:linear-gradient(180deg,rgba(24,25,20,.97),rgba(13,14,11,.98));
+  border-color:#5a503e;
+}
+.worldLegend{color:#817968}
+
+/* Fight shell: colder metal, less orange bloom. */
+.game{
+  background:
+    radial-gradient(ellipse at 50% 0,rgba(97,72,40,.10),transparent 34%),
+    linear-gradient(180deg,#0f100d,#080906);
+}
+.top{
+  background:linear-gradient(135deg,#24231d,#12130f);
+  border-color:#5b4f3b;
+  box-shadow:inset 0 0 0 2px #0d0e0b,0 5px 18px #0008;
+}
+.name{color:#b9a782}
+.turn{color:#c5ad72}
+.sacksBtn{background:#141510;color:#9f947f;border-color:#454035}
+.health{background:#090906;border-color:#5c513e}
+.boardShell{
+  border-color:#62543e;
+  background:#0a0b08;
+  box-shadow:inset 0 0 0 2px #181914,0 14px 34px #000a;
+}
+.cell{background:linear-gradient(145deg,#1f211c,#131511)}
+.status,.log{color:#c7bda9}
+.resource{color:#968a75}
+.slot{
+  background:linear-gradient(155deg,#28251d,#141510);
+  border-color:#574b37;
+  box-shadow:inset 0 0 0 1px #0e0f0c;
+}
+.slot.ready{background:linear-gradient(155deg,#3a3120,#1b1912)}
+.slotName{color:#dfd0ae}
+.effect{color:#948772}
+.foot{color:#69655b}
+.turnBadge{color:#cbb787;border-color:#514735}
+.statusTag{background:#171813;color:#aaa08c;border-color:#494337}
+.historyBtn{background:#151611;border-color:#4b4437;color:#a99b82}
+
+/* Modern Sack, translated from blue app-shell to dungeon card table. */
+.sackPage{
+  background:
+    radial-gradient(ellipse at 50% -4%,rgba(103,75,39,.13),transparent 40%),
+    linear-gradient(180deg,#10110e 0,#090a08 100%);
+  color:#e6ddcd;
+}
+.sackPage .sackTopbar button{background:#181914;color:#d6cbb7;border:1px solid #484238}
+.sackPage .sackTopbar .eyebrow,.sackOwnedCount{color:#918675}
+.sackHero small,.sackSectionHead span,.sackSlotNumber{color:#7e7568}
+.sackPage .sackHero h1{color:#e7ddca}
+.sackHero p{color:#8e8577}
+.sackEquippedCount{
+  background:#171813;
+  border-color:#4c4538;
+  color:#d6c9ae;
+}
+.sackPage .sackSlot{
+  border-color:#433e34;
+  background:linear-gradient(180deg,#1c1d18,#11120f);
+  color:#ddd4c4;
+}
+.sackPage .sackSlot.chosen{
+  border-color:#ae9566;
+  box-shadow:0 0 0 2px rgba(167,138,86,.16),0 7px 18px #0005;
+}
+.sackPage .cardCost,.starterPage .starterCost{
+  background:#0b0c09;
+  border-color:#554c3a;
+  color:#e4d8bf;
+}
+.sackSlot.empty{--c:#4a473f}
+.sackPlus{border-color:#4e493e;color:#777166}
+.sackSlot.empty b{color:#777166}
+.sackEditRow #equipHint{color:#80786c}
+.sackPage #emptySlot{background:#141510;border-color:#464036;color:#9d927e}
+.sackPage #itemSearch,.sackPage #colorFilter{
+  background:#10110e;
+  border-color:#433e34;
+  color:#ddd5c6;
+}
+.sackPage #itemSearch:focus,.sackPage #colorFilter:focus{border-color:#8e7956}
+.sackPage #itemSearch::placeholder{color:#6e685e}
+.sackPage .itemCard{
+  background:
+    linear-gradient(180deg,color-mix(in srgb,var(--c) 10%,#1b1c17) 0,#171813 47%,#10110e 100%);
+  border-color:color-mix(in srgb,var(--c) 25%,#494337);
+  color:#e5dccb;
+  box-shadow:0 7px 18px #0004;
+}
+.sackPage .itemCard strong{color:#aaa08e}
+.sackPage .itemCard p{color:#80776a!important}
+.sackPage .itemCard em{color:#857c6d}
+.sackPage .itemCard.equipped{border-color:#b39a6b;box-shadow:0 0 0 2px rgba(172,142,89,.12),0 8px 20px #0005}
+
+/* Starter selection follows the same dungeon language. */
+.starterPage{
+  background:
+    radial-gradient(ellipse at 50% 0,rgba(99,73,39,.13),transparent 42%),
+    linear-gradient(180deg,#10110e,#090a08);
+}
+.starterPage h1{color:#e7ddca}
+.starterPage .starterGem{
+  border-color:color-mix(in srgb,var(--c) 30%,#4b4538);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--c) 9%,#1c1d18),#11120f);
+  color:#e5dccb;
+  box-shadow:0 8px 22px #0005;
+}
+.starterPage .starterGem strong{color:#aaa08e}
+.starterPage .starterGem p{color:#7f776b!important}
+.starterPage .starterWarning{background:#141510;color:#918777!important;border:1px solid #403b31}
+
+/* Modal/overlay surfaces complete the palette. */
+.modal,.result{background:rgba(3,4,3,.88)}
+.modalCard{
+  background:linear-gradient(145deg,#1b1c17,#0f100d);
+  border-color:#554b39;
+}
+.combatOverlay{background:rgba(8,9,7,.97)}
+.equipDrawer,.historyPanel{
+  background:rgba(11,12,9,.98);
+  border-color:#504737;
+}
+.historyEntry{border-color:#302d26;color:#afa48f}
+.historyEntry.ability{background:#211d15;color:#d7c08d;border-left-color:#9e7d48}
 
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
