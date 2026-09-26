@@ -1,6 +1,6 @@
-# GemMO account authority
+# geMMO account authority
 
-This service is the first server-side trust boundary for GemMO.
+This service is the first server-side trust boundary for geMMO.
 
 ## What it owns
 
@@ -28,7 +28,7 @@ Requires Node 22.18 or newer.
 
 Set GEMMO_ORIGIN to the exact browser origin and run node server/server.cjs. The default API address is http://127.0.0.1:8787.
 
-For public deployment, terminate HTTPS in front of this process, store GEMMO_DB on persistent storage, configure GEMMO_ORIGIN exactly, and only set TRUST_PROXY=1 behind a reverse proxy you control.
+For local development, `GEMMO_DB` selects a local SQLite file. For production, set both `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`; the server will use Turso/libSQL as the durable account database and automatically initialize the schema. Configure `GEMMO_ORIGIN` exactly, and only set `TRUST_PROXY=1` behind a trusted reverse proxy.
 
 ## Current anti-cheat boundary
 
