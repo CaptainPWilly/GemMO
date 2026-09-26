@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter}=require('./db.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
@@ -11,6 +11,31 @@ const {normalizeTursoConfig}=require('./db.cjs');
   cfg=normalizeTursoConfig(jwt,'libsql://gemmo-example.turso.io');
   assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,true);
   assert.throws(()=>normalizeTursoConfig(jwt,'also-not-a-url'),/invalid_turso_database_url/);
+  {
+    const calls=[];
+    const fakeStmt={get:async args=>({value:args[0]}),all:async args=>args.map(value=>({value})),run:async args=>({changes:1,info:{lastInsertRowid:42},args})};
+    const fakeTx={
+      prepare:async sql=>{calls.push(['tx.prepare',sql]);return fakeStmt},
+      exec:async sql=>{calls.push(['tx.exec',sql])},
+      batch:async()=>({rowsAffected:0})
+    };
+    const fakeConn={
+      prepare:async sql=>{calls.push(['prepare',sql]);return fakeStmt},
+      exec:async sql=>{calls.push(['exec',sql])},
+      batch:async()=>({rowsAffected:0}),
+      transactionAsync(fn){
+        const runner=async()=>fn(fakeTx);
+        runner.immediate=runner;runner.deferred=runner;runner.exclusive=runner;runner.concurrent=runner;
+        return runner;
+      }
+    };
+    const remote=remoteAdapter(fakeConn,'https://example.turso.io');
+    assert.deepEqual(await remote.prepare('SELECT ?').get(7),{value:7});
+    assert.deepEqual(await remote.prepare('SELECT ?,?').all(1,2),[{value:1},{value:2}]);
+    const info=await remote.prepare('INSERT').run('x');assert.equal(info.changes,1);assert.equal(info.lastInsertRowid,42);
+    await remote.transaction(async tx=>{assert.deepEqual(await tx.prepare('SELECT ?').get(9),{value:9})});
+    assert(calls.some(([kind])=>kind==='tx.prepare'),'remote transactions must use the transaction handle');
+  }
   const {server,db}=await createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],forceLocal:true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;

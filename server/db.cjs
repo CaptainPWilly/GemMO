@@ -64,23 +64,23 @@ function localAdapter(conn,label,persistent=false){
   };
   return api;
 }
-function remoteAdapter(conn,label){
+function remoteAdapter(conn,label,transactionHandle=false){
   const api={
     kind:'turso',
     storage:{provider:'turso',location:label,persistent:true},
     prepare(sql){
-      const stmt=conn.prepare(sql);
+      const stmtPromise=Promise.resolve(conn.prepare(sql));
       return {
-        async get(...args){return (await stmt.get(args))||null},
-        async all(...args){return await stmt.all(args)},
-        async run(...args){return normalizeRun(await stmt.run(args))}
+        async get(...args){const stmt=await stmtPromise;return (await stmt.get(args))||null},
+        async all(...args){const stmt=await stmtPromise;return await stmt.all(args)},
+        async run(...args){const stmt=await stmtPromise;return normalizeRun(await stmt.run(args))}
       };
     },
     async exec(sql){return await conn.exec(sql)},
     async batch(statements,mode='immediate'){return await conn.batch(statements,mode)}
   };
-  api.transaction=async fn=>{
-    const runner=conn.transaction(async()=>fn(api));
+  if(!transactionHandle)api.transaction=async fn=>{
+    const runner=conn.transactionAsync(async tx=>fn(remoteAdapter(tx,label,true)));
     return await runner.immediate();
   };
   api.close=()=>{try{conn.close?.()}catch{}};
@@ -256,4 +256,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
