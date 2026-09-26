@@ -4,7 +4,7 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
-  const {server,db}=createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test']});
+  const {server,db}=await createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],forceLocal:true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
   async function call(path,{method='GET',token,body,origin='http://test'}={}){
@@ -14,7 +14,7 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
     return {status:res.status,data};
   }
   try{
-    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);assert.equal(r.data.captcha,false);assert.equal(typeof r.data.release,'string');assert.equal(r.data.storage.dbPath,':memory:');assert.equal(r.data.storage.persistentPath,false);
+    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);assert.equal(r.data.captcha,false);assert.equal(typeof r.data.release,'string');assert.equal(r.data.storage.provider,'sqlite');assert.equal(r.data.storage.location,':memory:');assert.equal(r.data.storage.persistent,false);
     r=await call('/v1/auth/register',{method:'POST',body:{username:'FiveChar',password:'12345'}});assert.equal(r.status,400,'five-character passwords stay invalid');
     r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
@@ -49,8 +49,8 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'must physically travel to the shop');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'zero-gold player cannot buy');
-    const userId=db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get().id;
-    db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(userId);
+    const userId=(await db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get()).id;
+    await db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(userId);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('hand-crossbow'));assert.equal(r.data.account.profile.gold,82);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'cannot buy an owned unique item');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
@@ -71,7 +71,7 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 
-  const captcha=createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],turnstileSiteKey:'site-test',turnstileSecretKey:'secret-test',turnstileExpectedHostname:'test.example',turnstileVerifier:async({token})=>token==='captcha-ok'?{success:true,hostname:'test.example',action:'auth'}:{success:false}});
+  const captcha=await createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],forceLocal:true,turnstileSiteKey:'site-test',turnstileSecretKey:'secret-test',turnstileExpectedHostname:'test.example',turnstileVerifier:async({token})=>token==='captcha-ok'?{success:true,hostname:'test.example',action:'auth'}:{success:false}});
   await new Promise(resolve=>captcha.server.listen(0,'127.0.0.1',resolve));
   const captchaBase='http://127.0.0.1:'+captcha.server.address().port;
   async function captchaCall(path,{method='GET',body}={}){const headers={Origin:'http://test'};if(body!==undefined)headers['Content-Type']='application/json';const res=await fetch(captchaBase+path,{method,headers,body:body===undefined?undefined:JSON.stringify(body)});let data={};try{data=await res.json()}catch{}return {status:res.status,data}}
