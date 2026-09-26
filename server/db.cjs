@@ -53,7 +53,7 @@ function completeEncounter(db,userId,encounterId){
   db.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,flag,now);
   audit(db,userId,'encounter_cleared',encounterId);
 }
-const MATCH_REWARD_CAPS=Object.freeze({rat:{gold:40,xp:40},bandit:{gold:120,xp:120}});
+const MATCH_REWARD_CAPS=Object.freeze({rat:{gold:1000,xp:1000},bandit:{gold:1000,xp:1000}});
 function startMatch(db,userId,encounterId){
   const row=db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
