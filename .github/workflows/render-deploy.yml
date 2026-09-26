@@ -1,4 +1,4 @@
-name: Deploy Render
+name: Deploy geMMO Backend
 
 on:
   workflow_run:
@@ -27,3 +27,29 @@ jobs:
           curl --fail --show-error --silent --request POST "${RENDER_DEPLOY_HOOK_URL}&ref=${TESTED_SHA}"
           echo
           echo "Triggered Render deploy for ${TESTED_SHA}"
+
+      - name: Verify tested commit is live
+        env:
+          TESTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GEMMO_HEALTH_URL: https://gemmo.onrender.com/health
+        run: |
+          expected="${TESTED_SHA:0:12}"
+          for attempt in $(seq 1 72); do
+            body="$(curl --fail --show-error --silent --max-time 15 "$GEMMO_HEALTH_URL" 2>/dev/null || true)"
+            if [ -n "$body" ]; then
+              release="$(node -e 'try{const h=JSON.parse(process.argv[1]);process.stdout.write(String(h.release||""))}catch{}' "$body")"
+              if [ "$release" = "$expected" ]; then
+                echo "Live geMMO backend: $body"
+                provider="$(node -e 'try{const h=JSON.parse(process.argv[1]);process.stdout.write(String(h.storage?.provider||"unknown"))}catch{}' "$body")"
+                persistent="$(node -e 'try{const h=JSON.parse(process.argv[1]);process.stdout.write(String(Boolean(h.storage?.persistent)))}catch{}' "$body")"
+                echo "Storage provider: $provider · persistent: $persistent"
+                if [ "$provider" != "turso" ]; then
+                  echo "::warning::geMMO is live, but durable production storage is not Turso yet. Configure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN on Render."
+                fi
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "::error::Render never reported tested release $expected as live."
+          exit 1
