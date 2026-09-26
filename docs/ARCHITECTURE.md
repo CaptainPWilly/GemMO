@@ -69,6 +69,14 @@ If Turso config is absent during local development, geMMO uses local SQLite.
 
 On Render, local SQLite is ephemeral and must never be treated as durable production storage.
 
+## Fresh-sacks reset
+
+The September 26, 2026 fresh-start release keeps user credentials and login sessions but resets game progression exactly once through the `2026-09-26-fresh-sacks-v1` data migration.
+
+The migration clears inventory, Sack slots, equipment, starter choice, world clears, open/settled matches, Gold and XP, then returns every account to Camp with an empty Sack. The migration records itself in `app_migrations`; normal restarts and redeploys do not repeat it.
+
+After the reset, the only starter choices are Red Dagger, Yellow Sling, and Blue Crystal Wand. All three starter abilities deal damage.
+
 ## Authentication
 
 - username/password

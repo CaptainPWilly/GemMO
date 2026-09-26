@@ -44,8 +44,8 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 
 - Account = save file. Durable player state lives in Turso.
 - Login is remembered on the device until logout or server-session expiry.
-- New accounts choose one permanent starter gem.
-- The Sack supports 1–5 unique owned gems.
+- New and reset accounts choose one permanent damage starter: Red Dagger, Yellow Sling, or Blue Crystal Wand.
+- The Sack supports 1–5 unique owned gems and uses a compact deck/card collection UI.
 - Physical gear is separate from Sack gems.
 - Base player HP is **18** plus equipment bonuses.
 - Early equipment can modify HP, opening Guard, and color reservoir capacity.

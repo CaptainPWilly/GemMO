@@ -19,7 +19,7 @@ const GEAR=Object.freeze({
   'twine-ring':{slot:'ring',hp:1,caps:{yellow:1}},'copper-band':{slot:'ring',caps:{red:1,blue:1}}
 });
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
-const STARTER_GEMS=Object.freeze({red:'dagger',blue:'shield',green:'salve',yellow:'boots',purple:'charm'});
+const STARTER_GEMS=Object.freeze({red:'dagger',yellow:'sling',blue:'crystal-wand'});
 const STARTER_GEM_SET=new Set(Object.values(STARTER_GEMS));
 const WORLD_NODES=Object.freeze({
   camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','item-shop','crossroads']},

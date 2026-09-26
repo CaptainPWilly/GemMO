@@ -107,7 +107,7 @@ Update:
 - `server/test.cjs`
 - `docs/ARCHITECTURE.md` if the trust boundary changes
 
-Schema creation is intentionally idempotent. Production runs on Turso; tests/dev can use local SQLite.
+Schema creation is intentionally idempotent. Production runs on Turso; tests/dev can use local SQLite. Destructive or one-time data changes must use a named `app_migrations` entry and include a regression test proving the migration cannot run twice.
 
 ## 5. Pull request → production flow
 

@@ -23,7 +23,8 @@ const SCHEMA=[
   'CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,last_seen_at INTEGER NOT NULL,revoked_at INTEGER) STRICT;',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);',
   'CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);',
-  "CREATE TABLE IF NOT EXISTS audit_events(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,type TEXT NOT NULL,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL) STRICT;"
+  "CREATE TABLE IF NOT EXISTS audit_events(id INTEGER PRIMARY KEY,user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,type TEXT NOT NULL,detail TEXT NOT NULL DEFAULT '',created_at INTEGER NOT NULL) STRICT;",
+  "CREATE TABLE IF NOT EXISTS app_migrations(key TEXT PRIMARY KEY,applied_at INTEGER NOT NULL) STRICT;"
 ];
 
 function normalizeRun(result){
@@ -111,6 +112,7 @@ async function createDb(options={}){
     const conn=connect({url,authToken});
     const db=remoteAdapter(conn,url);
     await db.batch(SCHEMA,'immediate');
+    await applyDataMigrations(db);
     return db;
   }
   const dbPath=options.dbPath||':memory:';
@@ -118,10 +120,33 @@ async function createDb(options={}){
   const conn=new DatabaseSync(dbPath,{open:true,timeout:5000});
   const db=localAdapter(conn,dbPath,dbPath!==':memory:'&&process.env.RENDER!=='true');
   await db.exec(['PRAGMA foreign_keys=ON;','PRAGMA journal_mode=WAL;','PRAGMA synchronous=NORMAL;','PRAGMA trusted_schema=OFF;',...SCHEMA].join('\n'));
+  await applyDataMigrations(db);
   return db;
 }
+const DATA_RESET_KEY='2026-09-26-fresh-sacks-v1';
 async function transaction(db,fn){return db.transaction(fn)}
 async function audit(db,userId,type,detail=''){await db.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(?,?,?,?)').run(userId??null,type,String(detail).slice(0,500),Date.now())}
+async function applyDataMigrations(db){
+  const already=await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY);
+  if(already)return false;
+  const now=Date.now();
+  await transaction(db,async tx=>{
+    if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))return;
+    // Fresh-sacks reset: preserve account credentials and active login sessions,
+    // but wipe every piece of earned/equipped/progression state exactly once.
+    await tx.prepare('DELETE FROM matches').run();
+    await tx.prepare('DELETE FROM sack_slots').run();
+    await tx.prepare('DELETE FROM starter_choices').run();
+    await tx.prepare('DELETE FROM inventory').run();
+    await tx.prepare('DELETE FROM world_flags').run();
+    await tx.prepare('UPDATE equipment_slots SET item_id=NULL').run();
+    await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=?").run(now);
+    await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=?').run(now);
+    await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(DATA_RESET_KEY,now);
+    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','fresh-sacks-v1',now);
+  });
+  return true;
+}
 async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
   return transaction(db,async tx=>{
     const now=Date.now(),result=await tx.prepare('INSERT INTO users(username_norm,username_display,password_hash,created_at) VALUES(?,?,?,?)').run(usernameNorm,usernameDisplay,passwordHash,now),userId=Number(result.lastInsertRowid);
@@ -299,4 +324,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
