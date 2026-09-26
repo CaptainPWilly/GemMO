@@ -53,9 +53,11 @@ The live browser currently owns most combat simulation:
 - cascades and Wild creation
 - HP/Guard/buffs during the fight
 - enemy move selection
-- local Gold/XP tallies submitted at victory
+- local Gold/XP finds submitted at victory
 
-The server binds settlement to a real match ticket/current encounter and prevents duplicate settlement, but a modified client can still fabricate a valid `won:true` result/tallies within server caps.
+The server now issues a per-match Gold/XP reward budget when the match ticket is created. The client can report fewer finds, but settlement cannot award more than that server-owned budget. Over-budget claims are clipped and audited.
+
+A modified client can still fabricate a valid `won:true` result and claim the full issued budget, so combat is still not fully authoritative. The important improvement is that the client no longer controls the maximum economic payout of a match.
 
 **Do not describe the current combat system as fully anti-cheat.**
 
@@ -110,11 +112,13 @@ Bandit is hidden/locked until Rat is cleared.
 2. Fight start requests `POST /v1/matches/start`.
 3. Server verifies the player is physically at that encounter and creates a unique match ID.
 4. On victory, client calls `POST /v1/matches/settle` with `won:true`; on defeat/surrender it settles `won:false` with zero rewards.
-5. Victory settlement verifies match ownership, encounter location, reward shape/caps, and unsettled status.
-6. Rewards + encounter unlock are committed transactionally only for victories.
-7. Loss settlement closes the ticket without rewards or encounter progress.
-8. Retrying any settled match is idempotent and cannot double-award.
-9. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
+5. Match start also creates a server-owned randomized reward budget appropriate to the encounter.
+6. Victory settlement verifies match ownership, encounter location, reward shape, reward budget, and unsettled status.
+7. Gold/XP are capped to that issued budget; attempted overclaims are audited.
+8. Rewards + encounter unlock are committed transactionally only for victories.
+9. Loss settlement closes the ticket without rewards or encounter progress.
+10. Retrying any settled match is idempotent and cannot double-award.
+11. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
 
 The client retries transient victory-settlement failures and exposes a manual **RETRY SAVE** action. Defeat settlement is best-effort because abandoned tickets are safely closed server-side.
 
