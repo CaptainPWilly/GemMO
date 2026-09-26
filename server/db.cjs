@@ -64,7 +64,7 @@ function localAdapter(conn,label,persistent=false){
   };
   return api;
 }
-function remoteAdapter(conn,label,transactionHandle=false){
+function remoteAdapter(conn,label){
   const api={
     kind:'turso',
     storage:{provider:'turso',location:label,persistent:true},
@@ -79,8 +79,8 @@ function remoteAdapter(conn,label,transactionHandle=false){
     async exec(sql){return await conn.exec(sql)},
     async batch(statements,mode='immediate'){return await conn.batch(statements,mode)}
   };
-  if(!transactionHandle)api.transaction=async fn=>{
-    const runner=conn.transactionAsync(async tx=>fn(remoteAdapter(tx,label,true)));
+  api.transaction=async fn=>{
+    const runner=conn.transaction(async()=>fn(api));
     return await runner.immediate();
   };
   api.close=()=>{try{conn.close?.()}catch{}};
