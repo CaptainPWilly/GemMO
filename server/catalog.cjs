@@ -25,9 +25,10 @@ const WORLD_NODES=Object.freeze({
   camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','item-shop','crossroads']},
   'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem',neighbors:['camp']},
   'item-shop':{id:'item-shop',name:'Roadside Outfitter',kind:'shop',shop:'item',neighbors:['camp']},
-  crossroads:{id:'crossroads',name:'Old Crossroads',kind:'road',neighbors:['camp','shrine','bandit-pass']},
-  shrine:{id:'shrine',name:'Broken Shrine',kind:'landmark',neighbors:['crossroads']},
-  'bandit-pass':{id:'bandit-pass',name:'Bandit Toll',kind:'encounter',encounter:'bandit',neighbors:['crossroads']}
+  crossroads:{id:'crossroads',name:'Crossroads',kind:'road',neighbors:['camp','shrine','rat']},
+  shrine:{id:'shrine',name:'Shrine',kind:'landmark',neighbors:['crossroads']},
+  rat:{id:'rat',name:'Rat',kind:'encounter',encounter:'rat',neighbors:['crossroads','bandit-pass']},
+  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat']}
 });
 const SHOP_CATALOG=Object.freeze({
   'gem-shop':Object.freeze({
