@@ -7,8 +7,14 @@ const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPasswor
 const SESSION_TTL=7*24*60*60*1000;
 const MAX_BODY=16*1024;
 
+function defaultDbPath(options={}){
+  if(options.dbPath)return options.dbPath;
+  if(process.env.GEMMO_DB)return process.env.GEMMO_DB;
+  if(process.env.RENDER==='true')return '/var/data/gemmo.db';
+  return require('node:path').join(__dirname,'data','gemmo.db');
+}
 function createGemmoServer(options={}){
-  const db=createDb(options.dbPath||process.env.GEMMO_DB||require('node:path').join(__dirname,'data','gemmo.db'));
+  const dbPath=defaultDbPath(options),db=createDb(dbPath);
   const allowedOrigins=new Set(options.allowedOrigins||String(process.env.GEMMO_ORIGIN||'https://captainpwilly.github.io,http://localhost:8000,http://127.0.0.1:8000').split(',').map(s=>s.trim()).filter(Boolean));
   const trustProxy=options.trustProxy??process.env.TRUST_PROXY==='1';
   const turnstileSiteKey=String(options.turnstileSiteKey??process.env.TURNSTILE_SITE_KEY??'').trim();
@@ -50,7 +56,7 @@ function createGemmoServer(options={}){
       if(!allowRate(req,'global',180,60_000)){send(req,res,429,{error:'rate_limited'});return}
       const url=new URL(req.url,'http://gemmo.local'),pathname=url.pathname;
 
-      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account',captcha:captchaEnabled,release:String(process.env.RENDER_GIT_COMMIT||'dev').slice(0,12)});return}
+      if(req.method==='GET'&&pathname==='/health'){send(req,res,200,{ok:true,service:'gemmo-account',captcha:captchaEnabled,release:String(process.env.RENDER_GIT_COMMIT||'dev').slice(0,12),storage:{dbPath,render:process.env.RENDER==='true',persistentPath:dbPath==='/var/data/gemmo.db'||dbPath.startsWith('/var/data/')}});return}
       if(req.method==='GET'&&pathname==='/v1/config'){send(req,res,200,{captcha:{enabled:captchaEnabled,provider:'turnstile',siteKey:captchaEnabled?turnstileSiteKey:null}});return}
 
       if(req.method==='POST'&&pathname==='/v1/auth/register'){
@@ -100,5 +106,5 @@ function createGemmoServer(options={}){
   return {server,db};
 }
 
-if(require.main===module){const port=Number(process.env.PORT||8787),host=process.env.HOST||'0.0.0.0';const {server}=createGemmoServer();server.listen(port,host,()=>console.log('GemMO account server listening on http://'+host+':'+port))}
-module.exports={createGemmoServer};
+if(require.main===module){const port=Number(process.env.PORT||8787),host=process.env.HOST||'0.0.0.0';const dbPath=defaultDbPath(),{server}=createGemmoServer({dbPath});server.listen(port,host,()=>{console.log('GemMO account server listening on http://'+host+':'+port);console.log('GemMO account database: '+dbPath)})}
+module.exports={createGemmoServer,defaultDbPath};
