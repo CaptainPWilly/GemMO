@@ -51,8 +51,8 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 - Early equipment can modify HP, opening Guard, and color reservoir capacity.
 - Overworld movement is server-validated. Tapping a reachable distant node follows the shortest unlocked route and animates every segment.
 - Rat is the first encounter; clearing it unlocks the Bandit path.
-- Combat Gold/XP are settled to the account on victory through match tickets.
-- Combat still runs primarily in the browser. The current settlement layer prevents duplicate/fake match IDs but is **not full server-authoritative anti-cheat**. See the architecture document.
+- Combat Gold/XP are settled to the account on victory through match tickets. Every match receives a server-issued loot budget, so the client cannot mint an arbitrary payout.
+- Combat still runs primarily in the browser. The current settlement layer prevents duplicate/fake match IDs and bounds each match's economy, but victory simulation is **not yet fully server-authoritative**. See the architecture document.
 - Combat has an always-available menu for Gemology/Surrender and an Equip drawer for inspecting the current loadout.
 - Layouts adapt across phone, tablet portrait, and tablet landscape.
 
