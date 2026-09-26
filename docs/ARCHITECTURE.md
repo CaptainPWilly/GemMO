@@ -109,12 +109,14 @@ Bandit is hidden/locked until Rat is cleared.
 1. Client reaches an encounter node.
 2. Fight start requests `POST /v1/matches/start`.
 3. Server verifies the player is physically at that encounter and creates a unique match ID.
-4. On victory, client calls `POST /v1/matches/settle`.
-5. Server verifies match ownership, encounter location, reward shape/caps, and unsettled status.
-6. Rewards + encounter unlock are committed transactionally.
-7. Retrying the same settled match cannot double-award.
+4. On victory, client calls `POST /v1/matches/settle` with `won:true`; on defeat/surrender it settles `won:false` with zero rewards.
+5. Victory settlement verifies match ownership, encounter location, reward shape/caps, and unsettled status.
+6. Rewards + encounter unlock are committed transactionally only for victories.
+7. Loss settlement closes the ticket without rewards or encounter progress.
+8. Retrying any settled match is idempotent and cannot double-award.
+9. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
 
-The client retries transient settlement failures and exposes a manual **RETRY SAVE** action.
+The client retries transient victory-settlement failures and exposes a manual **RETRY SAVE** action. Defeat settlement is best-effort because abandoned tickets are safely closed server-side.
 
 ## Data/catalog duplication
 
