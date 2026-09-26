@@ -245,10 +245,23 @@ const WORLD_HEIGHT=[
 const WORLD_ROAD=new Set(['1,7','2,6','3,5','4,4','2,5','2,4','1,3']);const WORLD_ROAD_BANDIT=new Set(['5,3','6,2']);
 const WORLD_TREES=[[0,6],[0,5],[1,5],[2,7],[3,7],[4,6],[5,6],[7,4],[7,3],[6,4],[4,2],[3,2],[2,2],[0,2],[8,2],[8,3],[7,1]];
 const WORLD_ROCKS=[[2,8],[4,7],[5,5],[6,5],[7,2],[3,1],[1,1]];
-let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,activeEncounter=null,currentShop=null;
+let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
 function worldNodeVisible(node){return node.id!=='bandit-pass'||worldCleared('rat')||worldState.currentNode==='bandit-pass'}
-function worldCanTravel(from,to){const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&(!target.requires||worldCleared(target.requires)))}
+function worldCanTravel(from,to){const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&(!target.requires||worldCleared(target.requires)))}
+function worldPath(from,to){
+ if(!WORLD_NODES[from]||!WORLD_NODES[to]||!worldNodeVisible(WORLD_NODES[to]))return null;
+ if(from===to)return [from];
+ const queue=[[from]],seen=new Set([from]);
+ while(queue.length){
+  const path=queue.shift(),node=path[path.length-1];
+  for(const next of WORLD_NODES[node]?.neighbors||[]){
+   if(seen.has(next)||!worldCanTravel(node,next))continue;
+   const route=[...path,next];if(next===to)return route;seen.add(next);queue.push(route);
+  }
+ }
+ return null;
+}
 
 const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
 const WEIGHTS=[15,15,15,15,15,10,8,7];
@@ -671,21 +684,29 @@ function drawWorld(){
 function drawWorldCard(){
  const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode];
  $('worldKind').textContent=node.kind==='encounter'?'⚔ MOB':node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent='';$('worldNodeDesc').hidden=true;
- const btn=$('worldAction');btn.disabled=false;
- if(node.id===current.id){if(node.encounter){btn.textContent='FIGHT '+node.name.toUpperCase();btn.dataset.action='fight'}else if(node.shop){btn.textContent=node.shop==='gem-shop'?'OPEN GEM SHOP':'OPEN ITEM SHOP';btn.dataset.action='shop'}else{btn.textContent='YOU ARE HERE';btn.disabled=true;btn.dataset.action='none'}}
- else if(worldCanTravel(current.id,node.id)){btn.textContent='TRAVEL';btn.dataset.action='travel'}else{btn.textContent='ROAD BLOCKED';btn.disabled=true;btn.dataset.action='none'}
+ const btn=$('worldAction');btn.hidden=true;btn.disabled=false;btn.dataset.action='none';
+ if(node.id===current.id&&!worldTravelRoute){
+  if(node.encounter){btn.hidden=false;btn.textContent='FIGHT '+node.name.toUpperCase();btn.dataset.action='fight'}
+  else if(node.shop){btn.hidden=false;btn.textContent=node.shop==='gem-shop'?'OPEN GEM SHOP':'OPEN ITEM SHOP';btn.dataset.action='shop'}
+ }
 }
 function animateWorldTravel(from,to){
  if(reducedMotion()||from===to)return Promise.resolve();
  return new Promise(resolve=>{const start=performance.now(),duration=620;worldTravelAnim={from,to,progress:0};const step=now=>{worldTravelAnim.progress=Math.min(1,(now-start)/duration);drawWorld();if(worldTravelAnim.progress<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
 }
 async function travelWorld(nodeId){
- if(!account||!accountToken||!worldCanTravel(worldState.currentNode,nodeId)||worldTravelAnim)return;
- const from=worldState.currentNode;let nextAccount;
- try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId}});nextAccount=data.account}
- catch(error){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');return}
- selectedWorldNode=nodeId;await animateWorldTravel(from,nodeId);
- applyAccount(nextAccount);selectedWorldNode=nodeId;drawWorld();
+ if(!account||!accountToken||worldTravelRoute)return;
+ const route=worldPath(worldState.currentNode,nodeId);if(!route||route.length<2){selectedWorldNode=nodeId;drawWorld();return}
+ const destination=nodeId;worldTravelRoute=route.slice();selectedWorldNode=destination;drawWorld();
+ try{
+  for(let i=1;i<route.length;i++){
+   const from=worldState.currentNode,to=route[i];let nextAccount;
+   try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId:to}});nextAccount=data.account}
+   catch(error){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');break}
+   await animateWorldTravel(from,to);
+   applyAccount(nextAccount);selectedWorldNode=destination;drawWorld();
+  }
+ }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;showScreen('world');requestAnimationFrame(drawWorld)}
 function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.name,desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
@@ -791,7 +812,7 @@ function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen(account?'menu':'splash'));$('shopBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldZoomIn').onclick=()=>{worldCamera.zoom=Math.min(1.55,worldCamera.zoom+.12);drawWorld()};$('worldZoomOut').onclick=()=>{worldCamera.zoom=Math.max(.68,worldCamera.zoom-.12);drawWorld()};
-$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='travel')void travelWorld(selectedWorldNode);if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
+$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
 function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function worldMid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
@@ -813,7 +834,7 @@ $('worldViewport').addEventListener('pointermove',e=>{
 });
 function endWorldPointer(e,cancel=false){
  const gesture=worldGesture,p=worldPointers.get(e.pointerId);worldPointers.delete(e.pointerId);
- if(!cancel&&gesture?.type==='pan'&&!gesture.moved&&p&&worldPointers.size===0){const rect=$('worldCanvas').getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,hit=worldHits.filter(h=>Math.hypot(h.x-x,h.y-y)<=h.r).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(hit){selectedWorldNode=hit.id;drawWorld()}}
+ if(!cancel&&gesture?.type==='pan'&&!gesture.moved&&p&&worldPointers.size===0&&!worldTravelRoute){const rect=$('worldCanvas').getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top,hit=worldHits.filter(h=>Math.hypot(h.x-x,h.y-y)<=h.r).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y))[0];if(hit){selectedWorldNode=hit.id;drawWorld();if(hit.id!==worldState.currentNode)void travelWorld(hit.id)}}
  if(worldPointers.size===1){const [id,left]=worldPointers.entries().next().value;worldGesture={type:'pan',id,startX:left.x,startY:left.y,startPanX:worldCamera.panX,startPanY:worldCamera.panY,moved:true}}
  else if(worldPointers.size===0){worldGesture=null;$('worldViewport').classList.remove('dragging')}
 }
