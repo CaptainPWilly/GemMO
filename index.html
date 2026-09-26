@@ -412,11 +412,13 @@ const ENCOUNTERS={rat:{name:'RAT',maxHP:10},bandit:{name:'BANDIT',maxHP:24}};
 function encounterSpec(){return ENCOUNTERS[activeEncounter]||ENCOUNTERS.bandit}
 function enemyLabel(){return encounterSpec().name}
 function enemyMaxHP(){return encounterSpec().maxHP}
-let board=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=false,overdrive=false,enemyReload=false,encounterClearSaved=false,encounterSettling=false,activeMatchId=null,activeRewardBudget=null,matchStartPromise=null,rewardsSettled=false,lossSettlementStarted=false,lastMatchError='',combatPaused=false;
+let board=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=false,overdrive=false,enemyReload=false,encounterClearSaved=false,encounterSettling=false,activeMatchId=null,activeRewardBudget=null,activeAuthority=null,combatRng=null,combatTranscript=[],matchStartPromise=null,rewardsSettled=false,lossSettlementStarted=false,lastMatchError='',combatPaused=false;
 let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
-function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(Math.random()*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
+function makeCombatRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
+function recordCombatAction(action){if(activeAuthority?.mode==='replay-v1')combatTranscript.push(action)}
+function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function buildBoard(){board=[];for(let y=0;y<H;y++){let row=[];for(let x=0;x<W;x++){let k=roll(),tries=0;while(tries++<30&&((x>=2&&row[x-1]===k&&row[x-2]===k)||(y>=2&&board[y-1][x]===k&&board[y-2][x]===k)))k=roll();row.push(k)}board.push(row)}if(!legalMoves().length)return buildBoard();render()}
 function swap(a,b){[board[a.y][a.x],board[b.y][b.x]]=[board[b.y][b.x],board[a.y][a.x]]}
 function k(x,y){return x+','+y}
@@ -533,6 +535,7 @@ async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};f
  await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
 async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
+ if(actor==='player')recordCombatAction({t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y});
 
  await swapMotion(a,b,false,startProgress);swap(a,b);
 
@@ -564,7 +567,7 @@ function afterAction(actor){
  render();checkEnd();touchActivity();
 }
 async function applyTarget(p){
- const mode=targetMode;targetMode=null;busy=true;
+ const mode=targetMode;targetMode=null;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
  if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player');return}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
@@ -573,9 +576,9 @@ async function applyTarget(p){
 }
 function activate(index){
  if(screen!=='fight'||!playerTurn||busy||freeSwap||targetMode||pHP<=0||eHP<=0)return;
- const spec=itemById(sack[index]);if(charges[spec.color]<spec.cap){setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
+ const spec=itemById(sack[index]);if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
  if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
- touchActivity();charges[spec.color]-=spec.cap;const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
+ recordCombatAction({t:'ability',slot:index});touchActivity();charges[spec.color]-=spec.cap;const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
  if(spec.kind==='damage')damageEnemy(spec.power);
  if(spec.kind==='guard')pGuard+=spec.power;
  if(spec.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+spec.power);
@@ -608,7 +611,8 @@ async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
  try{
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
+  activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=activeAuthority?.mode==='replay-v1'?makeCombatRng(activeAuthority.seed):null;
+  if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
  }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';return null}
 }
 async function ensureMatchTicket(){
@@ -627,6 +631,8 @@ function saveErrorText(error){
   encounter_not_here:'ENCOUNTER STATE MISMATCH',
   match_not_found:'MATCH NOT FOUND',
   invalid_match_result:'INVALID MATCH RESULT',
+  invalid_combat_proof:'INVALID COMBAT PROOF',
+  combat_proof_failed:'VICTORY NOT VERIFIED',
   server_error:'SERVER ERROR',
   rate_limited:'SERVER BUSY'
  };
@@ -639,9 +645,10 @@ async function settleVictory(){
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
   const unlockedRat=activeEncounter==='rat'&&!worldCleared('rat');
   let data;
-  try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:{matchId:activeMatchId,won:true,gold,xp}})}
+  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(activeAuthority?.mode==='replay-v1')resultBody.transcript=combatTranscript;
+  try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
   catch(error){
-   if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:{matchId:activeMatchId,won:true,gold,xp}})}
+   if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
    else throw error;
   }
   applyAccount(data.account);rewardsSettled=true;encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');
@@ -925,9 +932,13 @@ function startFight(){
  clearTimeout(hintTimer);actionNumber=1;targetMode=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};
  if(account?.needsStarter||!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
- clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
+ clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
  const gear=gearStats();pHP=playerMaxHP();eHP=enemyMaxHP();pGuard=gear.guard;eGuard=gold=xp=0;guardTurns=pGuard?2:0;charges={red:0,blue:0,green:0,yellow:0,purple:0};ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=pHP;shownHP.e=eHP;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
- encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;if(accountToken)matchStartPromise=startMatchTicket();$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];logSequence=0;$('historyEntries').innerHTML='';$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity();
+ encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];logSequence=0;$('historyEntries').innerHTML='';$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');
+ if(accountToken){
+  busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
+  void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}board=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
+ }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
