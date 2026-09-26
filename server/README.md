@@ -40,7 +40,7 @@ TURSO_DATABASE_URL
 TURSO_AUTH_TOKEN
 ```
 
-When configured, the service uses Turso/libSQL and initializes the schema automatically.
+When configured, the service uses Turso/libSQL and initializes the schema automatically. Versioned data migrations are recorded in `app_migrations` so one-time resets cannot silently repeat on restart.
 
 Production Render storage is ephemeral; do not rely on a local SQLite file there.
 
