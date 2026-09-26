@@ -3,7 +3,7 @@ services:
     name: gemmo
     runtime: node
     region: oregon
-    plan: starter
+    plan: free
     rootDir: server
     buildCommand: npm install --omit=dev
     startCommand: node server.cjs
@@ -16,17 +16,15 @@ services:
         value: 0.0.0.0
       - key: GEMMO_ORIGIN
         value: https://captainpwilly.github.io
-      - key: GEMMO_DB
-        value: /var/data/gemmo.db
       - key: TRUST_PROXY
         value: "1"
+      - key: TURSO_DATABASE_URL
+        sync: false
+      - key: TURSO_AUTH_TOKEN
+        sync: false
       - key: TURNSTILE_SITE_KEY
         sync: false
       - key: TURNSTILE_SECRET_KEY
         sync: false
       - key: TURNSTILE_EXPECTED_HOSTNAME
         value: captainpwilly.github.io
-    disk:
-      name: gemmo-data
-      mountPath: /var/data
-      sizeGB: 1
