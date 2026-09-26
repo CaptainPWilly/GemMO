@@ -86,14 +86,27 @@ function remoteAdapter(conn,label){
   api.close=()=>{try{conn.close?.()}catch{}};
   return api;
 }
+function looksLikeTursoUrl(value){return /^(?:https?|libsql):\/\//i.test(String(value||''))}
+function looksLikeJwt(value){return /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(String(value||''))}
+function normalizeTursoConfig(rawUrl,rawToken){
+  let url=String(rawUrl||'').trim(),authToken=String(rawToken||'').trim(),swapped=false;
+  if(looksLikeJwt(url)&&looksLikeTursoUrl(authToken)){const hold=url;url=authToken;authToken=hold;swapped=true}
+  if(url.toLowerCase().startsWith('libsql://'))url='https://'+url.slice('libsql://'.length);
+  if(!looksLikeTursoUrl(url))throw Object.assign(new Error('invalid_turso_database_url'),{code:'INVALID_TURSO_CONFIG'});
+  if(!authToken||looksLikeTursoUrl(authToken))throw Object.assign(new Error('invalid_turso_auth_token'),{code:'INVALID_TURSO_CONFIG'});
+  return {url,authToken,swapped};
+}
 async function createDb(options={}){
   if(typeof options==='string')options={dbPath:options};
-  const tursoUrl=String(options.tursoUrl??process.env.TURSO_DATABASE_URL??'').trim();
-  const tursoAuthToken=String(options.tursoAuthToken??process.env.TURSO_AUTH_TOKEN??process.env.TURSO_DATABASE_AUTH_TOKEN??'').trim();
-  if(!options.forceLocal&&tursoUrl&&tursoAuthToken){
+  const rawTursoUrl=String(options.tursoUrl??process.env.TURSO_DATABASE_URL??'').trim();
+  const rawTursoAuthToken=String(options.tursoAuthToken??process.env.TURSO_AUTH_TOKEN??process.env.TURSO_DATABASE_AUTH_TOKEN??'').trim();
+  if(!options.forceLocal&&(rawTursoUrl||rawTursoAuthToken)){
+    if(!rawTursoUrl||!rawTursoAuthToken)throw Object.assign(new Error('incomplete_turso_config'),{code:'INVALID_TURSO_CONFIG'});
+    const {url,authToken,swapped}=normalizeTursoConfig(rawTursoUrl,rawTursoAuthToken);
+    if(swapped)console.warn('geMMO detected TURSO_DATABASE_URL and TURSO_AUTH_TOKEN were reversed; using corrected order. Fix the Render environment variables.');
     const {connect}=await import('@tursodatabase/serverless');
-    const conn=connect({url:tursoUrl,authToken:tursoAuthToken});
-    const db=remoteAdapter(conn,tursoUrl.replace(/\/\/.*@/,'//'));
+    const conn=connect({url,authToken});
+    const db=remoteAdapter(conn,url);
     await db.batch(SCHEMA,'immediate');
     return db;
   }
@@ -243,4 +256,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
