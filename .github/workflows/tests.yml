@@ -1,4 +1,4 @@
-name: GemMO Tests
+name: geMMO Tests
 on:
   push:
     branches: [ main, "attack-gemology-attunements-20260925" ]
