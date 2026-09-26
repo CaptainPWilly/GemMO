@@ -1,7 +1,7 @@
 name: geMMO Tests
 on:
   push:
-    branches: [ main, "attack-gemology-attunements-20260925" ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
 jobs:

@@ -375,7 +375,7 @@ function rememberAccountToken(token){
  }catch{}
 }
 accountToken=loadAccountToken();
-let storedApiBase='';try{storedApiBase=localStorage.getItem('gemmo.apiBase')||''}catch{}const deprecatedApiBases=new Set(['http://127.0.0.1:8787','http://localhost:8787','https://gemmo-captainpwilly-api-20260925.onrender.com']);if(deprecatedApiBases.has(storedApiBase)){try{localStorage.removeItem('gemmo.apiBase')}catch{}storedApiBase=''}let apiBase=String(window.GEMMO_API||storedApiBase||'https://gemmo.onrender.com').replace(/\/+$/,'');
+let storedApiBase='';try{storedApiBase=localStorage.getItem('gemmo.apiBase')||''}catch{}const deprecatedApiBases=new Set(['https://gemmo-captainpwilly-api-20260925.onrender.com']);if(deprecatedApiBases.has(storedApiBase)){try{localStorage.removeItem('gemmo.apiBase')}catch{}storedApiBase=''}const localDevHost=['localhost','127.0.0.1'].includes(location.hostname),defaultApiBase=localDevHost?'http://127.0.0.1:8787':'https://gemmo.onrender.com';let apiBase=String(window.GEMMO_API||storedApiBase||defaultApiBase).replace(/\/+$/,'');
 const gearById=id=>GEAR.find(g=>g.id===id);
 const gearSlotById=id=>EQUIPMENT_SLOTS.find(s=>s.id===id);
 function gearStats(loadout=equipment){
