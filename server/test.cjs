@@ -13,7 +13,7 @@ const {createGemmoServer}=require('./server.cjs');
     return {status:res.status,data};
   }
   try{
-    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);assert.equal(r.data.captcha,false);
+    let r=await call('/health');assert.equal(r.status,200);assert.equal(r.data.ok,true);assert.equal(r.data.captcha,false);assert.equal(typeof r.data.release,'string');
     r=await call('/v1/auth/register',{method:'POST',body:{username:'FiveChar',password:'12345'}});assert.equal(r.status,400,'five-character passwords stay invalid');
     r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
