@@ -28,7 +28,7 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
   assert.equal(state.playerTurn,item.id==='boots',item.id+' turn cost');
   assert.equal(state.freeSwap,item.id==='boots');assert.equal(state.overdrive,item.id==='charm');
   await a.finish();console.log('PASS '+item.item+' / '+item.name);
-  if(['heal','shelter','leech','renew'].includes(item.kind)){a.startFight();a.setReady(0);a.setHP(23);a.activate(0);assert.equal(a.get().pHP,24,item.id+' healing cap');await a.finish()}
+  if(['heal','shelter','leech','renew'].includes(item.kind)){a.startFight();a.setReady(0);const max=a.playerMaxHP();a.setHP(max-1);a.activate(0);assert.equal(a.get().pHP,max,item.id+' healing cap');await a.finish()}
  }
  a.setSack(['dagger','spear','longbow','rapier','hand-crossbow']);a.startFight();a.applyColor('red',5,'player');assert.equal(a.get().charges.red,5);assert.equal(a.reservoirCap('red'),31);assert.equal(a.get().eHP,19);await a.finish();
  a.setReady(2);a.activate(2);assert.equal(a.get().charges.red,0);await a.finish();
@@ -36,7 +36,7 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
  a.applyColor('red',3,'player');assert.equal(a.get().eHP,18);assert.equal(a.get().charges.red,6);assert.equal(a.get().overdrive,false);await a.finish();a.applyColor('red',3,'player');assert.equal(a.get().eHP,15);await a.finish();
  a.setSack(['boots','dagger','shield','salve','charm']);a.startFight();const b=Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));a.setBoard(b);a.setReady(0);a.activate(0);a.tapCell(0,0);a.tapCell(1,0);await new Promise(resolve=>setImmediate(resolve));assert.equal(a.get().freeSwap,false);assert.equal(a.get().board[0][0],'blue');assert.equal(a.get().board[0][1],'red');assert.equal(a.get().playerTurn,false);
  a.setSack(['dagger','shield','salve','boots','charm']);a.startFight();a.setReady(0);a.setGuard(4);a.activate(0);assert.equal(a.get().eHP,22);assert.equal(a.get().eGuard,0);await a.finish();
- a.startFight();assert(Object.values(a.get().charges).every(n=>n===0));assert.equal(a.get().pHP,24);assert.equal(a.get().eHP,24);
+ a.startFight();assert(Object.values(a.get().charges).every(n=>n===0));assert.equal(a.get().pHP,18);assert.equal(a.get().eHP,24);
 
  // Shared pool keeps unspent charge; either item can spend it.
  a.setSack(['dagger','axe','shield','salve','boots']);a.startFight();a.applyColor('red',99,'player');assert.equal(a.get().charges.red,16);assert.equal(a.reservoirCap('red'),16);await a.finish();
