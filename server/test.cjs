@@ -1,11 +1,13 @@
 'use strict';
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY}=require('./db.cjs');
+const {STARTER_GEMS}=require('./catalog.cjs');
 const {createRatCombat,applyRatAction,suggestRatAction}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
+  assert.deepEqual(STARTER_GEMS,{red:'dagger',yellow:'sling',blue:'crystal-wand'},'fresh accounts have exactly three starter choices');
   const jwt='aaa.bbb.ccc';
   let cfg=normalizeTursoConfig('libsql://gemmo-example.turso.io',jwt);
   assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,false);
@@ -55,10 +57,10 @@ const {createRatCombat,applyRatAction,suggestRatAction}=require('./combat.cjs');
     assert.equal(r.data.account.inventory.length,0);assert.deepEqual(r.data.account.sack,[null,null,null,null,null]);assert.equal(r.data.account.needsStarter,true);
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,403,'cannot equip unowned starter before choice');
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'axe'}});assert.equal(r.status,400,'only five starter gems are legal');
+    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'axe'}});assert.equal(r.status,400,'only three starter gems are legal');
     r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'dagger'}});assert.equal(r.status,200);
     assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);assert.equal(r.data.account.needsStarter,false);
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'shield'}});assert.equal(r.status,409,'starter choice is one-time');
+    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,409,'starter choice is one-time even when the second choice is valid');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,200);
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','shield',null,null,null]}});assert.equal(r.status,403,'cannot equip gems not owned');
     const equipment={head:'frayed-hood',chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
@@ -118,7 +120,19 @@ const {createRatCombat,applyRatAction,suggestRatAction}=require('./combat.cjs');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
-    console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, CORS and client-write anti-cheat boundaries.');
+    const reloginToken=r.data.token;
+    await db.prepare('DELETE FROM app_migrations WHERE key=?').run(DATA_RESET_KEY);
+    assert.equal(await applyDataMigrations(db),true,'fresh-sacks reset applies once');
+    r=await call('/v1/account',{token:reloginToken});assert.equal(r.status,200,'reset preserves login sessions and account credentials');
+    assert.deepEqual(r.data.account.inventory,[],'reset wipes collected inventory');
+    assert.deepEqual(r.data.account.sack,[null,null,null,null,null],'reset empties every Sack');
+    assert.equal(r.data.account.needsStarter,true,'reset returns existing accounts to starter choice');
+    assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
+    assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
+    assert(Object.values(r.data.account.equipment).every(v=>v===null),'reset unequips physical gear');
+    assert.equal(await applyDataMigrations(db),false,'fresh-sacks reset cannot run twice');
+
+    console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, one-time fresh reset, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 
   const captcha=await createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],forceLocal:true,turnstileSiteKey:'site-test',turnstileSecretKey:'secret-test',turnstileExpectedHostname:'test.example',turnstileVerifier:async({token})=>token==='captcha-ok'?{success:true,hostname:'test.example',action:'auth'}:{success:false}});
