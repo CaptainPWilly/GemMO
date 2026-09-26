@@ -1,9 +1,16 @@
 'use strict';
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
+const {normalizeTursoConfig}=require('./db.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
+  const jwt='aaa.bbb.ccc';
+  let cfg=normalizeTursoConfig('libsql://gemmo-example.turso.io',jwt);
+  assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,false);
+  cfg=normalizeTursoConfig(jwt,'libsql://gemmo-example.turso.io');
+  assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,true);
+  assert.throws(()=>normalizeTursoConfig(jwt,'also-not-a-url'),/invalid_turso_database_url/);
   const {server,db}=await createGemmoServer({dbPath:':memory:',allowedOrigins:['http://test'],forceLocal:true});
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   const base='http://127.0.0.1:'+server.address().port;
