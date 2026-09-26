@@ -1,4 +1,4 @@
-# GemMO v0.2 — Sack Model
+# geMMO v0.2 — Sack Model
 
 Godot 4.7.x mobile-first combat prototype.
 
