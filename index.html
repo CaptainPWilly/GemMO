@@ -760,7 +760,7 @@ function showScreen(next){
  if(next==='sack')drawSack();if(next==='inventory')drawInventory();if(next==='starter')drawStarter();if(next==='world')requestAnimationFrame(drawWorld);if(next==='shop')drawShop();
  if(next==='account'){drawAccount();void renderCaptcha();if(accountToken&&!account)void refreshAccount()}
  if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!account.needsStarter&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}
- if(previous!==next)requestAnimationFrame(()=>animateScreenChange(previous,next));save();
+ if(previous!==next){const raf=window.requestAnimationFrame||globalThis.requestAnimationFrame;if(raf)raf(()=>animateScreenChange(previous,next));else setTimeout(()=>animateScreenChange(previous,next),0)}save();
 }
 function drawSack(){
  document.querySelector('.buildIdeas').hidden=!!account;
