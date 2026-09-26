@@ -1,6 +1,6 @@
-# GemMO
+# geMMO
 
-GemMO v0.2 is a mobile-first RPG prototype built around turn-based match-3 combat. Players travel an isometric overworld, collect gems and gear, and enter encounters where both fighters share one board.
+geMMO v0.2 is a mobile-first RPG prototype built around turn-based match-3 combat. Players travel an isometric overworld, collect gems and gear, and enter encounters where both fighters share one board.
 
 ## Browser playtest
 
@@ -46,17 +46,24 @@ A root-based static deployment also serves files under `godot/`; keeping the rep
 
 ## Production account API deployment
 
-The repository includes a root `render.yaml` Blueprint for the account authority. It provisions one Node web service in Oregon with a persistent 1 GB disk mounted at `/var/data`, runs `server/server.cjs`, stores SQLite at `/var/data/gemmo.db`, allows the GitHub Pages origin, and health-checks `/health`.
+geMMO uses a free split architecture: GitHub Pages serves the client, Render runs the Node account authority, and Turso stores durable account data. Render's local filesystem is intentionally treated as ephemeral; production persistence does not depend on a Render disk.
 
 The expected public API URL is:
 
 `https://gemmo.onrender.com`
 
-The browser client already uses that URL by default. Creating the Render service requires authorizing Render to deploy this GitHub repository and accepting the Render compute/disk cost shown before creation. The account database must use a persistent disk; an ephemeral/free filesystem would violate GemMO's account-as-save-file design.
+Set these private production environment values on the Render service:
+
+- `TURSO_DATABASE_URL` — the libSQL URL for the production geMMO database.
+- `TURSO_AUTH_TOKEN` — the Turso database token; keep it secret.
+
+When both Turso variables are present, the server automatically initializes the schema and `/health` reports `storage.provider: "turso"` and `storage.persistent: true`. Without them, geMMO falls back to local SQLite for development/testing; local SQLite on Render is not durable.
+
+The root `render.yaml` targets Render's free plan and does not require a persistent disk.
 
 ## CAPTCHA / bot protection
 
-GemMO supports Cloudflare Turnstile on account creation and login. Create a Turnstile widget for `captainpwilly.github.io`, then set these environment variables on the Render web service:
+geMMO supports Cloudflare Turnstile on account creation and login. Create a Turnstile widget for `captainpwilly.github.io`, then set these environment variables on the Render web service:
 
 - `TURNSTILE_SITE_KEY` — public widget site key.
 - `TURNSTILE_SECRET_KEY` — private server verification key; never expose it in the browser.
@@ -68,7 +75,7 @@ Passwords accept 6–128 characters. Passwords remain scrypt-hashed server-side.
 
 ## Accounts, persistence, security and anti-cheat
 
-GemMO now has a separate server authority in server/. Accounts use username/password login. Passwords are salted with scrypt; opaque 256-bit session tokens are stored server-side only as SHA-256 hashes and are revocable/expiring.
+geMMO now has a separate server authority in server/. Accounts use username/password login. Passwords are salted with scrypt; opaque 256-bit session tokens are stored server-side only as SHA-256 hashes and are revocable/expiring.
 
 The persistent server owns the player's level, XP, gold, item ownership, Sack and physical equipment. A newly created account owns **nothing**: zero gems, zero armor and zero accessories. On the first press of PLAY, the player must permanently choose exactly one starter gem: Iron Dagger (Red), Oak Shield (Blue), Herbal Salve (Green), Worn Boots (Yellow), or Rune Charm (Purple). Only that gem is granted and placed in Sack slot 1; the other four slots remain empty. The browser may request later loadout changes, but ownership, unique-gem rules and gear-slot compatibility are revalidated server-side before saving.
 

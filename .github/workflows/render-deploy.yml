@@ -2,7 +2,7 @@ name: Deploy Render
 
 on:
   workflow_run:
-    workflows: ["GemMO Tests"]
+    workflows: ["geMMO Tests"]
     types: [completed]
 
 permissions:

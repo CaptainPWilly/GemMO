@@ -1,8 +1,9 @@
 {
   "name":"gemmo-account-server",
   "private":true,
-  "version":"0.1.0",
-  "description":"GemMO persistent account authority",
+  "version":"0.3.0",
+  "description":"geMMO persistent account authority",
   "engines":{"node":">=22.18.0"},
-  "scripts":{"start":"node server.cjs","test":"node test.cjs"}
+  "scripts":{"start":"node server.cjs","test":"node test.cjs"},
+  "dependencies":{"@tursodatabase/serverless":"1.4.0"}
 }
