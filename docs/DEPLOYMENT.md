@@ -71,7 +71,8 @@ After **geMMO Tests** succeeds on `main`, `.github/workflows/render-deploy.yml`:
 2. calls the Render deploy hook with that SHA,
 3. polls production `/health`,
 4. requires production `release` to equal the tested SHA prefix,
-5. reports the storage provider/persistence state.
+5. requires the live storage provider to be Turso with `persistent: true`,
+6. fails the deployment if durable storage is not healthy.
 
 GitHub Pages publishes the same main commit independently.
 

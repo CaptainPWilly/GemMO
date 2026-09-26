@@ -1,7 +1,7 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions}=require('./db.cjs');
+const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
@@ -110,7 +110,7 @@ async function createGemmoServer(options={}){
     }catch(error){const status=Number(error.status)||500;if(status>=500)console.error(error);send(req,res,status,{error:status>=500?'server_error':error.message})}
   });
 
-  const maintenance=setInterval(()=>void cleanupSessions(db).catch(error=>console.error('session cleanup failed',error)),60*60_000);maintenance.unref?.();
+  const maintenance=setInterval(()=>void (async()=>{await cleanupSessions(db);await cleanupMatches(db)})().catch(error=>console.error('maintenance cleanup failed',error)),60*60_000);maintenance.unref?.();
   server.on('close',()=>{clearInterval(maintenance);try{db.close()}catch{}});
   return {server,db};
 }

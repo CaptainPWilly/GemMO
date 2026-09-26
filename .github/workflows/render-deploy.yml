@@ -43,8 +43,9 @@ jobs:
                 provider="$(node -e 'try{const h=JSON.parse(process.argv[1]);process.stdout.write(String(h.storage?.provider||"unknown"))}catch{}' "$body")"
                 persistent="$(node -e 'try{const h=JSON.parse(process.argv[1]);process.stdout.write(String(Boolean(h.storage?.persistent)))}catch{}' "$body")"
                 echo "Storage provider: $provider · persistent: $persistent"
-                if [ "$provider" != "turso" ]; then
-                  echo "::warning::geMMO is live, but durable production storage is not Turso yet. Configure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN on Render."
+                if [ "$provider" != "turso" ] || [ "$persistent" != "true" ]; then
+                  echo "::error::geMMO release is live, but durable production storage is not healthy: provider=$provider persistent=$persistent"
+                  exit 1
                 fi
                 exit 0
               fi
