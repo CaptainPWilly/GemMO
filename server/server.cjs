@@ -15,7 +15,7 @@ function createGemmoServer(options={}){
   const turnstileSecretKey=String(options.turnstileSecretKey??process.env.TURNSTILE_SECRET_KEY??'').trim();
   const turnstileExpectedHostname=String(options.turnstileExpectedHostname??process.env.TURNSTILE_EXPECTED_HOSTNAME??'captainpwilly.github.io').trim();
   const captchaEnabled=Boolean(turnstileSiteKey&&turnstileSecretKey);
-  const turnstileVerifier=options.turnstileVerifier||async({token,remoteip})=>{
+  const turnstileVerifier=options.turnstileVerifier||(async({token,remoteip})=>{
     const response=await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify',{
       method:'POST',
       headers:{'content-type':'application/json'},
@@ -23,7 +23,7 @@ function createGemmoServer(options={}){
     });
     if(!response.ok)return {success:false};
     return response.json();
-  };
+  });
   const limits=new Map();
 
   function ipOf(req){if(trustProxy){const first=String(req.headers['x-forwarded-for']||'').split(',')[0].trim();if(first)return first}return req.socket.remoteAddress||'unknown'}
