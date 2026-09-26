@@ -247,7 +247,7 @@ const WORLD_TREES=[[0,6],[0,5],[1,5],[2,7],[3,7],[4,6],[5,6],[7,4],[7,3],[6,4],[
 const WORLD_ROCKS=[[2,8],[4,7],[5,5],[6,5],[7,2],[3,1],[1,1]];
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
-function worldNodeVisible(node){return node.id!=='bandit-pass'||worldCleared('rat')}
+function worldNodeVisible(node){return node.id!=='bandit-pass'||worldCleared('rat')||worldState.currentNode==='bandit-pass'}
 function worldCanTravel(from,to){const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&(!target.requires||worldCleared(target.requires)))}
 
 const TYPES=['red','blue','green','yellow','purple','gold','xp','env'];
