@@ -197,14 +197,24 @@ async function startMatch(db,userId,encounterId){
   return {matchId:id,encounterId};
 }
 async function settleMatch(db,userId,{matchId,won,gold,xp}){
-  if(typeof matchId!=='string'||matchId.length<16||matchId.length>80||won!==true||!Number.isInteger(gold)||!Number.isInteger(xp)||gold<0||xp<0)throw Object.assign(new Error('invalid_match_result'),{status:400});
+  if(typeof matchId!=='string'||matchId.length<16||matchId.length>80||typeof won!=='boolean'||!Number.isInteger(gold)||!Number.isInteger(xp)||gold<0||xp<0||(!won&&(gold!==0||xp!==0)))throw Object.assign(new Error('invalid_match_result'),{status:400});
   return transaction(db,async tx=>{
     const match=await tx.prepare('SELECT * FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
     if(!match)throw Object.assign(new Error('match_not_found'),{status:404});
-    if(match.settled_at!==null&&match.settled_at!==undefined)return {alreadySettled:true,gold:Number(match.gold),xp:Number(match.xp),encounterId:match.encounter_id};
+    if(match.settled_at!==null&&match.settled_at!==undefined)return {alreadySettled:true,won:Boolean(match.won),gold:Number(match.gold),xp:Number(match.xp),encounterId:match.encounter_id};
+    const now=Date.now();
+    if(!won){
+      const changed=await tx.prepare('UPDATE matches SET settled_at=?,won=0,gold=0,xp=0 WHERE id=? AND user_id=? AND settled_at IS NULL').run(now,matchId,userId);
+      if(!changed.changes){
+        const settled=await tx.prepare('SELECT won,gold,xp,encounter_id FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
+        return {alreadySettled:true,won:Boolean(settled.won),gold:Number(settled.gold),xp:Number(settled.xp),encounterId:settled.encounter_id};
+      }
+      await audit(tx,userId,'match_settled_loss',match.encounter_id+':'+matchId);
+      return {alreadySettled:false,won:false,gold:0,xp:0,encounterId:match.encounter_id};
+    }
     const row=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
     if(!node?.encounter||node.encounter!==match.encounter_id)throw Object.assign(new Error('encounter_not_here'),{status:409});
-    const caps=MATCH_REWARD_CAPS[match.encounter_id],awardGold=Math.min(gold,caps.gold),awardXp=Math.min(xp,caps.xp),now=Date.now();
+    const caps=MATCH_REWARD_CAPS[match.encounter_id],awardGold=Math.min(gold,caps.gold),awardXp=Math.min(xp,caps.xp);
     const changed=await tx.prepare('UPDATE matches SET settled_at=?,won=1,gold=?,xp=? WHERE id=? AND user_id=? AND settled_at IS NULL').run(now,awardGold,awardXp,matchId,userId);
     if(!changed.changes){
       const settled=await tx.prepare('SELECT gold,xp,encounter_id FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
@@ -213,8 +223,12 @@ async function settleMatch(db,userId,{matchId,won,gold,xp}){
     await tx.prepare('UPDATE profiles SET gold=gold+?,xp=xp+?,updated_at=? WHERE user_id=?').run(awardGold,awardXp,now,userId);
     if(match.encounter_id==='rat')await tx.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:rat',now);
     await audit(tx,userId,'match_settled',match.encounter_id+':'+matchId+':g'+awardGold+':xp'+awardXp);
-    return {alreadySettled:false,gold:awardGold,xp:awardXp,encounterId:match.encounter_id};
+    return {alreadySettled:false,won:true,gold:awardGold,xp:awardXp,encounterId:match.encounter_id};
   });
+}
+async function cleanupMatches(db,staleMs=24*60*60*1000){
+  const now=Date.now(),cutoff=now-staleMs;
+  return await db.prepare('UPDATE matches SET settled_at=?,won=0,gold=0,xp=0 WHERE settled_at IS NULL AND started_at<?').run(now,cutoff);
 }
 async function buyShopItem(db,userId,shopId,itemId){
   const catalog=SHOP_CATALOG[shopId],price=catalog?.[itemId];
@@ -256,4 +270,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions};
