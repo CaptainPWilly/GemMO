@@ -1,7 +1,7 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions}=require('./db.cjs');
+const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,buyShopItem,createSession,sessionUser,revokeSession,cleanupSessions}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
@@ -85,10 +85,11 @@ function createGemmoServer(options={}){
       if(req.method==='PUT'&&pathname==='/v1/account/equipment'){const {user}=requireUser(req),body=await json(req);updateEquipment(db,user.id,body.equipment);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/move'){const {user}=requireUser(req),body=await json(req);moveWorld(db,user.id,body.nodeId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/complete-encounter'){const {user}=requireUser(req),body=await json(req);completeEncounter(db,user.id,body.encounterId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
+      if(req.method==='POST'&&pathname==='/v1/matches/start'){const {user}=requireUser(req),body=await json(req),match=startMatch(db,user.id,body.encounterId);send(req,res,201,{match,account:accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/shop/buy'){const {user}=requireUser(req),body=await json(req);buyShopItem(db,user.id,body.shopId,body.itemId);send(req,res,200,{account:accountSnapshot(db,user.id)});return}
 
       if((req.method==='PUT'||req.method==='POST')&&pathname==='/v1/account/profile'){const {user}=requireUser(req);audit(db,user.id,'client_profile_write_blocked');send(req,res,403,{error:'server_authoritative_profile',message:'Level, XP, gold and inventory cannot be written by the client.'});return}
-      if(req.method==='POST'&&pathname==='/v1/matches/settle'){const {user}=requireUser(req);audit(db,user.id,'client_match_settlement_blocked');send(req,res,403,{error:'server_authoritative_matches',message:'Clients cannot submit rewards or match outcomes.'});return}
+      if(req.method==='POST'&&pathname==='/v1/matches/settle'){const {user}=requireUser(req),body=await json(req),settlement=settleMatch(db,user.id,body);send(req,res,200,{settlement,account:accountSnapshot(db,user.id)});return}
 
       send(req,res,404,{error:'not_found'});
     }catch(error){const status=Number(error.status)||500;if(status>=500)console.error(error);send(req,res,status,{error:status>=500?'server_error':error.message})}
