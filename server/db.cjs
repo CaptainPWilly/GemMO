@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
 const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG}=require('./catalog.cjs');
-const {randomUUID}=require('node:crypto');
+const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 
 const SCHEMA=[
@@ -17,6 +17,7 @@ const SCHEMA=[
   "CREATE TABLE IF NOT EXISTS world_flags(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,flag TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,flag)) STRICT;",
   "CREATE TABLE IF NOT EXISTS matches(id TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,encounter_id TEXT NOT NULL,started_at INTEGER NOT NULL,settled_at INTEGER,won INTEGER,gold INTEGER NOT NULL DEFAULT 0,xp INTEGER NOT NULL DEFAULT 0) STRICT;",
   "CREATE INDEX IF NOT EXISTS idx_matches_user_open ON matches(user_id,settled_at);",
+  "CREATE TABLE IF NOT EXISTS match_reward_budgets(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,gold_cap INTEGER NOT NULL CHECK(gold_cap>=0),xp_cap INTEGER NOT NULL CHECK(xp_cap>=0)) STRICT;",
   'CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,last_seen_at INTEGER NOT NULL,revoked_at INTEGER) STRICT;',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);',
   'CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);',
@@ -186,15 +187,25 @@ async function completeEncounter(db,userId,encounterId){
   await db.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,flag,now);
   await audit(db,userId,'encounter_cleared',encounterId);
 }
-const MATCH_REWARD_CAPS=Object.freeze({rat:{gold:1000,xp:1000},bandit:{gold:1000,xp:1000}});
+const MATCH_REWARD_POLICY=Object.freeze({
+  rat:{gold:[8,12],xp:[6,10]},
+  bandit:{gold:[18,24],xp:[12,18]}
+});
+function rollRewardBudget(encounterId){
+  const policy=MATCH_REWARD_POLICY[encounterId];if(!policy)return null;
+  return {gold:randomInt(policy.gold[0],policy.gold[1]+1),xp:randomInt(policy.xp[0],policy.xp[1]+1)};
+}
 async function startMatch(db,userId,encounterId){
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
-  if(!MATCH_REWARD_CAPS[encounterId])throw Object.assign(new Error('invalid_encounter'),{status:400});
+  const rewardBudget=rollRewardBudget(encounterId);if(!rewardBudget)throw Object.assign(new Error('invalid_encounter'),{status:400});
   const id=randomUUID(),now=Date.now();
-  await db.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
-  await audit(db,userId,'match_started',encounterId+':'+id);
-  return {matchId:id,encounterId};
+  await transaction(db,async tx=>{
+    await tx.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
+    await tx.prepare('INSERT INTO match_reward_budgets(match_id,gold_cap,xp_cap) VALUES(?,?,?)').run(id,rewardBudget.gold,rewardBudget.xp);
+    await audit(tx,userId,'match_started',encounterId+':'+id+':budget'+rewardBudget.gold+'/'+rewardBudget.xp);
+  });
+  return {matchId:id,encounterId,rewardBudget};
 }
 async function settleMatch(db,userId,{matchId,won,gold,xp}){
   if(typeof matchId!=='string'||matchId.length<16||matchId.length>80||typeof won!=='boolean'||!Number.isInteger(gold)||!Number.isInteger(xp)||gold<0||xp<0||(!won&&(gold!==0||xp!==0)))throw Object.assign(new Error('invalid_match_result'),{status:400});
@@ -214,7 +225,11 @@ async function settleMatch(db,userId,{matchId,won,gold,xp}){
     }
     const row=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
     if(!node?.encounter||node.encounter!==match.encounter_id)throw Object.assign(new Error('encounter_not_here'),{status:409});
-    const caps=MATCH_REWARD_CAPS[match.encounter_id],awardGold=Math.min(gold,caps.gold),awardXp=Math.min(xp,caps.xp);
+    const policy=MATCH_REWARD_POLICY[match.encounter_id];if(!policy)throw Object.assign(new Error('invalid_encounter'),{status:400});
+    const storedBudget=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId);
+    const rewardBudget=storedBudget?{gold:Number(storedBudget.gold_cap),xp:Number(storedBudget.xp_cap)}:{gold:policy.gold[1],xp:policy.xp[1]};
+    const awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp);
+    if(gold>rewardBudget.gold||xp>rewardBudget.xp)await audit(tx,userId,'match_reward_overclaim',match.encounter_id+':'+matchId+':asked'+gold+'/'+xp+':budget'+rewardBudget.gold+'/'+rewardBudget.xp);
     const changed=await tx.prepare('UPDATE matches SET settled_at=?,won=1,gold=?,xp=? WHERE id=? AND user_id=? AND settled_at IS NULL').run(now,awardGold,awardXp,matchId,userId);
     if(!changed.changes){
       const settled=await tx.prepare('SELECT gold,xp,encounter_id FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
@@ -223,7 +238,7 @@ async function settleMatch(db,userId,{matchId,won,gold,xp}){
     await tx.prepare('UPDATE profiles SET gold=gold+?,xp=xp+?,updated_at=? WHERE user_id=?').run(awardGold,awardXp,now,userId);
     if(match.encounter_id==='rat')await tx.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:rat',now);
     await audit(tx,userId,'match_settled',match.encounter_id+':'+matchId+':g'+awardGold+':xp'+awardXp);
-    return {alreadySettled:false,won:true,gold:awardGold,xp:awardXp,encounterId:match.encounter_id};
+    return {alreadySettled:false,won:true,gold:awardGold,xp:awardXp,encounterId:match.encounter_id,rewardBudget};
   });
 }
 async function cleanupMatches(db,staleMs=24*60*60*1000){
