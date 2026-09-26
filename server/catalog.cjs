@@ -9,14 +9,14 @@ const GEM_IDS=Object.freeze([
 ]);
 const EQUIPMENT_SLOTS=Object.freeze({head:'head',chest:'chest',hands:'hands',legs:'legs',feet:'feet',necklace:'necklace',ring1:'ring',ring2:'ring'});
 const GEAR=Object.freeze({
-  'frayed-hood':{slot:'head',hp:1,guard:0},'leather-cap':{slot:'head',hp:0,guard:1},
-  'padded-tunic':{slot:'chest',hp:2,guard:0},'hide-vest':{slot:'chest',hp:0,guard:2},
-  'cloth-wraps':{slot:'hands',hp:1,guard:0},'leather-gloves':{slot:'hands',hp:0,guard:1},
-  'linen-trousers':{slot:'legs',hp:1,guard:0},'hide-leggings':{slot:'legs',hp:0,guard:1},
-  'scuffed-boots':{slot:'feet',hp:1,guard:0},'leather-boots':{slot:'feet',hp:0,guard:1},
-  'copper-pendant':{slot:'necklace',hp:1,guard:0},'bone-talisman':{slot:'necklace',hp:0,guard:1},
-  'tin-ring':{slot:'ring',hp:1,guard:0},'iron-band':{slot:'ring',hp:0,guard:1},
-  'twine-ring':{slot:'ring',hp:1,guard:0},'copper-band':{slot:'ring',hp:0,guard:1}
+  'frayed-hood':{slot:'head',caps:{purple:2}},'leather-cap':{slot:'head',caps:{blue:2}},
+  'padded-tunic':{slot:'chest',hp:2},'hide-vest':{slot:'chest',guard:3},
+  'cloth-wraps':{slot:'hands',caps:{red:2}},'leather-gloves':{slot:'hands',caps:{yellow:2}},
+  'linen-trousers':{slot:'legs',caps:{green:2}},'hide-leggings':{slot:'legs',caps:{purple:2}},
+  'scuffed-boots':{slot:'feet',caps:{yellow:2}},'leather-boots':{slot:'feet',caps:{green:2}},
+  'copper-pendant':{slot:'necklace',caps:{blue:2}},'bone-talisman':{slot:'necklace',caps:{red:2}},
+  'tin-ring':{slot:'ring',allCap:1},'iron-band':{slot:'ring',guard:2},
+  'twine-ring':{slot:'ring',hp:1,caps:{yellow:1}},'copper-band':{slot:'ring',caps:{red:1,blue:1}}
 });
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
 const STARTER_GEMS=Object.freeze({red:'dagger',blue:'shield',green:'salve',yellow:'boots',purple:'charm'});
