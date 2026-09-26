@@ -91,6 +91,70 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .shopPage h1{margin-bottom:5px}.shopBar{display:flex;justify-content:space-between;align-items:center;border:1px solid #6e5b39;background:#211e17;padding:10px;margin:12px 0}.shopBar b{color:#f2cf7a}.shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.shopItem{min-height:155px;text-align:left;background:linear-gradient(145deg,#342d21,#1e1c16);border:1px solid #6b5737;border-top:3px solid var(--c,#b89558);color:#e9d9b5;padding:12px;border-radius:5px}.shopItem:disabled{opacity:.4}.shopItem b{display:block;font:16px Georgia,serif;margin:7px 0}.shopItem strong{color:#f0cd7c;font-size:10px}.shopItem p{font-size:9px!important;line-height:1.4!important;margin:6px 0!important}.shopStatus{min-height:26px;color:#e9c77b!important}.shopBack{background:transparent;border:1px solid #695735;color:#d8c49c;padding:9px;border-radius:4px;font-size:10px}
 @media(max-width:360px){.shopGrid{grid-template-columns:1fr}.shopItem{min-height:125px}}
 .captchaWrap{margin:12px 0 2px;min-height:82px;display:grid;place-items:center;width:100%}.captchaWrap #turnstileWidget{width:100%;display:grid;place-items:center}.captchaWrap[hidden]{display:none!important}.captchaWrap small{display:block;margin-top:5px;color:#aa9b7b;text-align:center}.screenVeil{position:absolute;inset:0;z-index:120;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 35%,#efd18b18,#08080688 70%);will-change:opacity}.page,.game{will-change:transform,opacity}
+
+/* Adaptive tablet layout */
+@media (min-width:700px){
+  .app{width:min(100vw,960px);box-shadow:0 0 80px #0008}
+  .page{padding:clamp(32px,5vw,54px) clamp(30px,6vw,64px) calc(34px + env(safe-area-inset-bottom))}
+  .page h1{font-size:clamp(44px,6vw,58px)}
+  .splashPage h1,.menuPage h1{font-size:clamp(78px,11vw,104px)}
+  .primary{width:min(380px,70vw);padding:18px;font-size:13px}
+  .menuPage nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(720px,86%)}.menuPage nav .primary{width:100%;margin:0}
+  #loadout{grid-template-columns:repeat(5,minmax(100px,1fr));gap:9px}
+  .equip{min-height:105px;padding:10px 6px}.equip b{font-size:15px}.equip span{font-size:9px}.equip small{font-size:8px}
+  #collection,.shopGrid,.inventoryGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .gemologyGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.gemologyCard.wide{grid-column:1/-1}
+  .starterGrid{grid-template-columns:1fr 1fr}
+  .accountBox{max-width:700px}.accountActions{grid-template-columns:1fr 1fr}
+  .modalCard{max-width:720px;padding:22px}.modal h2{font-size:28px}.sack{padding:14px}.line{font-size:12px}
+  .combatOverlay{padding:calc(30px + env(safe-area-inset-top)) clamp(28px,7vw,70px) calc(30px + env(safe-area-inset-bottom))}
+  .combatOverlay h2{font-size:30px}.combatOverlay button,.equipDrawer button{font-size:12px;padding:13px}
+  .equipDrawer{left:50%;right:auto;width:min(760px,92vw);transform:translateX(-50%);border:1px solid #8c713f;border-bottom:0;border-radius:10px 10px 0 0}
+  .combatEquipGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+  .worldHud{padding:calc(14px + env(safe-area-inset-top)) 22px 12px}.worldHud button{font-size:11px;padding:10px 12px}.worldTitle b{font-size:24px}.worldZoom button{width:40px}
+  .worldViewport{inset:0 0 166px}.worldCard{left:50%;right:auto;transform:translateX(-50%);width:min(760px,calc(100% - 44px));min-height:136px;padding:16px;bottom:calc(16px + env(safe-area-inset-bottom));border-radius:9px}
+  .worldCard h2{font-size:28px}.worldCard p{font-size:12px!important}.worldLegend{font-size:9px}.worldAction{font-size:10px;padding:13px;min-width:130px}
+}
+@media (min-width:700px) and (orientation:portrait){
+  .game{padding:calc(16px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));gap:9px}
+  .top{width:min(100%,700px);align-self:center;padding:14px 16px;min-height:78px}.name{font-size:13px}.stats{font-size:13px}.turn{font-size:11px}.turn small{font-size:8px}
+  .boardShell{width:min(100%,620px,calc(100dvh - 430px));align-self:center}
+  #turnBadge,#statusTags,.status,#abilityBanner,#reservoirs,.slots,.historyBtn,.foot{width:min(100%,620px);align-self:center}
+  .turnBadge{font-size:13px}.statusTag{font-size:9px;padding:5px 8px}.resource{font-size:9px}.log{font-size:12px}
+  .slots{gap:7px}.slot{height:118px;padding:9px 5px}.slotName{font-size:12px}.effect{font-size:8px}.charge{font-size:10px}.orb{width:18px;height:18px}
+  .historyBtn{padding:8px;font-size:10px}
+}
+@media (min-width:700px) and (orientation:landscape){
+  .app{width:min(100vw,1180px)}
+  .game{
+    display:grid;
+    grid-template-columns:minmax(380px,min(68dvh,58vw,620px)) minmax(300px,1fr);
+    grid-template-rows:auto auto auto minmax(42px,1fr) auto auto auto auto auto;
+    grid-template-areas:
+      "top top"
+      "board turn"
+      "board tags"
+      "board status"
+      "board ability"
+      "board reservoirs"
+      "board slots"
+      "board equip"
+      "board foot";
+    column-gap:18px;row-gap:7px;
+    padding:calc(14px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));
+  }
+  .top{grid-area:top;min-height:70px;padding:10px 18px}.name{font-size:12px}.stats{font-size:12px}
+  .boardShell{grid-area:board;width:100%;max-width:none;align-self:center;justify-self:stretch}
+  #turnBadge{grid-area:turn}#statusTags{grid-area:tags}.status{grid-area:status}.abilityBanner{grid-area:ability}.reservoirs{grid-area:reservoirs}.slots{grid-area:slots}.historyBtn{grid-area:equip}.foot{grid-area:foot}
+  #turnBadge,#statusTags,.status,.abilityBanner,.reservoirs,.slots,.historyBtn,.foot{width:auto;align-self:stretch}
+  .status{min-height:44px;align-self:start}.log{font-size:11px}.resource{flex-wrap:wrap;row-gap:4px}
+  .slots{margin-top:0;gap:6px}.slot{height:clamp(88px,14dvh,112px);padding:7px 3px}.slotName{font-size:10px}.effect{font-size:7px}.charge{font-size:9px}
+  .historyBtn{padding:7px}.foot{font-size:7px}
+  #leaveFight{top:calc(18px + env(safe-area-inset-top));left:24px}
+  .combatOverlay{left:50%;right:auto;width:min(760px,88vw);transform:translateX(-50%)}
+}
+
 </style>
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
