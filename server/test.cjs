@@ -32,10 +32,14 @@ const {createGemmoServer}=require('./server.cjs');
 
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,409,'cannot skip the road graph');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'crossroads');
-    r=await call('/v1/world/complete-encounter',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,409,'cannot clear an encounter from another node');
+    r=await call('/v1/world/complete-encounter',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,403,'encounter clears only through a settled victory');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'rat');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,409,'bandit path stays locked until rat is cleared');
-    r=await call('/v1/world/complete-encounter',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,200);assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear persists on account');
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,409,'cannot start a different encounter');
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const ratMatchId=r.data.match.matchId;assert(ratMatchId);
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:false,gold:7,xp:5}});assert.equal(r.status,400,'loss cannot claim rewards');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:7,xp:5}});assert.equal(r.status,200);assert.equal(r.data.account.profile.gold,7);assert.equal(r.data.account.profile.xp,5);assert(r.data.account.world.clearedEncounters.includes('rat'),'rat victory saves rewards and unlock');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:7,xp:5}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true);assert.equal(r.data.account.profile.gold,7,'retry cannot double-award gold');assert.equal(r.data.account.profile.xp,5,'retry cannot double-award xp');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'bandit-pass');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,409,'bandit does not teleport to camp');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
@@ -51,7 +55,7 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
 
     r=await call('/v1/account/profile',{method:'PUT',token,body:{gold:999999,xp:999999,level:99}});assert.equal(r.status,403);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{won:true,gold:999999,xp:999999}});assert.equal(r.status,403);
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:'fake-match-id-123456',won:true,gold:999999,xp:999999}});assert.equal(r.status,404,'invented match ids cannot award rewards');
     r=await call('/v1/account',{token,origin:'https://evil.example'});assert.equal(r.status,403);
 
     r=await call('/v1/auth/logout',{method:'POST',token});assert.equal(r.status,200);
@@ -59,7 +63,7 @@ const {createGemmoServer}=require('./server.cjs');
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
     assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
-    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');
+    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');assert.equal(r.data.account.profile.xp,5,'battle XP survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
