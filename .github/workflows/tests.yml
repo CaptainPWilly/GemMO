@@ -13,4 +13,9 @@ jobs:
         with:
           node-version: 22
       - run: node tests/abilities.cjs
+      - run: npm install --omit=dev
+        working-directory: server
+      - name: Smoke test Turso driver API
+        working-directory: server
+        run: node -e "import('@tursodatabase/serverless').then(({connect})=>{const db=connect({url:'https://example.invalid',authToken:'test'});if(typeof db.prepare!=='function'||typeof db.transaction!=='function'||typeof db.batch!=='function')process.exit(1)})"
       - run: node server/test.cjs
