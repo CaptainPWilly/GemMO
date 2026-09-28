@@ -4,15 +4,526 @@ const {GEAR}=require('./catalog.cjs');
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp','env'],WEIGHTS=[15,15,15,15,15,10,8,7];
 const ENEMY={red:{cap:7},blue:{cap:7},green:{cap:6},yellow:{cap:6},purple:{cap:10}};
 const GEM=Object.freeze({
- dagger:['red',7,'damage',6],axe:['red',9,'damage',8],spear:['red',7,'hybrid',3],'arming-sword':['red',8,'damage',7],warhammer:['red',11,'damage',10],longbow:['red',6,'damage',5],rapier:['red',7,'hybrid',3],halberd:['red',10,'damage',9],'hand-crossbow':['red',4,'damage',3],flail:['red',9,'damage',8],
- shield:['blue',7,'guard',6],buckler:['blue',7,'hybrid',3],ward:['blue',7,'shelter',0],'tower-shield':['blue',11,'guard',10],swordbreaker:['blue',7,'hybrid',3],quarterstaff:['blue',5,'guard',4],pavise:['blue',9,'guard',8],'war-pick':['blue',8,'damage',7],'kite-shield':['blue',7,'shelter',0],'hook-spear':['blue',8,'guard',7],
- salve:['green',6,'heal',5],poultice:['green',4,'heal',3],briar:['green',6,'leech',0],sickle:['green',6,'leech',0],'druid-staff':['green',9,'heal',8],'hunting-bow':['green',7,'damage',6],'thorn-whip':['green',5,'damage',4],'grove-spear':['green',7,'shelter',0],'woodland-club':['green',7,'guard',6],'willow-wand':['green',3,'heal',2],
- boots:['yellow',6,'swap',0],cloak:['yellow',6,'guard',5],knife:['yellow',6,'damage',5],'twin-knives':['yellow',8,'damage',7],'light-crossbow':['yellow',7,'damage',6],sling:['yellow',3,'damage',2],'duelist-sabre':['yellow',7,'hybrid',3],glaive:['yellow',9,'damage',8],'parrying-dagger':['yellow',4,'guard',3],javelin:['yellow',10,'damage',9],
- charm:['purple',10,'boost',0],seal:['purple',10,'damage',8],relic:['purple',10,'renew',0],'rune-blade':['purple',8,'damage',7],'hex-staff':['purple',6,'damage',5],'relic-mace':['purple',10,'renew',0],'moon-scythe':['purple',6,'leech',0],'crystal-wand':['blue',5,'damage',4],'spell-tome':['purple',7,'shelter',0],'ritual-dagger':['purple',7,'hybrid',3],
- 'anchor-maul':['blue',7,'pin',0],'mist-mantle':['yellow',7,'dodge',0],'venom-needle':['green',7,'poison',0],'wayfarer-lyre':['green',7,'regen',0],'prism-orb':['purple',9,'focus',0],'clockwork-spur':['yellow',8,'haste',0],'ember-rod':['red',7,'paint',0],'star-lens':['purple',11,'wildcraft',0],'tide-chain':['blue',8,'rotate',0],'echo-knife':['purple',7,'siphon',0],
- 'bloodstone-whet':['red',7,'red_attune',0],'bastion-sigil':['blue',7,'blue_attune',0],heartseed:['green',7,'green_attune',0],'gamblers-thread':['yellow',7,'yellow_attune',0]
+  "hand-crossbow": [
+    "red",
+    4,
+    "damage",
+    3,
+    1
+  ],
+  "barbed-blade": [
+    "red",
+    6,
+    "bleed",
+    0,
+    1
+  ],
+  "longbow": [
+    "red",
+    6,
+    "damage",
+    5,
+    1
+  ],
+  "spear": [
+    "red",
+    7,
+    "hybrid",
+    3,
+    1
+  ],
+  "bloodstone-whet": [
+    "red",
+    7,
+    "red_attune",
+    0,
+    1
+  ],
+  "dagger": [
+    "red",
+    7,
+    "damage",
+    6,
+    1
+  ],
+  "rapier": [
+    "red",
+    7,
+    "hybrid",
+    3,
+    1
+  ],
+  "arming-sword": [
+    "red",
+    8,
+    "damage",
+    7,
+    1
+  ],
+  "executioners-axe": [
+    "red",
+    8,
+    "execute",
+    4,
+    1
+  ],
+  "axe": [
+    "red",
+    9,
+    "damage",
+    8,
+    1
+  ],
+  "flail": [
+    "red",
+    9,
+    "damage",
+    8,
+    1
+  ],
+  "halberd": [
+    "red",
+    10,
+    "damage",
+    9,
+    1
+  ],
+  "warhammer": [
+    "red",
+    11,
+    "damage",
+    10,
+    1
+  ],
+  "ember-rod": [
+    "red",
+    7,
+    "paint",
+    0,
+    1
+  ],
+  "crystal-wand": [
+    "blue",
+    5,
+    "damage",
+    4,
+    1
+  ],
+  "war-pick": [
+    "blue",
+    6,
+    "breach",
+    2,
+    1
+  ],
+  "buckler": [
+    "blue",
+    7,
+    "hybrid",
+    3,
+    1
+  ],
+  "quarterstaff": [
+    "blue",
+    5,
+    "guard",
+    4,
+    1
+  ],
+  "bastion-sigil": [
+    "blue",
+    7,
+    "blue_attune",
+    0,
+    1
+  ],
+  "kite-shield": [
+    "blue",
+    7,
+    "shelter",
+    0,
+    1
+  ],
+  "mirror-shield": [
+    "blue",
+    7,
+    "reflect",
+    0,
+    1
+  ],
+  "shield": [
+    "blue",
+    7,
+    "guard",
+    6,
+    1
+  ],
+  "ward": [
+    "blue",
+    7,
+    "shelter",
+    0,
+    1
+  ],
+  "hook-spear": [
+    "blue",
+    8,
+    "guard",
+    7,
+    1
+  ],
+  "pavise": [
+    "blue",
+    9,
+    "guard",
+    8,
+    1
+  ],
+  "tower-shield": [
+    "blue",
+    11,
+    "guard",
+    10,
+    1
+  ],
+  "swordbreaker": [
+    "blue",
+    6,
+    "disarm",
+    0,
+    1
+  ],
+  "anchor-maul": [
+    "blue",
+    7,
+    "pin",
+    0,
+    1
+  ],
+  "tide-chain": [
+    "blue",
+    8,
+    "rotate",
+    0,
+    1
+  ],
+  "binding-chain": [
+    "blue",
+    9,
+    "stun",
+    0,
+    1
+  ],
+  "thorn-whip": [
+    "green",
+    5,
+    "damage",
+    4,
+    1
+  ],
+  "grove-spear": [
+    "green",
+    7,
+    "shelter",
+    0,
+    1
+  ],
+  "woodland-club": [
+    "green",
+    7,
+    "guard",
+    6,
+    1
+  ],
+  "willow-wand": [
+    "green",
+    3,
+    "heal",
+    2,
+    1
+  ],
+  "poultice": [
+    "green",
+    4,
+    "heal",
+    3,
+    1
+  ],
+  "purifying-tonic": [
+    "green",
+    4,
+    "cleanse",
+    2,
+    1
+  ],
+  "healing-potion": [
+    "green",
+    5,
+    "heal",
+    4,
+    1
+  ],
+  "briar": [
+    "green",
+    6,
+    "leech",
+    0,
+    1
+  ],
+  "sickle": [
+    "green",
+    6,
+    "leech",
+    0,
+    1
+  ],
+  "salve": [
+    "green",
+    6,
+    "heal",
+    5,
+    1
+  ],
+  "heartseed": [
+    "green",
+    7,
+    "green_attune",
+    0,
+    1
+  ],
+  "venom-needle": [
+    "green",
+    7,
+    "poison",
+    0,
+    1
+  ],
+  "wayfarer-lyre": [
+    "green",
+    7,
+    "regen",
+    0,
+    1
+  ],
+  "druid-staff": [
+    "green",
+    9,
+    "heal",
+    8,
+    1
+  ],
+  "hunting-bow": [
+    "green",
+    5,
+    "mark",
+    0,
+    1
+  ],
+  "sling": [
+    "yellow",
+    3,
+    "damage",
+    2,
+    1
+  ],
+  "duelist-sabre": [
+    "yellow",
+    7,
+    "hybrid",
+    3,
+    1
+  ],
+  "light-crossbow": [
+    "yellow",
+    7,
+    "damage",
+    6,
+    1
+  ],
+  "twin-knives": [
+    "yellow",
+    8,
+    "damage",
+    7,
+    1
+  ],
+  "glaive": [
+    "yellow",
+    9,
+    "damage",
+    8,
+    1
+  ],
+  "javelin": [
+    "yellow",
+    10,
+    "damage",
+    9,
+    1
+  ],
+  "parrying-dagger": [
+    "yellow",
+    4,
+    "guard",
+    3,
+    1
+  ],
+  "cloak": [
+    "yellow",
+    6,
+    "guard",
+    5,
+    1
+  ],
+  "knife": [
+    "yellow",
+    3,
+    "quick_damage",
+    1,
+    0
+  ],
+  "locksmith-pick": [
+    "yellow",
+    4,
+    "break",
+    0,
+    0
+  ],
+  "boots": [
+    "yellow",
+    6,
+    "swap",
+    0,
+    1
+  ],
+  "gamblers-thread": [
+    "yellow",
+    7,
+    "yellow_attune",
+    0,
+    1
+  ],
+  "mist-mantle": [
+    "yellow",
+    7,
+    "dodge",
+    0,
+    1
+  ],
+  "powder-bomb": [
+    "yellow",
+    7,
+    "blast",
+    0,
+    1
+  ],
+  "clockwork-spur": [
+    "yellow",
+    8,
+    "haste",
+    0,
+    1
+  ],
+  "ritual-dagger": [
+    "purple",
+    7,
+    "hybrid",
+    3,
+    1
+  ],
+  "rune-blade": [
+    "purple",
+    8,
+    "damage",
+    7,
+    1
+  ],
+  "seal": [
+    "purple",
+    10,
+    "damage",
+    8,
+    1
+  ],
+  "spell-tome": [
+    "purple",
+    7,
+    "shelter",
+    0,
+    1
+  ],
+  "moon-scythe": [
+    "purple",
+    6,
+    "leech",
+    0,
+    1
+  ],
+  "relic": [
+    "purple",
+    10,
+    "renew",
+    0,
+    1
+  ],
+  "relic-mace": [
+    "purple",
+    10,
+    "renew",
+    0,
+    1
+  ],
+  "chaos-orb": [
+    "purple",
+    6,
+    "reroll",
+    0,
+    1
+  ],
+  "echo-knife": [
+    "purple",
+    7,
+    "siphon",
+    0,
+    1
+  ],
+  "hex-staff": [
+    "purple",
+    7,
+    "silence",
+    0,
+    1
+  ],
+  "prism-orb": [
+    "purple",
+    9,
+    "focus",
+    0,
+    1
+  ],
+  "charm": [
+    "purple",
+    10,
+    "boost",
+    0,
+    1
+  ],
+  "void-flask": [
+    "purple",
+    10,
+    "purge",
+    0,
+    1
+  ],
+  "star-lens": [
+    "purple",
+    11,
+    "wildcraft",
+    0,
+    1
+  ]
 });
-function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3]}:null}
+function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3],turnCost:v[4]??1}:null}
 function makeRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
 function gearStats(equipment={}){
  const out={hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0}};
@@ -26,8 +537,8 @@ function createCombat({encounterId='rat',seed,sack,equipment={},rewardBudget={go
   encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
   board:[],pHP:18+gear.hp,eHP:encounterId==='rat'?10:24,pGuard:gear.guard,eGuard:0,gold:0,xp:0,
   charges:{red:0,blue:0,green:0,yellow:0,purple:0},ec:{red:0,blue:0,green:0,yellow:0,purple:0},
-  playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,pinColumn:-1,pinTurns:0,guardTurns:gear.guard?2:0,evadeTurns:0,
-  buffs:{dodge:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},actions:0
+  playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:gear.guard?2:0,evadeTurns:0,
+  buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
  };
  buildBoard(s);return s;
 }
@@ -53,8 +564,8 @@ function findMatches(s){
 }
 function legalMoves(s){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){const b={x:x+dx,y:y+dy};if(b.x>=W||b.y>=H)continue;swap(s,a,b);if(findMatches(s))out.push([a,b]);swap(s,a,b)}}return out}
 function buildBoard(s){for(let attempt=0;attempt<100;attempt++){s.board=[];for(let y=0;y<H;y++){const row=[];for(let x=0;x<W;x++){let t=roll(s),tries=0;while(tries++<30&&((x>=2&&row[x-1]===t&&row[x-2]===t)||(y>=2&&s.board[y-1][x]===t&&s.board[y-2][x]===t)))t=roll(s);row.push(t)}s.board.push(row)}if(legalMoves(s).length)return}throw new Error('rat_board_generation_failed')}
-function damageEnemy(s,n){const blocked=Math.min(s.eGuard,n);s.eGuard-=blocked;s.eHP-=n-blocked}
-function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=Math.min(s.pGuard,n);s.pGuard-=blocked;s.pHP-=n-blocked}
+function damageEnemy(s,n){if(s.enemyEffects.mark&&n>0){n+=3;s.enemyEffects.mark=0}const blocked=Math.min(s.eGuard,n);s.eGuard-=blocked;s.eHP-=n-blocked}
+function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
 function lowestReservoir(s,exclude){let best=null,ratio=Infinity;for(const c of ['red','blue','green','yellow','purple']){if(c===exclude)continue;const cap=reservoirCap(s,c);if(!cap||s.charges[c]>=cap)continue;const r=s.charges[c]/cap;if(r<ratio){best=c;ratio=r}}return best}
 function applyColor(s,type,n,actor){
  if(actor==='player'){
@@ -69,7 +580,7 @@ function applyColor(s,type,n,actor){
   if(type==='xp')s.xp=Math.min(s.rewardBudget.xp,s.xp+n);
  }else{
   if(ENEMY[type])s.ec[type]=Math.min(ENEMY[type].cap,s.ec[type]+n);
-  if(type==='red'){const raw=n+(s.enemyReload?2:0);s.enemyReload=false;damagePlayer(s,s.encounterId==='rat'?Math.max(1,Math.ceil(raw/2)):raw)}
+  if(type==='red'){const raw=n+(s.enemyReload?2:0);s.enemyReload=false;if(!s.enemyEffects.disarm)damagePlayer(s,s.encounterId==='rat'?Math.max(1,Math.ceil(raw/2)):raw)}
   if(type==='blue'){s.eGuard+=s.encounterId==='rat'?Math.max(1,Math.ceil(n*.35)):Math.ceil(n*.75);s.evadeTurns=2}
  }
  if(type==='env'){damagePlayer(s,1);damageEnemy(s,1)}
@@ -82,7 +593,7 @@ function fallColumns(s){
  }
  if(!findMatches(s)&&!legalMoves(s).length)buildBoard(s);
 }
-function resolve(s,matches,actor,target){
+function resolve(s,matches,actor,target,keepTurn=false){
  let cascade=0,current=matches,currentTarget=target;
  while(current){
   const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1}
@@ -95,7 +606,7 @@ function resolve(s,matches,actor,target){
   if(s.pHP<=0||s.eHP<=0)return;
   current=findMatches(s);currentTarget=null;cascade++;
  }
- afterAction(s,actor);
+ afterAction(s,actor,keepTurn);
 }
 function reshuffleBoard(s){buildBoard(s)}
 function trySwap(s,a,b,actor,force=false){
@@ -104,34 +615,42 @@ function trySwap(s,a,b,actor,force=false){
  if(m)resolve(s,m,actor,b);else afterAction(s,actor);
  return true;
 }
-function afterAction(s,actor){
+function afterAction(s,actor,keepTurn=false){
  s.actions++;
  if(s.pHP<=0||s.eHP<=0){s.playerTurn=true;return}
  if(actor==='enemy'){
   if(s.buffs.poison){damageEnemy(s,2);s.buffs.poison--}
+  if(s.enemyEffects.bleed){damageEnemy(s,2);s.enemyEffects.bleed--}
   if(s.buffs.regen){s.pHP=Math.min(playerMaxHP(s),s.pHP+2);s.buffs.regen--}
-  if(s.buffs.focus){for(const c of Object.keys(s.charges))s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+1);s.buffs.focus--}
+  if(s.buffs.focus){for(const color of Object.keys(s.charges))s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+1);s.buffs.focus--}
   if(s.buffs.dodge)s.buffs.dodge--;
+  if(s.enemyEffects.silence)s.enemyEffects.silence--;
+  if(s.enemyEffects.disarm)s.enemyEffects.disarm--;
   if(s.pinTurns&&!--s.pinTurns)s.pinColumn=-1;
   if(s.guardTurns&&!--s.guardTurns)s.pGuard=0;
  }else if(s.evadeTurns&&!--s.evadeTurns)s.eGuard=0;
  if(s.pHP<=0||s.eHP<=0){s.playerTurn=true;return}
  if(actor==='player'){
   for(const k of ['redwake','holdfast','aftergrowth','momentum'])if(s.buffs[k])s.buffs[k]--;
-  if(s.extraTurn){s.extraTurn=false;s.playerTurn=true}else{s.playerTurn=false;enemyMove(s)}
+  if(keepTurn)s.playerTurn=true;
+  else if(s.extraTurn){s.extraTurn=false;s.playerTurn=true}
+  else{s.playerTurn=false;enemyMove(s)}
  }else s.playerTurn=true;
 }
+
 function enemyUseActive(s){
- if(s.encounterId==='rat')return false;
+ if(s.encounterId==='rat'||s.enemyEffects.silence)return false;
  if(s.ec.purple>=ENEMY.purple.cap){s.ec.purple=0;damagePlayer(s,6);afterAction(s,'enemy');return true}
  if(s.ec.green>=ENEMY.green.cap&&s.eHP<=18){s.ec.green=0;s.eHP=Math.min(24,s.eHP+5);afterAction(s,'enemy');return true}
- if(s.ec.red>=ENEMY.red.cap){s.ec.red=0;damagePlayer(s,5);afterAction(s,'enemy');return true}
+ if(s.ec.red>=ENEMY.red.cap){s.ec.red=0;if(!s.enemyEffects.disarm)damagePlayer(s,5);afterAction(s,'enemy');return true}
  if(s.ec.blue>=ENEMY.blue.cap&&s.eGuard<=2){s.ec.blue=0;s.eGuard+=6;s.evadeTurns=2;afterAction(s,'enemy');return true}
  if(s.ec.yellow>=ENEMY.yellow.cap){s.ec.yellow=0;s.enemyReload=true;afterAction(s,'enemy');return true}
  return false;
 }
+
 function enemyMove(s){
  if(s.playerTurn||s.pHP<=0||s.eHP<=0)return;
+ if(s.enemyEffects.stun){s.enemyEffects.stun=0;afterAction(s,'enemy');return}
  if(enemyUseActive(s))return;
  let moves=legalMoves(s);if(!moves.length){reshuffleBoard(s);moves=legalMoves(s);if(!moves.length){afterAction(s,'enemy');return}}
  let best=moves[0],bestScore=-Infinity;
@@ -160,21 +679,41 @@ function activate(s,index){
  if(v.kind==='yellow_attune')s.buffs.momentum=4;
  if(v.kind==='haste')s.extraTurn=true;
  if(v.kind==='siphon'){damageEnemy(s,2);const c=Object.keys(s.ec).sort((a,b)=>s.ec[b]-s.ec[a])[0],amount=Math.min(3,s.ec[c]);s.ec[c]-=amount;s.charges.purple=Math.min(reservoirCap(s,'purple'),s.charges.purple+amount)}
+ if(v.kind==='quick_damage')damageEnemy(s,v.power);
+ if(v.kind==='execute')damageEnemy(s,s.eHP<=8?10:v.power);
+ if(v.kind==='breach'){s.eGuard=0;damageEnemy(s,v.power)}
+ if(v.kind==='bleed')s.enemyEffects.bleed=2;
+ if(v.kind==='reflect')s.buffs.reflect=1;
+ if(v.kind==='stun')s.enemyEffects.stun=1;
+ if(v.kind==='disarm')s.enemyEffects.disarm=1;
+ if(v.kind==='cleanse')s.pHP=Math.min(playerMaxHP(s),s.pHP+v.power);
+ if(v.kind==='mark')s.enemyEffects.mark=1;
+ if(v.kind==='silence')s.enemyEffects.silence=1;
  if(s.pGuard>guardBefore)s.guardTurns=2;
- if(['pin','paint','wildcraft','rotate'].includes(v.kind))s.targetMode=v.kind;
+ if(['pin','paint','wildcraft','rotate','break','blast','reroll','purge'].includes(v.kind)){s.targetMode=v.kind;s.targetKeepsTurn=v.turnCost===0}
  if(s.targetMode)return true;
  if(v.kind==='swap'){s.freeSwap=true;return true}
- afterAction(s,'player');return true;
+ afterAction(s,'player',v.turnCost===0);return true;
 }
 function target(s,x,y){
  if(!s.targetMode||!s.playerTurn||!Number.isInteger(x)||!Number.isInteger(y)||x<0||x>=W||y<0||y>=H)return false;
- const mode=s.targetMode;s.targetMode=null;
- if(mode==='pin'){s.pinColumn=x;s.pinTurns=1;afterAction(s,'player');return true}
+ const mode=s.targetMode,keepTurn=s.targetKeepsTurn;s.targetMode=null;s.targetKeepsTurn=false;
+ if(mode==='pin'){s.pinColumn=x;s.pinTurns=1;afterAction(s,'player',keepTurn);return true}
  if(mode==='paint')s.board[y][x]='red';
  if(mode==='wildcraft')s.board[y][x]='wild';
  if(mode==='rotate')s.board[y].unshift(s.board[y].pop());
- const m=findMatches(s);if(m)resolve(s,m,'player',{x,y});else afterAction(s,'player');return true;
+ if(mode==='reroll')s.board[y][x]=roll(s);
+ if(['break','blast','purge'].includes(mode)){
+  let cells=[];
+  if(mode==='break')cells=[{x,y}];
+  if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
+  if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
+  for(const q of cells)s.board[q.y][q.x]='';
+  fallColumns(s);
+ }
+ const m=findMatches(s);if(m)resolve(s,m,'player',{x,y},keepTurn);else afterAction(s,'player',keepTurn);return true;
 }
+
 function applyCombatAction(s,action){
  if(!action||typeof action!=='object'||s.pHP<=0||s.eHP<=0||!s.playerTurn)return false;
  if(action.t==='ability')return activate(s,action.slot);
