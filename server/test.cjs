@@ -1,13 +1,39 @@
 'use strict';
+// geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
 const {STARTER_GEMS}=require('./catalog.cjs');
-const {createRatCombat,applyRatAction,suggestRatAction}=require('./combat.cjs');
+const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,verifyBanditTranscript}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
   assert.deepEqual(STARTER_GEMS,{red:'dagger',yellow:'sling',blue:'crystal-wand'},'fresh accounts have exactly three starter choices');
+  {
+    const matchDb={
+      storage:{location:'test.db'},
+      transaction:async fn=>fn(matchDb),
+      prepare(sql){return {
+        async get(){return sql.includes('SELECT current_node FROM world_state')?{current_node:'bandit-pass'}:null},
+        async all(){
+          if(sql.includes('FROM sack_slots'))return [{slot:0,gem_id:'dagger'}];
+          if(sql.includes('FROM equipment_slots'))return [{slot:'head',item_id:null},{slot:'chest',item_id:null},{slot:'hands',item_id:null},{slot:'legs',item_id:null},{slot:'feet',item_id:null},{slot:'necklace',item_id:null},{slot:'ring1',item_id:null},{slot:'ring2',item_id:null}];
+          return [];
+        },
+        async run(){return {changes:1,lastInsertRowid:1}}
+      }}
+    };
+    const match=await startMatch(matchDb,1,'bandit');
+    assert.equal(match.authority?.mode,'replay-v1','file-backed Bandit matches require replay authority');
+    assert(Number.isInteger(match.authority.seed));
+  }
+  {
+    const equipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
+    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18}});
+    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);
+    const replay=verifyBanditTranscript({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18},transcript:[]});
+    assert.equal(replay.won,false,'empty Bandit transcript cannot claim victory');
+  }
   const jwt='aaa.bbb.ccc';
   let cfg=normalizeTursoConfig('libsql://gemmo-example.turso.io',jwt);
   assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,false);
