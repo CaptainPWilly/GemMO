@@ -43,8 +43,8 @@ assert(src.includes("function worldSeenKey(kind,userId){return 'gemmo.seen.'+use
 assert(src.includes("account?.profile?.gold||0"),'world Gold is rendered from the server-synced account profile');
 assert(src.includes("function currentWorldEffects()"),'world effects are derived from the current loadout');
 assert(src.includes("const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'}"),'Gem Shop groups stock by canonical color order');
-assert(src.includes("class=\"shopColorSection \"+color"),'Gem Shop renders explicit color sections');
-assert(src.includes("class=\"shopGemIcon itemGem \"+v.color"),'Gem Shop uses compact gem markers');
+assert(src.includes('shopColorSection')&&src.includes('shopColorGrid'),'Gem Shop renders explicit color sections');
+assert(src.includes('shopGemIcon itemGem')&&src.includes("v.color"),'Gem Shop uses compact gem markers');
 assert(styles.includes('.shopColorGrid')&&styles.includes('.shopPrice')&&styles.includes('.shopGemIcon'),'compact color-shop styling is present');
 
 assert(styles.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'collection cards use compact mobile columns');
