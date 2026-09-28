@@ -7,7 +7,7 @@ const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,skillRank,canPurchase,BRANCHES}=require('../shared/progression.js');
-const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,applyCascadeCharge}=require('./combat.cjs');
+const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,matchPower,applyCascadeCharge}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
@@ -22,6 +22,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     const charged=createRatCombat({seed:7,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}});
     charged.buffs.redwake=4;const startHp=charged.eHP;applyCascadeCharge(charged,['red'],1,'player');assert.equal(charged.eHP,startHp-1,'combo 2 adds exactly +1 core Red damage');assert.equal(charged.charges.red,1,'combo 2 adds +1 Red reservoir value');assert.equal(charged.buffs.redwake,4,'cascade charge does not consume or retrigger Redwake');
     applyCascadeCharge(charged,['red'],2,'player');assert.equal(charged.eHP,startHp-3,'combo 3 adds +2 more core Red damage');assert.equal(charged.charges.red,3,'combo 3 adds +2 more Red reservoir value');
+    const specialized=createBanditCombat({seed:8,sack:['warhammer','dagger','shield',null,null],equipment:blank,rewardBudget:{gold:0,xp:0}});assert.equal(matchPower(specialized,'red'),3);assert.equal(matchPower(specialized,'blue'),2);const specializedEnemyHp=specialized.eHP;applyCascadeCharge(specialized,['red','blue'],1,'player');assert.equal(specialized.eHP,specializedEnemyHp-3,'server replay scales Red core value by Sack ATK');assert.equal(specialized.pGuard,2,'server replay scales Blue core value by Sack DEF');
     const enemyCharged=createBanditCombat({seed:9,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}}),startPlayerHp=enemyCharged.pHP;
     applyCascadeCharge(enemyCharged,['red'],1,'enemy');applyCascadeCharge(enemyCharged,['red'],2,'enemy');assert.equal(enemyCharged.pHP,startPlayerHp-3,'cascade anchor charge is symmetric for enemy moves');assert.equal(enemyCharged.ec.red,3);
   }

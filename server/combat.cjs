@@ -10,104 +10,134 @@ const GEM=Object.freeze({
     4,
     "damage",
     3,
-    1
+    1,
+    1,
+    0
   ],
   "barbed-blade": [
     "red",
     6,
     "bleed",
     0,
-    1
+    1,
+    1,
+    0
   ],
   "longbow": [
     "red",
     6,
     "damage",
     5,
-    1
+    1,
+    1,
+    0
   ],
   "spear": [
     "red",
     7,
     "hybrid",
     3,
-    1
+    1,
+    1,
+    0
   ],
   "bloodstone-whet": [
     "red",
     7,
     "red_attune",
     0,
-    1
+    1,
+    1,
+    0
   ],
   "dagger": [
     "red",
     7,
     "damage",
     6,
-    1
+    1,
+    1,
+    0
   ],
   "rapier": [
     "red",
     7,
     "hybrid",
     3,
-    1
+    1,
+    1,
+    0
   ],
   "arming-sword": [
     "red",
     8,
     "damage",
     7,
-    1
+    1,
+    1,
+    0
   ],
   "executioners-axe": [
     "red",
     8,
     "execute",
     4,
-    1
+    1,
+    1,
+    0
   ],
   "axe": [
     "red",
     9,
     "damage",
     8,
-    1
+    1,
+    2,
+    0
   ],
   "flail": [
     "red",
     9,
     "damage",
     8,
-    1
+    1,
+    2,
+    0
   ],
   "halberd": [
     "red",
     10,
     "damage",
     9,
-    1
+    1,
+    2,
+    0
   ],
   "warhammer": [
     "red",
     11,
     "damage",
     10,
-    1
+    1,
+    2,
+    0
   ],
   "ember-rod": [
     "red",
     7,
     "paint",
     0,
-    1
+    1,
+    1,
+    0
   ],
   "crystal-wand": [
     "blue",
     5,
     "damage",
     4,
+    1,
+    0,
     1
   ],
   "war-pick": [
@@ -115,6 +145,8 @@ const GEM=Object.freeze({
     6,
     "breach",
     2,
+    1,
+    0,
     1
   ],
   "buckler": [
@@ -122,19 +154,25 @@ const GEM=Object.freeze({
     7,
     "hybrid",
     3,
-    1
+    1,
+    0,
+    2
   ],
   "quarterstaff": [
     "blue",
     5,
     "guard",
     4,
+    1,
+    0,
     1
   ],
   "bastion-sigil": [
     "blue",
     7,
     "blue_attune",
+    0,
+    1,
     0,
     1
   ],
@@ -143,54 +181,70 @@ const GEM=Object.freeze({
     7,
     "shelter",
     0,
-    1
+    1,
+    0,
+    2
   ],
   "mirror-shield": [
     "blue",
     7,
     "reflect",
     0,
-    1
+    1,
+    0,
+    2
   ],
   "shield": [
     "blue",
     7,
     "guard",
     6,
-    1
+    1,
+    0,
+    2
   ],
   "ward": [
     "blue",
     7,
     "shelter",
     0,
-    1
+    1,
+    0,
+    2
   ],
   "hook-spear": [
     "blue",
     8,
     "guard",
     7,
-    1
+    1,
+    0,
+    2
   ],
   "pavise": [
     "blue",
     9,
     "guard",
     8,
-    1
+    1,
+    0,
+    2
   ],
   "tower-shield": [
     "blue",
     11,
     "guard",
     10,
-    1
+    1,
+    0,
+    3
   ],
   "swordbreaker": [
     "blue",
     6,
     "disarm",
+    0,
+    1,
     0,
     1
   ],
@@ -199,12 +253,16 @@ const GEM=Object.freeze({
     7,
     "pin",
     0,
+    1,
+    0,
     1
   ],
   "tide-chain": [
     "blue",
     8,
     "rotate",
+    0,
+    1,
     0,
     1
   ],
@@ -213,6 +271,8 @@ const GEM=Object.freeze({
     9,
     "stun",
     0,
+    1,
+    0,
     1
   ],
   "thorn-whip": [
@@ -220,173 +280,223 @@ const GEM=Object.freeze({
     5,
     "damage",
     4,
-    1
+    1,
+    0,
+    0
   ],
   "grove-spear": [
     "green",
     7,
     "shelter",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "woodland-club": [
     "green",
     7,
     "guard",
     6,
-    1
+    1,
+    0,
+    0
   ],
   "willow-wand": [
     "green",
     3,
     "heal",
     2,
-    1
+    1,
+    0,
+    0
   ],
   "poultice": [
     "green",
     4,
     "heal",
     3,
-    1
+    1,
+    0,
+    0
   ],
   "purifying-tonic": [
     "green",
     4,
     "cleanse",
     2,
-    1
+    1,
+    0,
+    0
   ],
   "healing-potion": [
     "green",
     5,
     "heal",
     4,
-    1
+    1,
+    0,
+    0
   ],
   "briar": [
     "green",
     6,
     "leech",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "sickle": [
     "green",
     6,
     "leech",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "salve": [
     "green",
     6,
     "heal",
     5,
-    1
+    1,
+    0,
+    0
   ],
   "heartseed": [
     "green",
     7,
     "green_attune",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "venom-needle": [
     "green",
     7,
     "poison",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "wayfarer-lyre": [
     "green",
     7,
     "regen",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "druid-staff": [
     "green",
     9,
     "heal",
     8,
-    1
+    1,
+    0,
+    0
   ],
   "hunting-bow": [
     "green",
     5,
     "mark",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "sling": [
     "yellow",
     3,
     "damage",
     2,
-    1
+    1,
+    0,
+    0
   ],
   "duelist-sabre": [
     "yellow",
     7,
     "hybrid",
     3,
-    1
+    1,
+    0,
+    0
   ],
   "light-crossbow": [
     "yellow",
     7,
     "damage",
     6,
-    1
+    1,
+    0,
+    0
   ],
   "twin-knives": [
     "yellow",
     8,
     "damage",
     7,
-    1
+    1,
+    0,
+    0
   ],
   "glaive": [
     "yellow",
     9,
     "damage",
     8,
-    1
+    1,
+    0,
+    0
   ],
   "javelin": [
     "yellow",
     10,
     "damage",
     9,
-    1
+    1,
+    0,
+    0
   ],
   "parrying-dagger": [
     "yellow",
     4,
     "guard",
     3,
-    1
+    1,
+    0,
+    0
   ],
   "cloak": [
     "yellow",
     6,
     "guard",
     5,
-    1
+    1,
+    0,
+    0
   ],
   "knife": [
     "yellow",
     3,
     "quick_damage",
     1,
+    0,
+    0,
     0
   ],
   "locksmith-pick": [
     "yellow",
     4,
     "break",
+    0,
+    0,
     0,
     0
   ],
@@ -395,136 +505,174 @@ const GEM=Object.freeze({
     6,
     "swap",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "gamblers-thread": [
     "yellow",
     7,
     "yellow_attune",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "mist-mantle": [
     "yellow",
     7,
     "dodge",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "powder-bomb": [
     "yellow",
     7,
     "blast",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "clockwork-spur": [
     "yellow",
     8,
     "haste",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "ritual-dagger": [
     "purple",
     7,
     "hybrid",
     3,
-    1
+    1,
+    0,
+    0
   ],
   "rune-blade": [
     "purple",
     8,
     "damage",
     7,
-    1
+    1,
+    0,
+    0
   ],
   "seal": [
     "purple",
     10,
     "damage",
     8,
-    1
+    1,
+    0,
+    0
   ],
   "spell-tome": [
     "purple",
     7,
     "shelter",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "moon-scythe": [
     "purple",
     6,
     "leech",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "relic": [
     "purple",
     10,
     "renew",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "relic-mace": [
     "purple",
     10,
     "renew",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "chaos-orb": [
     "purple",
     6,
     "reroll",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "echo-knife": [
     "purple",
     7,
     "siphon",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "hex-staff": [
     "purple",
     7,
     "silence",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "prism-orb": [
     "purple",
     9,
     "focus",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "charm": [
     "purple",
     10,
     "boost",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "void-flask": [
     "purple",
     10,
     "purge",
     0,
-    1
+    1,
+    0,
+    0
   ],
   "star-lens": [
     "purple",
     11,
     "wildcraft",
     0,
-    1
+    1,
+    0,
+    0
   ]
 });
-function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3],turnCost:v[4]??1}:null}
+function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3],turnCost:v[4]??1,attack:v[5]||0,defense:v[6]||0}:null}
 function makeRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
 function gearStats(equipment={}){
  const out={hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0}};
@@ -548,6 +696,7 @@ function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],reward
 function createRatCombat(args){return createCombat({...args,encounterId:'rat'})}
 function createBanditCombat(args){return createCombat({...args,encounterId:'bandit'})}
 function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
+function matchPower(s,color){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return s.sack.reduce((sum,id)=>{const gem=spec(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills);return s.sack.reduce((n,id)=>n+(spec(id)?.color===color?spec(id).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]]}
@@ -578,8 +727,8 @@ function applyColor(s,type,n,actor,comboBonus=false){
  if(actor==='player'){
   const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
   if(colored){const cap=reservoirCap(s,type);s.charges[type]=Math.min(cap,s.charges[type]+n*mult)}
-  if(type==='red'){damageEnemy(s,n*mult);if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
-  if(type==='blue'){s.pGuard+=n*mult;s.guardTurns=2;if(!comboBonus&&s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
+  if(type==='red'){damageEnemy(s,n*mult*matchPower(s,'red'));if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
+  if(type==='blue'){s.pGuard+=n*mult*matchPower(s,'blue');s.guardTurns=2;if(!comboBonus&&s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
   if(type==='green'&&!comboBonus&&s.buffs.aftergrowth)s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
   if(type==='yellow'&&!comboBonus&&s.buffs.momentum){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
   if(!comboBonus&&mult===2)s.overdrive=false;
@@ -767,4 +916,4 @@ function suggestCombatAction(s){
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,applyCascadeCharge};
+module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge};
