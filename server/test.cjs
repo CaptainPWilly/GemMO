@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
 const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
+const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript}=require('./combat.cjs');
 
 (async()=>{
@@ -11,6 +12,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   assert.deepEqual(STARTER_GEMS,{red:'dagger',yellow:'sling',blue:'crystal-wand'},'fresh accounts have exactly three starter choices');
   assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
+  assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
   {
     const matchDb={
       storage:{location:'test.db'},
@@ -91,6 +93,12 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,409,'starter choice is one-time even when the second choice is valid');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,200);
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','shield',null,null,null]}});assert.equal(r.status,403,'cannot equip gems not owned');
+    r=await call('/v1/story/cutscene',{method:'POST',token,body:{cutsceneId:'not-real'}});assert.equal(r.status,400,'unknown cutscenes are rejected');
+    r=await call('/v1/story/cutscene',{method:'POST',token,body:{cutsceneId:'brackenreach-arrival'}});assert.equal(r.status,200);assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'seen cutscenes persist on the account');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,409,'quest cannot be turned in before acceptance');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'accept',questId:'trouble-on-road'}});assert.equal(r.status,200);assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'active','quest acceptance persists');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'accept',questId:'trouble-on-road'}});assert.equal(r.status,409,'quest cannot be accepted twice');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,409,'quest objective is server-checked');
     const equipment={head:'frayed-hood',chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     r=await call('/v1/account/equipment',{method:'PUT',token,body:{equipment}});assert.equal(r.status,403,'blank new inventory owns no armor');
 
@@ -115,7 +123,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     }
     assert(ratProof,'test bot must find a legal deterministic Rat victory');
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(ratProof.seed,ratMatchId);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v1');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v1');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'ready','authoritative encounter clear advances quest readiness');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true);assert.equal(r.data.account.profile.gold,ratProof.state.gold,'retry cannot double-award verified Rat gold');assert.equal(r.data.account.profile.xp,ratProof.state.xp,'retry cannot double-award verified Rat XP');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'bandit-pass');
     r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,201);const banditMatchId=r.data.match.matchId,banditBudget=r.data.match.rewardBudget;assert(banditBudget.gold>=18&&banditBudget.gold<=24);assert(banditBudget.xp>=12&&banditBudget.xp<=18);assert.equal(r.data.match.authority?.mode,'replay-v1');assert(Number.isInteger(r.data.match.authority.seed));
@@ -134,6 +142,8 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,200);assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','ready quest can be turned in at its NPC');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold+12,'quest Gold reward is server-issued');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'quest XP reward is server-issued');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,409,'completed quest cannot pay twice');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'must physically travel to the shop');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
     const userId=(await db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get()).id;
@@ -153,7 +163,8 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
     assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
-    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp,'battle XP survives logout/login');
+    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'battle and quest XP survive logout/login');
+    assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','quest state survives logout/login');assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'cutscene state survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
@@ -166,6 +177,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     assert.equal(r.data.account.needsStarter,true,'reset returns existing accounts to starter choice');
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
+    assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
     assert(Object.values(r.data.account.equipment).every(v=>v===null),'reset unequips physical gear');
     assert.equal(await applyDataMigrations(db),false,'fresh-sacks reset cannot run twice');
 

@@ -36,10 +36,15 @@
   <button class="worldQuickButton" id="worldSackBtn"><span class="worldQuickIcon">◇</span><span>SACK</span><i class="worldPip" id="worldSackPip" hidden></i></button>
   <button class="worldQuickButton" id="worldInventoryBtn"><span class="worldQuickIcon">▣</span><span>INVENTORY</span><i class="worldPip" id="worldInventoryPip" hidden></i></button>
   <button class="worldQuickButton" id="worldEffectsBtn"><span class="worldQuickIcon">✦</span><span>EFFECTS</span></button>
+  <button class="worldQuickButton" id="worldQuestsBtn"><span class="worldQuickIcon">!</span><span>QUESTS</span><i class="worldPip" id="worldQuestPip" hidden></i></button>
 </nav>
 <div class="worldEffectsPanel" id="worldEffectsPanel" hidden>
   <div class="worldEffectsHead"><div><small>ACTIVE LOADOUT</small><h3>Current Effects</h3></div><button id="worldEffectsClose" aria-label="Close effects">×</button></div>
   <div class="worldEffectsList" id="worldEffectsList"></div>
+</div>
+<div class="worldQuestPanel" id="worldQuestPanel" hidden>
+  <div class="worldEffectsHead"><div><small>JOURNAL</small><h3>Quests</h3></div><button id="worldQuestsClose" aria-label="Close quests">×</button></div>
+  <div class="worldQuestList" id="worldQuestList"></div>
 </div>
 <div class="worldCard">
   <div class="worldCardTop"><div><small id="worldKind">SAFE</small><h2 id="worldNodeName">Ember Camp</h2></div><button class="worldAction" id="worldAction">HERE</button></div>
@@ -128,6 +133,21 @@
 </div>
 </section>
 <section class="page settingsPage" id="settingsPage" hidden><header><button class="menuBack">← BACK</button></header><h1>Settings</h1><label class="setting"><input type="checkbox" id="motionToggle"> Reduce animation</label><p>Your device's reduced-motion preference is also respected.</p><label for="hintDelay">AUTOMATIC HINTS</label><select id="hintDelay"><option value="15000">After 15 seconds</option><option value="30000">After 30 seconds</option><option value="0">Off — no timer</option></select><p>Highlight a legal move after this much idle time on your turn. Off disables automatic hints.</p><div hidden><label for="apiBase">ACCOUNT API</label><input id="apiBase" type="url" spellcheck="false" placeholder="http://127.0.0.1:8787"></div></section>
+<section class="storyOverlay" id="storyOverlay" role="dialog" aria-modal="true" aria-labelledby="storyTitle" hidden>
+  <div class="storyBackdrop" id="storyBackdrop"></div>
+  <div class="storyCard">
+    <button class="storySkip" id="storySkip">SKIP</button>
+    <div class="storyPortrait" id="storyPortrait" hidden></div>
+    <div class="storyCopy">
+      <small id="storyKicker"></small>
+      <h2 id="storyTitle"></h2>
+      <p id="storyText"></p>
+      <div class="storyChoices" id="storyChoices"></div>
+      <button class="storyContinue" id="storyContinue">CONTINUE</button>
+      <p class="storyStatus" id="storyStatus" role="status"></p>
+    </div>
+  </div>
+</section>
 <button id="leaveFight" hidden>☰ MENU</button>
 <div class="game" hidden>
   <div class="top">
@@ -149,6 +169,7 @@
 </div>
 <script src="assets/content.js"></script>
 <script src="shared/encounters.js"></script>
+<script src="shared/story.js"></script>
 <script src="assets/combat-core.js"></script>
 <script src="assets/app.js"></script>
 </body>

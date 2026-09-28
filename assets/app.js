@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS;if(!COMBAT_CORE||!ENCOUNTERS)throw new Error('geMMO runtime dependencies missing');
+const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS,STORY=globalThis.GEMMO_STORY;if(!COMBAT_CORE||!ENCOUNTERS||!STORY)throw new Error('geMMO runtime dependencies missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
@@ -21,9 +21,11 @@ function worldPath(from,to){
 }
 
 const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
+const {CUTSCENES,QUESTS,NPCS,DIALOGUES}=STORY;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
 let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
 let account=null,accountToken=null,accountSyncTimer=0,lastAccountSync='';let captchaConfig=null,captchaWidgetId=null,captchaToken='',captchaConfigPromise=null,authBusy=false;
+let activeStory=null,storyBusy=false;
 function loadAccountToken(){
  let token=null;
  try{token=localStorage.getItem('gemmo.session')||sessionStorage.getItem('gemmo.session')}catch{}
@@ -452,13 +454,81 @@ function renderWorldEffects(){
  const effects=currentWorldEffects();
  $('worldEffectsList').innerHTML=effects.length?effects.map(effect=>'<div class="worldEffect"><span class="worldEffectIcon">'+effect.icon+'</span><div><b>'+effect.name+'</b><span>'+effect.detail+'</span></div></div>').join(''):'<div class="worldEffect empty">No active gear effects.</div>';
 }
+function questRecord(id){return account?.quests?.find?.(q=>q.id===id)||null}
+function questStatus(id){return questRecord(id)?.status||'available'}
+function cutsceneSeen(id){return account?.story?.seenCutscenes?.includes?.(id)||false}
+function npcAtNode(nodeId){return Object.values(NPCS).find(npc=>npc.node===nodeId)||null}
+function npcQuestMarker(npc){
+ const dialogue=npc&&DIALOGUES[npc.dialogue],status=dialogue?questStatus(dialogue.questId):'completed';
+ return status==='available'?'!':status==='ready'?'?':'';
+}
+function renderWorldQuests(){
+ const rows=(account?.quests||[]).map(row=>({row,quest:QUESTS[row.id]})).filter(v=>v.quest);
+ $('worldQuestList').innerHTML=rows.length?rows.map(({row,quest})=>{
+  const objective=row.status==='completed'?'Completed':row.status==='ready'?'Return to '+NPCS[quest.returnTo].name:quest.objective.label;
+  return '<article class="worldQuest '+row.status+'"><div class="worldQuestHead"><small>'+row.status.toUpperCase()+'</small><b>'+quest.title+'</b></div><p>'+quest.summary+'</p><strong>'+objective+'</strong><span>REWARD · '+quest.reward.gold+' ◆ · '+quest.reward.xp+' XP</span></article>';
+ }).join(''):'<div class="worldEffect empty">No quests yet. Talk to people you meet.</div>';
+}
+function storyShow(){const overlay=$('storyOverlay');overlay.hidden=false;overlay.classList.add('open')}
+function storyHide(){const overlay=$('storyOverlay');overlay.classList.remove('open');overlay.hidden=true;activeStory=null;storyBusy=false;$('storyStatus').textContent=''}
+function storyPortrait(npc){
+ const el=$('storyPortrait');if(!npc){el.hidden=true;el.textContent='';return}
+ el.hidden=false;el.textContent=npc.mark||npc.name.slice(0,1);el.setAttribute('aria-label',npc.name);
+}
+async function markCutsceneClient(id){
+ if(!accountToken||cutsceneSeen(id))return;
+ try{const data=await accountRequest('/v1/story/cutscene',{method:'POST',body:{cutsceneId:id}});applyAccount(data.account)}catch{}
+}
+function renderCutscene(){
+ const scene=CUTSCENES[activeStory.id],slide=scene?.slides?.[activeStory.index];if(!slide){const id=activeStory.id;storyHide();void markCutsceneClient(id);return}
+ const npc=slide.speaker?Object.values(NPCS).find(n=>n.name===slide.speaker):null;storyPortrait(npc);
+ $('storyKicker').textContent=slide.kicker||slide.speaker||'CUTSCENE';$('storyTitle').textContent=slide.title||slide.speaker||'';$('storyText').textContent=slide.text||'';
+ $('storyChoices').innerHTML='';$('storyContinue').hidden=false;$('storyContinue').textContent=activeStory.index===scene.slides.length-1?'RETURN TO WORLD':'CONTINUE';$('storySkip').hidden=false;$('storyStatus').textContent='';
+ $('storyBackdrop').dataset.scene=scene.id;
+}
+function startCutscene(id){
+ if(!CUTSCENES[id]||cutsceneSeen(id)||activeStory)return false;
+ activeStory={type:'cutscene',id,index:0};storyShow();renderCutscene();return true;
+}
+function maybeStartWorldCutscene(){
+ if(screen!=='world'||activeStory||!account)return;
+ const scene=Object.values(CUTSCENES).find(c=>c.trigger?.type==='world-enter'&&c.trigger.node===worldState.currentNode&&!cutsceneSeen(c.id));
+ if(scene)startCutscene(scene.id);
+}
+function renderDialogue(){
+ const npc=NPCS[activeStory.npcId],dialogue=DIALOGUES[npc.dialogue],node=dialogue.nodes[activeStory.nodeId];if(!node){storyHide();return}
+ storyPortrait(npc);$('storyKicker').textContent=npc.title.toUpperCase();$('storyTitle').textContent=node.speaker||npc.name;$('storyText').textContent=node.text;$('storyContinue').hidden=true;$('storySkip').hidden=true;$('storyStatus').textContent='';
+ $('storyChoices').innerHTML=(node.choices||[]).map((choice,i)=>'<button data-story-choice="'+i+'">'+choice.text+'</button>').join('');
+ document.querySelectorAll('[data-story-choice]').forEach(button=>button.onclick=()=>void chooseDialogue(Number(button.dataset.storyChoice)));
+}
+function openDialogue(npcId){
+ const npc=NPCS[npcId];if(!npc||npc.node!==worldState.currentNode||activeStory)return false;
+ const dialogue=DIALOGUES[npc.dialogue],status=questStatus(dialogue.questId),entry=dialogue.entries[status]||dialogue.entries.available;
+ activeStory={type:'dialogue',npcId,nodeId:entry};storyShow();renderDialogue();return true;
+}
+async function chooseDialogue(index){
+ if(storyBusy||activeStory?.type!=='dialogue')return;
+ const npc=NPCS[activeStory.npcId],dialogue=DIALOGUES[npc.dialogue],node=dialogue.nodes[activeStory.nodeId],choice=node?.choices?.[index];if(!choice)return;
+ if(choice.close){storyHide();return}
+ if(choice.action){
+  storyBusy=true;$('storyStatus').textContent='Saving…';document.querySelectorAll('[data-story-choice]').forEach(b=>b.disabled=true);
+  try{
+   const action=choice.action.type==='quest-accept'?'accept':choice.action.type==='quest-turnin'?'turnin':null;if(!action)throw new Error('invalid_story_action');
+   const data=await accountRequest('/v1/story/quest',{method:'POST',body:{action,questId:choice.action.questId}});applyAccount(data.account);
+  }catch(error){$('storyStatus').textContent=error.message.replaceAll('_',' ');storyBusy=false;document.querySelectorAll('[data-story-choice]').forEach(b=>b.disabled=false);return}
+  storyBusy=false;
+ }
+ if(choice.next){activeStory.nodeId=choice.next;renderDialogue()}else storyHide();
+}
 function refreshWorldHud(){
  if(!$('worldGold'))return;
  $('worldGold').textContent=String(account?.profile?.gold||0);
  $('worldLevel').textContent='LEVEL '+String(account?.profile?.level||1);
  $('worldSackPip').hidden=!worldHasUnread('sack');
  $('worldInventoryPip').hidden=!worldHasUnread('inventory');
+ $('worldQuestPip').hidden=!(account?.quests||[]).some(q=>q.status==='ready');
  if(!$('worldEffectsPanel').hidden)renderWorldEffects();
+ if(!$('worldQuestPanel').hidden)renderWorldQuests();
 }
 
 function applyAccount(next){
@@ -517,12 +587,13 @@ function drawWorld(){
  ctx.strokeStyle='#c1a36b';ctx.lineWidth=5*worldCamera.zoom;ctx.globalAlpha=.75;
  const done=new Set();for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible))for(const n of node.neighbors){if(!worldNodeVisible(WORLD_NODES[n]))continue;const key=[node.id,n].sort().join('|');if(done.has(key))continue;done.add(key);const a=objectPoint(node.x,node.y),b=objectPoint(WORLD_NODES[n].x,WORLD_NODES[n].y);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.globalAlpha=1;
  worldHits=[];
- for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom;
+ for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom,npc=npcAtNode(node.id);
   if(node.id==='camp'){ctx.fillStyle='#7c4c2d';ctx.beginPath();ctx.moveTo(p.x,p.y-22*s);ctx.lineTo(p.x+15*s,p.y);ctx.lineTo(p.x-15*s,p.y);ctx.closePath();ctx.fill();ctx.fillStyle='#e69245';ctx.beginPath();ctx.arc(p.x+13*s,p.y-2*s,3*s,0,Math.PI*2);ctx.fill()}
   if(node.id==='shrine'){ctx.fillStyle='#8a897c';ctx.fillRect(p.x-5*s,p.y-23*s,10*s,22*s);ctx.fillStyle='#aaa899';ctx.fillRect(p.x-9*s,p.y-25*s,18*s,5*s)}
   if(node.kind==='shop'){ctx.fillStyle=node.id==='gem-shop'?'#654f83':'#725135';ctx.fillRect(p.x-14*s,p.y-17*s,28*s,17*s);ctx.fillStyle='#d7bb82';ctx.beginPath();ctx.moveTo(p.x-18*s,p.y-18*s);ctx.lineTo(p.x+18*s,p.y-18*s);ctx.lineTo(p.x+12*s,p.y-28*s);ctx.lineTo(p.x-12*s,p.y-28*s);ctx.closePath();ctx.fill()}
   if(node.id==='rat'){ctx.strokeStyle='#5a4031';ctx.lineWidth=2*s;ctx.beginPath();ctx.arc(p.x,p.y-18*s,6*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(p.x-4*s,p.y-24*s,2*s,0,Math.PI*2);ctx.arc(p.x+3*s,p.y-24*s,2*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x+6*s,p.y-18*s);ctx.quadraticCurveTo(p.x+17*s,p.y-24*s,p.x+18*s,p.y-14*s);ctx.stroke()}
   if(node.id==='bandit-pass'){ctx.strokeStyle='#4f3123';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-27*s);ctx.stroke();ctx.fillStyle='#9a3f32';ctx.beginPath();ctx.moveTo(p.x,p.y-27*s);ctx.lineTo(p.x+16*s,p.y-22*s);ctx.lineTo(p.x,p.y-15*s);ctx.closePath();ctx.fill()}
+  if(npc){const nx=p.x-20*s,ny=p.y-8*s;ctx.strokeStyle='#292119';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(nx,ny-14*s);ctx.stroke();ctx.fillStyle='#d1a879';ctx.beginPath();ctx.arc(nx,ny-19*s,4*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5d4732';ctx.fillRect(nx-5*s,ny-15*s,10*s,12*s);const marker=npcQuestMarker(npc);if(marker){ctx.fillStyle='#f3d477';ctx.beginPath();ctx.arc(nx,ny-34*s,8*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#211b12';ctx.font='bold '+Math.max(10,12*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(marker,nx,ny-34*s)}}
   ctx.beginPath();ctx.arc(p.x,p.y-5*s,(selected?11:8)*s,0,Math.PI*2);ctx.fillStyle=node.kind==='encounter'?'#a7493d':current?'#f2d68f':'#d3bf83';ctx.fill();ctx.strokeStyle=selected?'#fff1bc':'#4e432d';ctx.lineWidth=selected?3:2;ctx.stroke();
   ctx.font=(selected?'bold ':'')+Math.max(9,10*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='#151713';ctx.strokeText(node.name,p.x,p.y-35*s);ctx.fillStyle='#f4dfab';ctx.fillText(node.name,p.x,p.y-35*s);
   worldHits.push({id:node.id,x:p.x,y:p.y-5*s,r:24*s});
@@ -536,12 +607,13 @@ function drawWorld(){
  drawWorldCard();
 }
 function drawWorldCard(){
- const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode];
- $('worldKind').textContent=node.kind==='encounter'?'⚔ MOB':node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent='';$('worldNodeDesc').hidden=true;
- const btn=$('worldAction');btn.hidden=true;btn.disabled=false;btn.dataset.action='none';
+ const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode],npc=npcAtNode(node.id);
+ $('worldKind').textContent=node.kind==='encounter'?'⚔ MOB':npc?'◆ '+npc.title.toUpperCase():node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=npc?npc.name+' · '+npc.title:'';$('worldNodeDesc').hidden=!npc;
+ const btn=$('worldAction');btn.hidden=true;btn.disabled=false;btn.dataset.action='none';delete btn.dataset.npc;
  if(node.id===current.id&&!worldTravelRoute){
   if(node.encounter){btn.hidden=false;btn.textContent='FIGHT '+node.name.toUpperCase();btn.dataset.action='fight'}
   else if(node.shop){btn.hidden=false;btn.textContent=node.shop==='gem-shop'?'OPEN GEM SHOP':'OPEN ITEM SHOP';btn.dataset.action='shop'}
+  else if(npc){btn.hidden=false;btn.textContent='TALK · '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
  }
 }
 function animateWorldTravel(from,to){
@@ -646,7 +718,7 @@ function showScreen(next){
  clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';
  const previous=screen;screen=next;
  document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';
- if(next==='sack'){markWorldSeen('sack');drawSack()}if(next==='inventory'){markWorldSeen('inventory');drawInventory()}if(next==='starter')drawStarter();if(next==='world'){refreshWorldHud();requestAnimationFrame(drawWorld)}if(next==='shop')drawShop();if(next!=='world')$('worldEffectsPanel').hidden=true;
+ if(next==='sack'){markWorldSeen('sack');drawSack()}if(next==='inventory'){markWorldSeen('inventory');drawInventory()}if(next==='starter')drawStarter();if(next==='world'){refreshWorldHud();requestAnimationFrame(drawWorld);setTimeout(maybeStartWorldCutscene,0)}if(next==='shop')drawShop();if(next!=='world'){$('worldEffectsPanel').hidden=true;$('worldQuestPanel').hidden=true}
  if(next==='account'){drawAccount();void renderCaptcha();if(accountToken&&!account)void refreshAccount()}
  if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!account.needsStarter&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}
  if(previous!==next){const raf=window.requestAnimationFrame||globalThis.requestAnimationFrame;if(raf)raf(()=>animateScreenChange(previous,next));else setTimeout(()=>animateScreenChange(previous,next),0)}save();
@@ -721,8 +793,9 @@ function startFight(){
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();
-$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;
-$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
+$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
+$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='talk')openDialogue($('worldAction').dataset.npc)};
+$('storyContinue').onclick=()=>{if(activeStory?.type!=='cutscene')return;activeStory.index++;renderCutscene()};$('storySkip').onclick=()=>{if(activeStory?.type!=='cutscene')return;const id=activeStory.id;storyHide();void markCutsceneClient(id)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
 function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function worldMid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}

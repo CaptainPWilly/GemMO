@@ -9,6 +9,7 @@ Player browser
   assets/
     ├─ content.js       expandable world/catalog/gear content
     ├─ ../shared/encounters.js  browser/server encounter contract
+    ├─ ../shared/story.js       cutscene/NPC/dialogue/quest contract
     ├─ combat-core.js   deterministic RNG/matching/legal-move primitives
     ├─ styles.css       responsive dungeon visual system
     └─ app.js
@@ -45,6 +46,8 @@ The server/database own:
 - starter choice
 - current world node
 - cleared encounter flags
+- quest acceptance/completion and quest rewards
+- account-level seen-cutscene flags
 - shop purchases
 - match ticket identity
 - idempotent reward settlement
@@ -112,6 +115,17 @@ Camp ─ Crossroads ─ Rat ─ Bandit
 
 Bandit is hidden/locked until Rat is cleared.
 
+## Story and quest progression
+
+Story presentation is browser-side, but persistent progression is account-backed. `shared/story.js` defines cutscenes, NPC locations, dialogue trees, quest objectives, and rewards for both browser and server.
+
+- Seen cutscenes are stored in `story_flags` so one-time scenes survive reload/login/device changes.
+- Accepted/completed quests are stored in `quest_progress`.
+- The client may request quest acceptance or turn-in, but the server verifies the player is physically at the correct NPC node.
+- Quest readiness is derived from authoritative state. The first objective type, `encounter-clear`, checks server-owned `world_flags`.
+- Quest Gold/XP are awarded transactionally by the server on turn-in; the browser cannot submit reward amounts.
+- Repeated acceptance/turn-in cannot duplicate progression or rewards.
+
 ## Match settlement
 
 1. Client reaches an encounter node.
@@ -132,7 +146,7 @@ The client retries transient victory-settlement failures and exposes a manual **
 
 ## Data/catalog boundaries
 
-Expandable client world/gem/gear definitions live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Encounter definitions are deliberately different: `shared/encounters.js` is one browser/server source of truth for encounter HP, reward ranges, enemy match scaling, reservoirs, active abilities, AI weights, and first-clear UI text.
+Expandable client world/gem/gear definitions live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Encounter definitions are deliberately different: `shared/encounters.js` is one browser/server source of truth for encounter HP, reward ranges, enemy match scaling, reservoirs, active abilities, AI weights, and first-clear UI text. Story definitions follow the same pattern in `shared/story.js`, while mutable quest/cutscene progress remains server-owned.
 
 Persistent gem/equipment validation still lives in `server/catalog.cjs`, and deterministic combat execution lives in `server/combat.cjs`. If another persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks the important parity boundaries.
 
