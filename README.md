@@ -58,8 +58,8 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 - Overworld movement is server-validated. Tapping a reachable distant node follows the shortest unlocked route and animates every segment.
 - Rat is the first encounter; clearing it unlocks the Bandit path.
 - Combat Gold/XP are settled to the account on victory through match tickets. Every match receives a server-issued loot budget.
-- Rat victories are **server replay-verified** from a server seed plus a player-intent transcript; Rat loot and progression come from that replay, not from the browser's claimed result.
-- Bandit combat is still browser-simulated and budget-bounded, so the whole combat system is **not yet fully server-authoritative**. See the architecture document.
+- Rat and Bandit victories are **server replay-verified** from a server seed plus a player-intent transcript; combat rewards come from the replay, not from the browser's claimed result.
+- The browser still runs the live fight for responsiveness; the server independently reconstructs completed fights before accepting victory/progression. See the architecture document.
 - Combat has an always-available menu for Gemology/Surrender and an Equip drawer for inspecting the current loadout.
 - Layouts adapt across phone, tablet portrait, and tablet landscape.
 
