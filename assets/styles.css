@@ -494,3 +494,90 @@ html,body{background:#060705;color:var(--text)}
   .worldQuickButton{font-size:7px;letter-spacing:.55px}
 }
 
+
+
+/* Combat turn ownership: make the active side readable at a glance. */
+.combatant{
+  border:1px solid transparent;
+  border-radius:6px;
+  padding:6px 7px;
+  margin:-6px -7px;
+  transition:border-color .18s ease,background .18s ease,box-shadow .18s ease,opacity .18s ease,filter .18s ease;
+}
+.turn #turnText{
+  display:inline-block;
+  min-width:96px;
+  padding:5px 8px;
+  border:1px solid #504936;
+  border-radius:4px;
+  background:#10110d;
+  font-size:11px;
+  line-height:1;
+  letter-spacing:1.25px;
+  transition:color .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.turnBadge{
+  min-height:30px;
+  display:grid;
+  place-items:center;
+  border:1px solid #514735;
+  border-left-width:3px;
+  border-right-width:3px;
+  background:#12130f;
+  font-weight:900;
+  transition:color .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.game.turn-player .playerSide{
+  opacity:1;
+  border-color:color-mix(in srgb,var(--g) 55%,#5b4f3b);
+  background:color-mix(in srgb,var(--g) 8%,#171812);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--g) 13%,transparent),0 0 18px color-mix(in srgb,var(--g) 8%,transparent);
+}
+.game.turn-player .enemySide{opacity:.56;filter:saturate(.72)}
+.game.turn-player .turn #turnText,.turnBadge.turn-player{
+  color:#c7f3d4;
+  border-color:color-mix(in srgb,var(--g) 62%,#5b4f3b);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--g) 12%,#11120e),#11120e);
+  box-shadow:0 0 16px color-mix(in srgb,var(--g) 10%,transparent);
+}
+.game.turn-player .boardShell{
+  border-color:color-mix(in srgb,var(--g) 48%,#62543e);
+  box-shadow:inset 0 0 0 2px #181914,0 0 0 1px color-mix(in srgb,var(--g) 18%,transparent),0 14px 34px #000a;
+}
+.game.turn-enemy .enemySide{
+  opacity:1;
+  border-color:color-mix(in srgb,var(--r) 58%,#5b4f3b);
+  background:color-mix(in srgb,var(--r) 8%,#171812);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--r) 13%,transparent),0 0 18px color-mix(in srgb,var(--r) 8%,transparent);
+}
+.game.turn-enemy .playerSide{opacity:.52;filter:saturate(.68)}
+.game.turn-enemy .turn #turnText,.turnBadge.turn-enemy{
+  color:#ffc2b9;
+  border-color:color-mix(in srgb,var(--r) 65%,#5b4f3b);
+  background:linear-gradient(90deg,color-mix(in srgb,var(--r) 13%,#11120e),#11120e);
+  box-shadow:0 0 16px color-mix(in srgb,var(--r) 11%,transparent);
+}
+.game.turn-enemy .boardShell{
+  border-color:color-mix(in srgb,var(--r) 42%,#62543e);
+  box-shadow:inset 0 0 0 2px #181914,0 0 0 1px color-mix(in srgb,var(--r) 16%,transparent),0 14px 34px #000a;
+}
+.game.turn-enemy .board{filter:saturate(.68) brightness(.76);pointer-events:none}
+.game.turn-enemy .slots,.game.turn-enemy .reservoirs{opacity:.52;filter:saturate(.68)}
+.turnBadge.turnPulse{animation:turnCuePulse .48s ease-out}
+@keyframes turnCuePulse{
+  0%{transform:scale(.965);filter:brightness(1)}
+  42%{transform:scale(1.018);filter:brightness(1.45)}
+  100%{transform:scale(1);filter:brightness(1)}
+}
+@media(max-height:730px){
+  .turnBadge{min-height:24px}
+  .turn #turnText{padding:4px 6px;font-size:9px}
+}
+@media(min-width:700px){
+  .turn #turnText{min-width:120px;font-size:13px;padding:7px 10px}
+  .turnBadge{min-height:36px;font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){
+  .combatant,.turn #turnText,.turnBadge{transition:none}
+  .turnBadge.turnPulse{animation:none}
+}
