@@ -639,9 +639,8 @@ function drawWorld(){
   ctx.font=(selected?'bold ':'')+Math.max(9,10*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='#151713';ctx.strokeText(node.name,p.x,p.y-35*s);ctx.fillStyle='#f4dfab';ctx.fillText(node.name,p.x,p.y-35*s);
   worldHits.push({id:node.id,x:p.x,y:p.y-5*s,r:24*s});
  }
- const fromNode=WORLD_NODES[worldTravelAnim?.from||worldState.currentNode],toNode=WORLD_NODES[worldTravelAnim?.to||worldState.currentNode],t=worldTravelAnim?.progress||0;
- const wx=fromNode.x+(toNode.x-fromNode.x)*t,wy=fromNode.y+(toNode.y-fromNode.y)*t,wz=(WORLD_HEIGHT[fromNode.y]?.[fromNode.x]||0)+((WORLD_HEIGHT[toNode.y]?.[toNode.x]||0)-(WORLD_HEIGHT[fromNode.y]?.[fromNode.x]||0))*t;
- const wp=worldIso(wx,wy,wz+.2,canvas),walk=worldTravelAnim?Math.sin(t*Math.PI*8):0,ss=worldCamera.zoom;
+ const currentNode=WORLD_NODES[worldState.currentNode],travelPoint=worldTravelAnim?worldRoutePoint(worldTravelAnim.route,worldTravelAnim.progress):{x:currentNode.x,y:currentNode.y,z:WORLD_HEIGHT[currentNode.y]?.[currentNode.x]||0,travelled:0};
+ const wp=worldIso(travelPoint.x,travelPoint.y,travelPoint.z+.2,canvas),walk=worldTravelAnim?Math.sin(travelPoint.travelled*Math.PI*4):0,ss=worldCamera.zoom;
  ctx.strokeStyle='#30261d';ctx.lineWidth=2.5*ss;ctx.beginPath();ctx.moveTo(wp.x-2*ss,wp.y-5*ss);ctx.lineTo(wp.x-6*ss-walk*2*ss,wp.y+5*ss);ctx.moveTo(wp.x+2*ss,wp.y-5*ss);ctx.lineTo(wp.x+6*ss+walk*2*ss,wp.y+5*ss);ctx.stroke();
  ctx.strokeStyle='#e0c58f';ctx.beginPath();ctx.moveTo(wp.x,wp.y-14*ss);ctx.lineTo(wp.x+walk*5*ss,wp.y-4*ss);ctx.stroke();
  ctx.fillStyle='#6d3e2c';ctx.fillRect(wp.x-5*ss,wp.y-16*ss,10*ss,12*ss);ctx.fillStyle='#e1b985';ctx.beginPath();ctx.arc(wp.x,wp.y-21*ss,5*ss,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f7df9d';ctx.beginPath();ctx.moveTo(wp.x,wp.y-31*ss);ctx.lineTo(wp.x+5*ss,wp.y-25*ss);ctx.lineTo(wp.x,wp.y-22*ss);ctx.lineTo(wp.x-5*ss,wp.y-25*ss);ctx.closePath();ctx.fill();
@@ -658,22 +657,35 @@ function drawWorldCard(){
    else if(npc){btn.hidden=false;btn.textContent='TALK · '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
  }
 }
-function animateWorldTravel(from,to){
- if(reducedMotion()||from===to)return Promise.resolve();
- return new Promise(resolve=>{const start=performance.now(),duration=620;worldTravelAnim={from,to,progress:0};const step=now=>{worldTravelAnim.progress=Math.min(1,(now-start)/duration);drawWorld();if(worldTravelAnim.progress<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
+function worldRouteMetrics(route){
+ const points=(Array.isArray(route)?route:[]).map(id=>WORLD_NODES[id]).filter(Boolean).map(node=>({id:node.id,x:node.x,y:node.y,z:WORLD_HEIGHT[node.y]?.[node.x]||0})),segments=[];let total=0;
+ for(let i=1;i<points.length;i++){const a=points[i-1],b=points[i],length=Math.max(.0001,Math.hypot(b.x-a.x,b.y-a.y,(b.z-a.z)*.35));segments.push({a,b,start:total,length});total+=length}
+ return {points,segments,total};
+}
+function worldRoutePoint(route,progress){
+ const path=worldRouteMetrics(route);if(!path.points.length)return {x:0,y:0,z:0,travelled:0,total:0};if(!path.segments.length){const p=path.points[0];return {...p,travelled:0,total:0}}
+ const travelled=Math.max(0,Math.min(1,Number(progress)||0))*path.total;let segment=path.segments[path.segments.length-1];
+ for(const candidate of path.segments)if(travelled<=candidate.start+candidate.length){segment=candidate;break}
+ const t=Math.max(0,Math.min(1,(travelled-segment.start)/segment.length));
+ return {x:segment.a.x+(segment.b.x-segment.a.x)*t,y:segment.a.y+(segment.b.y-segment.a.y)*t,z:segment.a.z+(segment.b.z-segment.a.z)*t,travelled,total:path.total};
+}
+function animateWorldTravel(route){
+ if(reducedMotion()||!Array.isArray(route)||route.length<2)return Promise.resolve();
+ const legs=route.length-1,duration=Math.min(2200,480+Math.max(0,legs-1)*360);
+ return new Promise(resolve=>{const start=performance.now();worldTravelAnim={route:route.slice(),progress:0};const step=now=>{const raw=Math.min(1,(now-start)/duration),smooth=raw*raw*(3-2*raw);worldTravelAnim.progress=smooth;drawWorld();if(raw<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
 }
 async function travelWorld(nodeId){
  if(!account||!accountToken||worldTravelRoute)return;
  const route=worldPath(worldState.currentNode,nodeId);if(!route||route.length<2){selectedWorldNode=nodeId;drawWorld();return}
- const destination=nodeId;worldTravelRoute=route.slice();selectedWorldNode=destination;drawWorld();
+ const destination=nodeId,authorized=[route[0]];let nextAccount=account,travelError=null;worldTravelRoute=route.slice();selectedWorldNode=destination;drawWorld();
  try{
   for(let i=1;i<route.length;i++){
-   const from=worldState.currentNode,to=route[i];let nextAccount;
-   try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId:to}});nextAccount=data.account}
-   catch(error){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel failed: '+error.message.replaceAll('_',' ');break}
-   await animateWorldTravel(from,to);
-   applyAccount(nextAccount);selectedWorldNode=destination;drawWorld();
+   try{const data=await accountRequest('/v1/world/move',{method:'POST',body:{nodeId:route[i]}});nextAccount=data.account;authorized.push(route[i])}
+   catch(error){travelError=error;break}
   }
+  if(authorized.length>1)await animateWorldTravel(authorized);
+  if(nextAccount!==account)applyAccount(nextAccount);
+  if(travelError){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel stopped: '+travelError.message.replaceAll('_',' ')}
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
