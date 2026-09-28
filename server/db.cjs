@@ -5,7 +5,7 @@ const {DatabaseSync}=require('node:sqlite');
 const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG}=require('./catalog.cjs');
 const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
-const {verifyRatTranscript}=require('./combat.cjs');
+const {verifyCombatTranscript}=require('./combat.cjs');
 
 const SCHEMA=[
   'CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username_norm TEXT NOT NULL UNIQUE,username_display TEXT NOT NULL,password_hash TEXT NOT NULL,created_at INTEGER NOT NULL,failed_logins INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0) STRICT;',
@@ -226,7 +226,7 @@ async function startMatch(db,userId,encounterId){
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
   const rewardBudget=rollRewardBudget(encounterId);if(!rewardBudget)throw Object.assign(new Error('invalid_encounter'),{status:400});
-  const id=randomUUID(),now=Date.now(),authority=encounterId==='rat'?{mode:'replay-v1',seed:randomInt(0,0x100000000)}:null;
+  const id=randomUUID(),now=Date.now(),authority={mode:'replay-v1',seed:randomInt(0,0x100000000)};
   await transaction(db,async tx=>{
     await tx.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
     await tx.prepare('INSERT INTO match_reward_budgets(match_id,gold_cap,xp_cap) VALUES(?,?,?)').run(id,rewardBudget.gold,rewardBudget.xp);
@@ -262,9 +262,9 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     const storedBudget=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId);
     const rewardBudget=storedBudget?{gold:Number(storedBudget.gold_cap),xp:Number(storedBudget.xp_cap)}:{gold:policy.gold[1],xp:policy.xp[1]};
     let awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp),authority='legacy-budget';
-    const proof=match.encounter_id==='rat'?await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId):null;
+    const proof=await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId);
     if(proof?.version==='replay-v1'){
-      const replay=verifyRatTranscript({seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),rewardBudget,transcript});
+      const replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),rewardBudget,transcript});
       if(!replay.won)throw Object.assign(new Error('combat_proof_failed'),{status:409});
       awardGold=replay.gold;awardXp=replay.xp;authority='replay-v1';
       if(gold!==awardGold||xp!==awardXp)await audit(tx,userId,'match_result_mismatch',match.encounter_id+':'+matchId+':client'+gold+'/'+xp+':server'+awardGold+'/'+awardXp);
