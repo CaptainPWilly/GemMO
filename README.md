@@ -33,7 +33,8 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 |---|---|
 | `index.html` | Thin live browser shell and semantic UI markup |
 | `assets/content.js` | Client world, shops, gem catalog, gear, and other expandable content |
-| `assets/app.js` | Live runtime, UI behavior, match-3 engine, world renderer, authenticated API client |
+| `assets/combat-core.js` | Pure deterministic browser combat primitives: seeded RNG, matching, swaps, legal-move discovery |
+| `assets/app.js` | Live runtime, UI behavior, combat orchestration, world renderer, authenticated API client |
 | `assets/styles.css` | Canonical responsive dungeon visual system |
 | `tests/abilities.cjs` | Production-client/gameplay regression harness |
 | `server/server.cjs` | HTTP API and auth endpoints |
