@@ -2,6 +2,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('ass
 class El{constructor(){this.events={};this.classes=new Set();this.style={};this.children=[];this.dataset={};this.classList={add:(v)=>this.classes.add(v),remove:(v)=>this.classes.delete(v),contains:(v)=>this.classes.has(v)};this.textContent='';this.value='all'}set innerHTML(v){this.children=Array.from({length:(v.match(/<button/g)||[]).length},()=>new El());if(v.includes('<span'))this.firstElementChild=new El()}appendChild(e){this.children.push(e)}setAttribute(){}addEventListener(name,fn){this.events[name]=fn}remove(){}getBoundingClientRect(){return {left:0,top:0,width:320,height:320}}animate(){return {finished:Promise.resolve(),cancel(){}}}}
 const es=new Map(),document={getElementById(id){if(!es.has(id))es.set(id,new El());return es.get(id)},createElement:()=>new El(),querySelectorAll:()=>[],querySelector:()=>new El()};
 const root=path.join(__dirname,'..');
+const serverCombat=require(path.join(root,'server','combat.cjs'));
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles=fs.readFileSync(path.join(root,'assets','styles.css'),'utf8');
 const content=fs.readFileSync(path.join(root,'assets','content.js'),'utf8');
@@ -96,6 +97,15 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
  a.setSack(['hex-staff','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().enemyEffects.silence,1);
  a.setSack(['locksmith-pick','dagger','shield','salve','charm']);a.startFight();a.setBoard(grid());a.setReady(0);a.activate(0);assert.equal(a.get().targetMode,'break');await a.applyTarget({x:3,y:3});assert.equal(a.get().playerTurn,true,'quick tile break keeps the turn');
 
+ // Server replay executes the new action-economy and control vocabulary too.
+ const serverGear={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
+ let ss=serverCombat.createBanditCombat({seed:1337,sack:['knife','dagger','shield','salve','charm'],equipment:serverGear,rewardBudget:{gold:0,xp:0}});
+ ss.charges.yellow=3;assert.equal(serverCombat.applyCombatAction(ss,{t:'ability',slot:0}),true);assert.equal(ss.eHP,23);assert.equal(ss.playerTurn,true,'server quick hit keeps the turn');
+ ss=serverCombat.createBanditCombat({seed:1337,sack:['executioners-axe','dagger','shield','salve','charm'],equipment:serverGear,rewardBudget:{gold:0,xp:0}});
+ ss.eHP=8;ss.charges.red=8;assert.equal(serverCombat.applyCombatAction(ss,{t:'ability',slot:0}),true);assert.equal(ss.eHP,-2,'server execute honors low-health threshold');
+ ss=serverCombat.createBanditCombat({seed:1337,sack:['locksmith-pick','dagger','shield','salve','charm'],equipment:serverGear,rewardBudget:{gold:0,xp:0}});
+ ss.charges.yellow=4;assert.equal(serverCombat.applyCombatAction(ss,{t:'ability',slot:0}),true);assert.equal(ss.targetMode,'break');assert.equal(serverCombat.applyCombatAction(ss,{t:'target',x:3,y:3}),true);assert.equal(ss.playerTurn,true,'server quick break keeps the turn');
+
  // Shared pool keeps unspent charge; either item can spend it.
  a.setSack(['dagger','axe','shield','salve','boots']);a.startFight();a.applyColor('red',99,'player');assert.equal(a.get().charges.red,16);assert.equal(a.reservoirCap('red'),16);await a.finish();
  a.setHP(24);a.startFight();a.applyColor('red',12,'player');await a.finish();a.activate(1);assert.equal(a.get().charges.red,3);
@@ -154,5 +164,5 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
  assert.equal(a.equipGear('feet','scuffed-boots'),true);assert.equal(a.reservoirCap('yellow'),baseYellow+3,'boots and all-cap ring increase yellow capacity');
  a.startFight();assert.equal(a.get().pHP,20);assert.equal(a.get().pGuard,2);assert.equal(a.get().guardTurns,2);
  a.resetEquipment();
- console.log('PASS: 64 gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
+ console.log('PASS: 74 organized gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
 })().catch(e=>{console.error(e);process.exitCode=1});
