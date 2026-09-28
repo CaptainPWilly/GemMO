@@ -2,9 +2,9 @@
 // geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
 const {STARTER_GEMS}=require('./catalog.cjs');
-const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction}=require('./combat.cjs');
+const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,verifyBanditTranscript}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
