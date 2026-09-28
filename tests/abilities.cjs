@@ -6,11 +6,14 @@ const serverCombat=require(path.join(root,'server','combat.cjs'));
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles=fs.readFileSync(path.join(root,'assets','styles.css'),'utf8');
 const content=fs.readFileSync(path.join(root,'assets','content.js'),'utf8');
+const combatCore=fs.readFileSync(path.join(root,'assets','combat-core.js'),'utf8');
 let src=fs.readFileSync(path.join(root,'assets','app.js'),'utf8');
 assert(html.includes('href="assets/styles.css"'),'production shell must load the canonical stylesheet');
-assert(html.includes('src="assets/content.js"')&&html.indexOf('assets/content.js')<html.indexOf('assets/app.js'),'production shell must load static content before runtime');
+assert(html.includes('src="assets/content.js"')&&html.includes('src="assets/combat-core.js"')&&html.indexOf('assets/content.js')<html.indexOf('assets/combat-core.js')&&html.indexOf('assets/combat-core.js')<html.indexOf('assets/app.js'),'production shell must load content, combat core, then runtime');
 assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
+assert(combatCore.includes('globalThis.GEMMO_COMBAT_CORE=Object.freeze'),'deterministic board primitives must live behind the combat-core boundary');
+assert(src.includes('COMBAT_CORE.findMatches(board,TYPES)')&&src.includes('COMBAT_CORE.legalMoves(board,TYPES)'),'runtime must consume extracted combat primitives');
 assert(!src.includes('const ITEMS=[')&&!src.includes('const WORLD_NODES={'),'runtime must not re-embed expandable content');
 assert(!/<style[\s>]/i.test(html),'index.html must stay free of inline styles');
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html),'index.html must stay free of inline application scripts');
@@ -25,7 +28,7 @@ assert(src.includes("localDevHost?'http://127.0.0.1:8787':'https://gemmo.onrende
 assert(src.includes("won:false,gold:0,xp:0"),'defeats must settle their match ticket with zero rewards');
 assert(src.includes('activeRewardBudget=data.match?.rewardBudget||null'),'client must accept the server-issued reward budget');
 assert(src.includes("activeRewardBudget?'/'+activeRewardBudget.gold:''"),'combat HUD must show the server Gold budget');
-assert(src.includes("activeAuthority?.mode==='replay-v1'"),'Rat combat must recognize the server replay authority mode');
+assert(src.includes("activeAuthority?.mode==='replay-v1'"),'authoritative combat must recognize the server replay authority mode');
 assert(src.includes("resultBody.transcript=combatTranscript"),'verified victories must submit the combat transcript');
 assert(src.includes("makeCombatRng(activeAuthority.seed)"),'authoritative combat must use the server-issued deterministic seed');
 assert(src.includes("recordCombatAction({t:'swap'"),'player swaps must enter the combat proof transcript');
@@ -56,7 +59,12 @@ assert(styles.includes('.equipmentHero')&&styles.includes('.gearCardAction')&&st
 assert(styles.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'collection cards use compact mobile columns');
 src=src.replace("showScreen('splash');",`globalThis.api={setHintDelay:v=>hintDelay=v,ITEMS,GEAR,EQUIPMENT_SLOTS,WORLD_NODES,worldCanTravel,worldPath,worldCleared,sackIsValid,gearStats,playerMaxHP,reservoirCap,canEquipGear,equipGear,unequipGear,getEquipment:()=>({...equipment}),resetEquipment:()=>{equipment={...DEFAULT_EQUIPMENT}},setInventory:v=>inventory=v.slice(),setTestAccount:v=>account=v,setWorldClears:v=>worldState.clearedEncounters=v.slice(),applyTarget,afterAction,fallColumns,reshuffleBoard,touchActivity,showHint,damagePlayer,findMatches,legalMoves,reservoirCap,enemyUseActive,setEnemyReady:color=>ec[color]=ENEMY[color].cap,startFight,applyColor,activate,trySwap,tapCell,get:()=>({charges,sack,pHP,eHP,pGuard,eGuard,freeSwap,overdrive,playerTurn,board,buffs,enemyEffects,pinColumn,pinTurns,guardTurns,evadeTurns,actionNumber,targetMode}),setHP:v=>pHP=v,setEnemyHP:v=>eHP=v,setGuard:v=>eGuard=v,setBoard:v=>{board=v;render()},setTurn:v=>playerTurn=v,setSack:v=>sack=v,setReady:i=>{charges[itemById(sack[i]).color]=itemById(sack[i]).cap;playerTurn=true;pHP=10},finish:async()=>{await Promise.all(damageAnimations.splice(0))}};showScreen('splash');`);
 const scheduled=new Map();let nextTimer=1;
-const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(content,c);vm.runInNewContext(src,c);const a=c.api;
+const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(content,c);vm.runInNewContext(combatCore,c);
+const core=c.GEMMO_COMBAT_CORE,rngA=core.makeRng(1337),rngB=core.makeRng(1337);
+assert.deepEqual([rngA(),rngA(),rngA()],[rngB(),rngB(),rngB()],'combat-core RNG is deterministic');
+const coreBoard=Array.from({length:8},()=>Array(8).fill('blue'));for(let y=0;y<8;y++)for(let x=0;x<8;x++)coreBoard[y][x]=(x+y)%2?'blue':'red';coreBoard[0][0]='red';coreBoard[0][1]='wild';coreBoard[0][2]='red';
+assert(core.findMatches(coreBoard,['red','blue']),'combat-core Wild participates in a colored match');
+vm.runInNewContext(src,c);const a=c.api;
 a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{level:1,xp:0,gold:0},user:{username:'TestHero'}});
 
 (async()=>{
