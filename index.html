@@ -69,14 +69,21 @@
 </div>
 </section>
 <section class="page shopPage" id="shopPage" hidden>
-<header><button class="shopBack" id="shopBack">← WORLD</button><span class="eyebrow" id="shopEyebrow">MERCHANT</span></header>
-<h1 id="shopTitle">Shop</h1>
-<p id="shopDesc" hidden></p>
-<div class="shopBar"><span>YOUR PURSE</span><b id="shopGold">0 GOLD</b></div>
+<header class="pageTopbar"><button class="shopBack" id="shopBack">← WORLD</button><span class="eyebrow" id="shopEyebrow">MERCHANT</span></header>
+<div class="shopHero">
+  <div><small>MARKET</small><h1 id="shopTitle">Shop</h1><p id="shopDesc" hidden></p></div>
+  <div class="shopBar"><span>YOUR PURSE</span><b id="shopGold">0 GOLD</b></div>
+</div>
 <div class="shopGrid" id="shopGrid"></div>
 <p class="shopStatus" id="shopStatus" role="status"></p>
 </section>
-<section class="page starterPage" id="starterPage" hidden><header><span class="eyebrow">FIRST GEM · LEVEL 1</span></header><h1>Choose Your First</h1><p>Three simple damage gems. Pick one; the other four Sack slots begin empty.</p><p class="starterWarning">Dagger hits hardest. Sling charges fastest. Wand sits between them. This choice is permanent.</p><div class="starterGrid" id="starterGrid"></div><p class="accountStatus" id="starterStatus" role="status"></p></section>
+<section class="page starterPage" id="starterPage" hidden>
+  <header class="pageTopbar"><span class="eyebrow">FIRST GEM · LEVEL 1</span></header>
+  <div class="pageHero starterHero"><small>YOUR FIRST BUILD CHOICE</small><h1>Choose Your First</h1><p>Pick one damage gem. The other four Sack slots begin empty.</p></div>
+  <p class="starterWarning"><b>Permanent choice.</b> Dagger hits hardest. Sling charges fastest. Wand sits between them.</p>
+  <div class="starterGrid" id="starterGrid"></div>
+  <p class="accountStatus" id="starterStatus" role="status"></p>
+</section>
 <section class="page accountPage" id="accountPage" hidden>
 <header class="pageTopbar"><button class="menuBack">← BACK</button><span class="eyebrow">PLAYER PROFILE</span></header>
 <div class="pageHero compact"><small>ACCOUNT</small><h1>Your Save</h1><p>Your account carries your world, inventory, quests, and progression.</p></div>
