@@ -20,7 +20,7 @@ function worldPath(from,to){
  return null;
 }
 
-const {TYPES,WEIGHTS,ICON,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
+const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
 let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
 let account=null,accountToken=null,accountSyncTimer=0,lastAccountSync='';let captchaConfig=null,captchaWidgetId=null,captchaToken='',captchaConfigPromise=null,authBusy=false;
@@ -63,8 +63,8 @@ function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slo
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger',null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
-let actionNumber=1,targetMode=null,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0;
-let buffs={dodge:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
+let actionNumber=1,targetMode=null,targetKeepsTurn=false,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0;
+let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const itemById=id=>ITEMS.find(i=>i.id===id);
@@ -104,8 +104,8 @@ function findMatches(){
 }
 function reservoirCap(color){return sack.reduce((sum,id)=>sum+(itemById(id)?.color===color?itemById(id).cap:0),0)+gearStats().caps[color]}
 function legalMoves(){let list=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){let a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){let nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;let b={x:nx,y:ny};swap(a,b);if(findMatches())list.push([a,b]);swap(a,b)}}return list}
-function damageEnemy(n){let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
-function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);let blocked=Math.min(pGuard,n);pGuard-=blocked;pHP-=n-blocked;damageFlight('p',n-blocked,blocked)}
+function damageEnemy(n){if(enemyEffects.mark&&n>0){n+=3;enemyEffects.mark=0;setLog('HUNTER’S MARK: +3 damage.')}let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
+function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);let blocked=Math.min(pGuard,n),dealt=n-blocked;pGuard-=blocked;pHP-=dealt;damageFlight('p',dealt,blocked);if(buffs.reflect&&dealt>0){buffs.reflect=0;const reflected=Math.max(1,Math.ceil(dealt/2));damageEnemy(reflected);setLog('REPRISAL: reflected '+reflected+' damage.')}}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function lowestReservoir(exclude){
  const order=['red','blue','green','yellow','purple'];let best=null,bestRatio=Infinity;
@@ -124,7 +124,7 @@ function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  if(type==='xp'){const before=xp,cap=activeRewardBudget?.xp??Infinity;xp=Math.min(cap,xp+n);notes.push('XP +'+(xp-before))}
  }else{
  if(['red','blue','green','yellow','purple'].includes(type))charge(ec,type,n,ENEMY[type].cap);
- if(type==='red'){let raw=n+(enemyReload?2:0),dm=activeEncounter==='rat'?Math.max(1,Math.ceil(raw/2)):raw;enemyReload=false;damagePlayer(dm);notes.push('Hit '+dm)}
+ if(type==='red'){let raw=n+(enemyReload?2:0),dm=activeEncounter==='rat'?Math.max(1,Math.ceil(raw/2)):raw;enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
  if(type==='blue'){let v=activeEncounter==='rat'?Math.max(1,Math.ceil(n*.35)):Math.ceil(n*.75);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
  }
  if(type==='env'){damagePlayer(1);damageEnemy(1);notes.push('Rift: both -1')}
@@ -132,10 +132,10 @@ function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  if(notes.length)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
 }
 function enemyUseActive(){
- if(activeEncounter==='rat')return false;
+ if(activeEncounter==='rat'||enemyEffects.silence)return false;
  if(ec.purple>=ENEMY.purple.cap){ec.purple=0;damagePlayer(6);announceAbility(enemyLabel(),'DEADEYE','6 damage.');afterAction('enemy');checkEnd();return true}
  if(ec.green>=ENEMY.green.cap&&eHP<=18){ec.green=0;eHP=Math.min(enemyMaxHP(),eHP+5);announceAbility(enemyLabel(),'BANDAGE','+5 HP.');afterAction('enemy');return true}
- if(ec.red>=ENEMY.red.cap){ec.red=0;damagePlayer(5);announceAbility(enemyLabel(),'QUICK SHOT','5 damage.');afterAction('enemy');checkEnd();return true}
+ if(ec.red>=ENEMY.red.cap){ec.red=0;if(enemyEffects.disarm)announceAbility(enemyLabel(),'QUICK SHOT','Disarmed — no damage.');else{damagePlayer(5);announceAbility(enemyLabel(),'QUICK SHOT','5 damage.')}afterAction('enemy');checkEnd();return true}
  if(ec.blue>=ENEMY.blue.cap&&eGuard<=2){ec.blue=0;eGuard+=6;evadeTurns=2;announceAbility(enemyLabel(),'SIDESTEP','+6 Evade.');afterAction('enemy');return true}
  if(ec.yellow>=ENEMY.yellow.cap){ec.yellow=0;enemyReload=true;announceAbility(enemyLabel(),'RELOAD','next Bolt +2.');afterAction('enemy');return true}
  return false
@@ -192,11 +192,11 @@ async function fallColumns(){
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
-async function resolve(matches,actor,target,cascade=0){busy=true;let counts={};for(const p of matches.cells){let type=p.type||board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
+async function resolve(matches,actor,target,cascade=0,keepTurn=false){busy=true;let counts={};for(const p of matches.cells){let type=p.type||board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
  for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
- await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1)}busy=false;afterAction(actor)}
+ await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn)}busy=false;afterAction(actor,keepTurn)}
 async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
  if(actor==='player')recordCombatAction({t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y});
@@ -213,31 +213,47 @@ async function reshuffleBoard(){
  await Promise.all(Array.from(boardEl.children).map((el,i)=>animate(el,[{transform:'translateX(0)',opacity:1},{transform:'translateX(50px)',opacity:0}],{duration:260,delay:Math.floor(i/8)*25,easing:'ease-in'})));
  buildBoard();await Promise.all(Array.from(boardEl.children).map((el,i)=>animate(el,[{transform:'translateY(-25px)',opacity:0},{transform:'translateY(0)',opacity:1}],{duration:280,delay:(i%8)*20,easing:'ease-out'})));busy=wasBusy;render();touchActivity();
 }
-function afterAction(actor){
+function afterAction(actor,keepTurn=false){
  actionNumber++;
  if(pHP<=0||eHP<=0){playerTurn=true;render();checkEnd();return}
  if(actor==='enemy'){
   if(buffs.poison){damageEnemy(2);setLog('VENOM: Enemy takes 2 damage.');buffs.poison--}
+  if(enemyEffects.bleed){damageEnemy(2);setLog('BLEED: Enemy takes 2 damage.');enemyEffects.bleed--}
   if(buffs.regen){pHP=Math.min(playerMaxHP(),pHP+2);setLog('RESTORING VERSE: heal 2 HP.');buffs.regen--}
   if(buffs.focus){for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(color),charges[color]+1);setLog('RESONANCE: +1 to each equipped reservoir.');buffs.focus--}
   if(buffs.dodge)buffs.dodge--;
+  if(enemyEffects.silence)enemyEffects.silence--;
+  if(enemyEffects.disarm)enemyEffects.disarm--;
   if(pinTurns&&!--pinTurns){pinColumn=-1;setLog('EARTHBIND ends: columns fall normally again.')}
   if(guardTurns&&!--guardTurns){pGuard=0;setLog('Your Guard expires.')}
  }else if(evadeTurns&&!--evadeTurns){eGuard=0;setLog('Enemy Evade expires.')}
+ if(pHP<=0||eHP<=0){playerTurn=true;render();checkEnd();return}
  if(actor==='player'){
   for(const key of ['redwake','holdfast','aftergrowth','momentum'])if(buffs[key])buffs[key]--;
-  if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}
+  if(keepTurn){playerTurn=true;setLog('Quick effect: your turn continues.')}
+  else if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}
+  else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}
  }else playerTurn=true;
  render();checkEnd();touchActivity();
 }
+
 async function applyTarget(p){
- const mode=targetMode;targetMode=null;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
- if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player');return}
+ const mode=targetMode,keepTurn=targetKeepsTurn;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
+ if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player',keepTurn);return}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
  if(mode==='rotate')board[p.y].unshift(board[p.y].pop());
- render();const m=findMatches();if(m)await resolve(m,'player',p);else{busy=false;afterAction('player')}
+ if(mode==='reroll')board[p.y][p.x]=roll();
+ if(['break','blast','purge'].includes(mode)){
+  let cells=[];
+  if(mode==='break')cells=[p];
+  if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
+  if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
+  if(cells.length){await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns()}
+ }
+ render();const m=findMatches();if(m)await resolve(m,'player',p,0,keepTurn);else{busy=false;afterAction('player',keepTurn)}
 }
+
 function activate(index){
  if(screen!=='fight'||!playerTurn||busy||freeSwap||targetMode||pHP<=0||eHP<=0)return;
  const spec=itemById(sack[index]);if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
@@ -261,15 +277,25 @@ function activate(index){
  if(spec.kind==='yellow_attune')buffs.momentum=4;
  if(spec.kind==='haste')extraTurn=true;
  if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;charges.purple=Math.min(reservoirCap('purple'),charges.purple+amount)}
+ if(spec.kind==='quick_damage')damageEnemy(spec.power);
+ if(spec.kind==='execute')damageEnemy(eHP<=8?10:spec.power);
+ if(spec.kind==='breach'){eGuard=0;damageEnemy(spec.power)}
+ if(spec.kind==='bleed')enemyEffects.bleed=2;
+ if(spec.kind==='reflect')buffs.reflect=1;
+ if(spec.kind==='stun')enemyEffects.stun=1;
+ if(spec.kind==='disarm')enemyEffects.disarm=1;
+ if(spec.kind==='cleanse')pHP=Math.min(playerMaxHP(),pHP+spec.power);
+ if(spec.kind==='mark')enemyEffects.mark=1;
+ if(spec.kind==='silence')enemyEffects.silence=1;
  if(pGuard>guardBefore)guardTurns=2;
- if(['pin','paint','wildcraft','rotate'].includes(spec.kind))targetMode=spec.kind;
+ if(['pin','paint','wildcraft','rotate','break','blast','reroll','purge'].includes(spec.kind)){targetMode=spec.kind;targetKeepsTurn=spec.turnCost===0}
 
  effectOrigin=null;announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.');
  if(targetMode){selected=null;setLog('Choose a '+(targetMode==='rotate'?'row':targetMode==='pin'?'column':'tile')+' on the board.');render();return}
- if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player');
+ if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player',spec.turnCost===0);
  checkEnd();render();
 }
-async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
+async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
 function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(targetMode){void applyTarget(p);return}if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
 async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
@@ -528,7 +554,7 @@ async function travelWorld(nodeId){
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
-function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.name,desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
+function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
@@ -617,7 +643,7 @@ function drawSack(){
  const visible=ownedGems.filter(v=>(filter==='all'||v.color===filter)&&[v.item,v.name,v.desc].join(' ').toLowerCase().includes(query));
  $('collection').innerHTML=visible.map(v=>{
   const other=sack.findIndex((id,i)=>i!==chosenSlot&&id===v.id),locked=other>=0,equipped=sack[chosenSlot]===v.id;
-  return '<button class="itemCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'EQUIPPED':locked?'IN SLOT '+(other+1):'TAP TO EQUIP')+'</em></button>'
+  return '<button class="itemCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'EQUIPPED':locked?'IN SLOT '+(other+1):'TAP TO EQUIP')+'</em></button>'
  }).join('');
  document.querySelectorAll('.itemCard:not(:disabled)').forEach(b=>b.onclick=()=>{
   const id=b.dataset.item;if(sack.some((equipped,i)=>i!==chosenSlot&&equipped===id))return;
@@ -644,7 +670,7 @@ function openCombatGemology(){
 }
 function closeCombatGemology(){$('combatGemologyPanel').hidden=true;resumeCombatView()}
 function drawCombatEquip(){
- const sackHtml=sack.map((id,i)=>{const v=itemById(id);return '<div class="combatEquipItem"><small>SACK '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color.toUpperCase()+' · '+v.name:'')+'</span></div>'}).join('');
+ const sackHtml=sack.map((id,i)=>{const v=itemById(id);return '<div class="combatEquipItem"><small>SACK '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color.toUpperCase()+' · '+v.effectLabel+' · '+v.name:'')+'</span></div>'}).join('');
  const gearHtml=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<div class="combatEquipItem"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><span>'+(g?gearBonusText(g):'')+'</span></div>'}).join('');
  $('combatEquipContent').innerHTML='<div class="combatEquipGrid">'+sackHtml+gearHtml+'</div>';
 }
@@ -655,7 +681,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- clearTimeout(hintTimer);actionNumber=1;targetMode=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};
+ clearTimeout(hintTimer);actionNumber=1;targetMode=null;targetKeepsTurn=false;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(account?.needsStarter||!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
