@@ -816,6 +816,10 @@ function drawCombatEffects(){
 }
 function openEffectsDrawer(){if(screen!=='fight')return;pauseCombatView();drawCombatEffects();$('effectsDrawer').hidden=false;void animate($('effectsDrawer'),[{transform:'translateY(100%)'},{transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}
 async function closeEffectsDrawer(){if($('effectsDrawer').hidden)return;await animate($('effectsDrawer'),[{transform:'translateY(0)'},{transform:'translateY(100%)'}],{duration:180,easing:'ease-in'});$('effectsDrawer').hidden=true;resumeCombatView()}
+function surrenderFight(){
+ if(screen!=='fight')return;if(busy||pendingHP.p||pendingHP.e){$('combatMenuStatus').textContent='Finish the current action first.';return}
+ $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
+}
 function startFight(){
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(account?.needsStarter||!sackIsValid())return;
