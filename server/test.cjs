@@ -5,7 +5,8 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
 const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
-const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript}=require('./combat.cjs');
+const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
+const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,applyCascadeCharge}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
@@ -13,6 +14,15 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
+  assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);
+  {
+    const blank={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
+    const charged=createRatCombat({seed:7,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}});
+    charged.buffs.redwake=4;const startHp=charged.eHP;applyCascadeCharge(charged,['red'],1,'player');assert.equal(charged.eHP,startHp-1,'combo 2 adds exactly +1 core Red damage');assert.equal(charged.charges.red,1,'combo 2 adds +1 Red reservoir value');assert.equal(charged.buffs.redwake,4,'cascade charge does not consume or retrigger Redwake');
+    applyCascadeCharge(charged,['red'],2,'player');assert.equal(charged.eHP,startHp-3,'combo 3 adds +2 more core Red damage');assert.equal(charged.charges.red,3,'combo 3 adds +2 more Red reservoir value');
+    const enemyCharged=createBanditCombat({seed:9,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}}),startPlayerHp=enemyCharged.pHP;
+    applyCascadeCharge(enemyCharged,['red'],1,'enemy');applyCascadeCharge(enemyCharged,['red'],2,'enemy');assert.equal(enemyCharged.pHP,startPlayerHp-3,'cascade anchor charge is symmetric for enemy moves');assert.equal(enemyCharged.ec.red,3);
+  }
   {
     const matchDb={
       storage:{location:'test.db'},
