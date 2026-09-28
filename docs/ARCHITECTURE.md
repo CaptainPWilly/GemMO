@@ -9,6 +9,7 @@ Player browser
   assets/
     ├─ content.js       expandable world/catalog/gear content
     ├─ ../shared/encounters.js  browser/server encounter contract
+    ├─ ../shared/combat-rules.js cross-runtime board/combo rules
     ├─ ../shared/story.js       cutscene/NPC/dialogue/quest contract
     ├─ combat-core.js   deterministic RNG/matching/legal-move primitives
     ├─ styles.css       responsive dungeon visual system
@@ -59,6 +60,8 @@ A browser request cannot directly set profile wealth/progression.
 **Rat and Bandit are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
 
 The browser still renders and simulates the live fight for responsiveness. Its claimed HP, enemy death, Gold, and XP are not trusted at settlement; replay output decides the accepted result.
+
+Cascade-anchor charging is also replay-authoritative. The colored types present in Combo 1 become anchors; each later cascade adds its depth as extra core value (+1 on Combo 2, +2 on Combo 3, etc.). The bonus applies symmetrically to both fighters and does not retrigger one-per-match ability procs such as attunement bonuses.
 
 The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat and Bandit tickets use `replay-v1` regardless of local SQLite, file-backed SQLite, or Turso storage.
 
@@ -146,7 +149,7 @@ The client retries transient victory-settlement failures and exposes a manual **
 
 ## Data/catalog boundaries
 
-Expandable client world/gem/gear definitions live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Encounter definitions are deliberately different: `shared/encounters.js` is one browser/server source of truth for encounter HP, reward ranges, enemy match scaling, reservoirs, active abilities, AI weights, and first-clear UI text. Story definitions follow the same pattern in `shared/story.js`, while mutable quest/cutscene progress remains server-owned.
+Expandable client world/gem/gear definitions live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Encounter definitions are deliberately different: `shared/encounters.js` is one browser/server source of truth for encounter HP, reward ranges, enemy match scaling, reservoirs, active abilities, AI weights, and first-clear UI text. Cross-runtime board rules such as cascade-anchor charge live in `shared/combat-rules.js`. Story definitions follow the same pattern in `shared/story.js`, while mutable quest/cutscene progress remains server-owned.
 
 Persistent gem/equipment validation still lives in `server/catalog.cjs`, and deterministic combat execution lives in `server/combat.cjs`. If another persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks the important parity boundaries.
 
