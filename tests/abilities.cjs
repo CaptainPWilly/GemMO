@@ -95,7 +95,7 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
  a.setSack(['swordbreaker','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().enemyEffects.disarm,1);
  a.setSack(['hunting-bow','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);a.damagePlayer(0);assert.equal(a.get().enemyEffects.mark,1);a.applyColor('red',3,'player');assert.equal(a.get().eHP,18,'mark adds 3 to next damage');
  a.setSack(['hex-staff','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().enemyEffects.silence,1);
- a.setSack(['locksmith-pick','dagger','shield','salve','charm']);a.startFight();a.setBoard(grid());a.setReady(0);a.activate(0);assert.equal(a.get().targetMode,'break');await a.applyTarget({x:3,y:3});assert.equal(a.get().playerTurn,true,'quick tile break keeps the turn');
+ a.setSack(['locksmith-pick','dagger','shield','salve','charm']);a.startFight();a.setBoard(Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5])));a.setReady(0);a.activate(0);assert.equal(a.get().targetMode,'break');await a.applyTarget({x:3,y:3});assert.equal(a.get().playerTurn,true,'quick tile break keeps the turn');
 
  // Server replay executes the new action-economy and control vocabulary too.
  const serverGear={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
