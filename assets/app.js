@@ -367,7 +367,7 @@ function renderMoveHistory(){
  const host=$('moveHistory');if(!host)return;
  if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">MATCH HISTORY</div>';return}
  host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
-  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" title="'+type+' × '+value+'"><span class="historyGemVisual gem '+type+'"></span><b>'+value+'</b></span>').join('');
+  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" title="'+type+' × '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
   return '<article class="moveHistoryItem '+move.actor+' '+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+(breaks||'<span class="moveNoBreak">—</span>')+'</div></article>';
  }).join('');
 }
