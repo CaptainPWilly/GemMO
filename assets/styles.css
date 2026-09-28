@@ -112,7 +112,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
   .menuPage nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(720px,86%)}.menuPage nav .primary{width:100%;margin:0}
   #loadout{grid-template-columns:repeat(5,minmax(100px,1fr));gap:9px}
   .equip{min-height:105px;padding:10px 6px}.equip b{font-size:15px}.equip span{font-size:9px}.equip small{font-size:8px}
-  #collection,.inventoryGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.shopItem{min-height:92px}.shopColorCatalog,.shopGearCatalog{gap:16px}
+  #collection{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.inventoryGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.shopItem{min-height:92px}.shopColorCatalog,.shopGearCatalog{gap:16px}
   .equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
   .gemologyGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.gemologyCard.wide{grid-column:1/-1}
   .starterGrid{grid-template-columns:1fr 1fr}
