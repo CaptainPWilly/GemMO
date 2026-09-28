@@ -1,6 +1,7 @@
 'use strict';
 const {GEAR,ENCOUNTERS}=require('./catalog.cjs');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
+const {skillEffects}=require('../shared/progression.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
 const GEM=Object.freeze({
@@ -530,23 +531,24 @@ function gearStats(equipment={}){
  for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps))out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0)}
  return out;
 }
-function createCombat({encounterId='rat',seed,sack,equipment={},rewardBudget={gold:0,xp:0}}){
+function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],rewardBudget={gold:0,xp:0}}){
  const encounter=ENCOUNTERS[encounterId];
  if(!encounter||!Number.isInteger(seed)||seed<0||!Array.isArray(sack)||sack.length!==5)throw new Error('invalid_combat_seed');
  const gems=sack.map(id=>id?spec(id):null);if(gems.some((v,i)=>sack[i]&&!v))throw new Error('invalid_combat_sack');
- const gear=gearStats(equipment),s={
-  encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
-  board:[],pHP:18+gear.hp,eHP:encounter.maxHP,pGuard:gear.guard,eGuard:0,gold:0,xp:0,
-  charges:{red:0,blue:0,green:0,yellow:0,purple:0},ec:{red:0,blue:0,green:0,yellow:0,purple:0},
-  playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:gear.guard?2:0,evadeTurns:0,
+ const gear=gearStats(equipment),skill=skillEffects(skills),charges={red:0,blue:0,green:0,yellow:0,purple:0},s={
+  encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
+  board:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
+  charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
+  playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
   buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
  };
+ for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(s,color),skill.startCharge[color]||0);
  buildBoard(s);return s;
 }
 function createRatCombat(args){return createCombat({...args,encounterId:'rat'})}
 function createBanditCombat(args){return createCombat({...args,encounterId:'bandit'})}
-function playerMaxHP(s){return 18+gearStats(s.equipment).hp}
-function reservoirCap(s,color){return s.sack.reduce((n,id)=>n+(spec(id)?.color===color?spec(id).cap:0),0)+gearStats(s.equipment).caps[color]}
+function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
+function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills);return s.sack.reduce((n,id)=>n+(spec(id)?.color===color?spec(id).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]]}
 function key(x,y){return x+','+y}
@@ -746,9 +748,9 @@ function applyCombatAction(s,action){
  }
  return false;
 }
-function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,rewardBudget,transcript}){
+function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],rewardBudget,transcript}){
  if(!ENCOUNTERS[encounterId]||!Array.isArray(transcript)||transcript.length>256)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
- const s=createCombat({encounterId,seed,sack,equipment,rewardBudget});
+ const s=createCombat({encounterId,seed,sack,equipment,skills,rewardBudget});
  for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyCombatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
  return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP};
 }

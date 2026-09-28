@@ -6,6 +6,7 @@ const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,sta
 const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
+const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,BRANCHES}=require('../shared/progression.js');
 const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,applyCascadeCharge}=require('./combat.cjs');
 
 (async()=>{
@@ -15,6 +16,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
   assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);
+  assert.deepEqual([xpForLevel(1),xpForLevel(2),xpForLevel(3),xpForLevel(4),xpForLevel(5)],[0,30,75,135,210]);assert.equal(levelForXp(74),2);assert.equal(levelForXp(75),3);assert.equal(availableSkillPoints(3,['red-cap-1']),2);assert.equal(BRANCHES.length,6);const skillTest=skillEffects(['neutral-vitality','neutral-bulwark','red-cap-1','red-start']);assert.equal(skillTest.maxHP,2);assert.equal(skillTest.startGuard,1);assert.equal(skillTest.caps.red,1);assert.equal(skillTest.startCharge.red,1);
   {
     const blank={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     const charged=createRatCombat({seed:7,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}});
@@ -93,7 +95,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/auth/register',{method:'POST',body:{username:'FiveChar',password:'12345'}});assert.equal(r.status,400,'five-character passwords stay invalid');
     r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
-    assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
+    assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.skills.purchased,[]);
     assert.equal(r.data.account.inventory.length,0);assert.deepEqual(r.data.account.sack,[null,null,null,null,null]);assert.equal(r.data.account.needsStarter,true);
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,403,'cannot equip unowned starter before choice');
@@ -115,6 +117,12 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,409,'cannot skip the road graph');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'crossroads');
     r=await call('/v1/world/complete-encounter',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,403,'encounter clears only through a settled victory');
+    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-cap-1'}});assert.equal(r.status,409);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'shrine'}});assert.equal(r.status,200);
+    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-start'}});assert.equal(r.status,409);
+    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-cap-1'}});assert.equal(r.status,200);assert(r.data.account.skills.purchased.includes('red-cap-1'));assert.equal(r.data.account.skills.availablePoints,0);
+    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'blue-cap-1'}});assert.equal(r.status,409);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'rat');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,409,'bandit path stays locked until rat is cleared');
     r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,409,'cannot start a different encounter');
@@ -127,7 +135,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     const blankEquipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     let ratProof=null;
     for(let seed=1;seed<=200&&!ratProof;seed++){
-      const state=createRatCombat({seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,rewardBudget:ratBudget}),transcript=[];
+      const state=createRatCombat({seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:ratBudget}),transcript=[];
       for(let turn=0;turn<180&&state.eHP>0&&state.pHP>0;turn++){const action=suggestRatAction(state);if(!action)break;transcript.push(action);if(!applyRatAction(state,action))break}
       if(state.eHP<=0&&transcript.length<=256)ratProof={seed,state,transcript};
     }
@@ -140,7 +148,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:[]}});assert.equal(r.status,409,'empty fake Bandit victory proof is rejected');assert.equal(r.data.error,'combat_proof_failed');
     let banditProof=null;
     for(let seed=1;seed<=500&&!banditProof;seed++){
-      const state=createBanditCombat({seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,rewardBudget:banditBudget}),transcript=[];
+      const state=createBanditCombat({seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:banditBudget}),transcript=[];
       for(let turn=0;turn<240&&state.eHP>0&&state.pHP>0;turn++){const action=suggestCombatAction(state);if(!action)break;transcript.push(action);if(!applyCombatAction(state,action))break}
       if(state.eHP<=0&&transcript.length<=256)banditProof={seed,state,transcript};
     }
@@ -152,7 +160,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);
-    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,200);assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','ready quest can be turned in at its NPC');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold+12,'quest Gold reward is server-issued');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'quest XP reward is server-issued');
+    r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,200);assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','ready quest can be turned in at its NPC');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold+12,'quest Gold reward is server-issued');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'quest XP reward is server-issued');assert.equal(r.data.account.profile.level,levelForXp(r.data.account.profile.xp));
     r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,409,'completed quest cannot pay twice');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'must physically travel to the shop');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
@@ -187,7 +195,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     assert.equal(r.data.account.needsStarter,true,'reset returns existing accounts to starter choice');
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
-    assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
+    assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.skills.purchased,[],'reset clears skill progression');assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
     assert(Object.values(r.data.account.equipment).every(v=>v===null),'reset unequips physical gear');
     assert.equal(await applyDataMigrations(db),false,'fresh-sacks reset cannot run twice');
 

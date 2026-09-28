@@ -1,7 +1,7 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,startMatch,settleMatch,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
+const {createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,startMatch,settleMatch,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
@@ -101,6 +101,7 @@ async function createGemmoServer(options={}){
       if(req.method==='POST'&&pathname==='/v1/world/move'){const {user}=await requireUser(req),body=await json(req);await moveWorld(db,user.id,body.nodeId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/complete-encounter'){const {user}=await requireUser(req);await audit(db,user.id,'direct_encounter_clear_blocked');send(req,res,403,{error:'encounter_result_required'});return}
       if(req.method==='POST'&&pathname==='/v1/matches/start'){const {user}=await requireUser(req),body=await json(req),match=await startMatch(db,user.id,body.encounterId);send(req,res,201,{match,account:await accountSnapshot(db,user.id)});return}
+      if(req.method==='POST'&&pathname==='/v1/skills/buy'){const {user}=await requireUser(req),body=await json(req);await buySkill(db,user.id,body.skillId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/shop/buy'){const {user}=await requireUser(req),body=await json(req);await buyShopItem(db,user.id,body.shopId,body.itemId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/story/quest'){const {user}=await requireUser(req),body=await json(req);await storyQuestAction(db,user.id,body.action,body.questId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/story/cutscene'){const {user}=await requireUser(req),body=await json(req);await markCutsceneSeen(db,user.id,body.cutsceneId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
