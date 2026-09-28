@@ -27,6 +27,13 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,verify
     assert.equal(match.authority?.mode,'replay-v1','file-backed Bandit matches require replay authority');
     assert(Number.isInteger(match.authority.seed));
   }
+  {
+    const equipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
+    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18}});
+    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);
+    const replay=verifyBanditTranscript({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18},transcript:[]});
+    assert.equal(replay.won,false,'empty Bandit transcript cannot claim victory');
+  }
   const jwt='aaa.bbb.ccc';
   let cfg=normalizeTursoConfig('libsql://gemmo-example.turso.io',jwt);
   assert.equal(cfg.url,'https://gemmo-example.turso.io');assert.equal(cfg.authToken,jwt);assert.equal(cfg.swapped,false);
