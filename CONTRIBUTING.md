@@ -9,6 +9,7 @@ The **browser implementation is live**.
 - UI markup/shell: `index.html`
 - Expandable browser content: `assets/content.js`
 - Shared encounter definitions used by browser and server: `shared/encounters.js`
+- Shared story/NPC/dialogue/quest definitions: `shared/story.js`
 - Deterministic browser combat primitives: `assets/combat-core.js`
 - Browser runtime/gameplay/world renderer/API client: `assets/app.js`
 - Browser visual system: `assets/styles.css`
@@ -90,6 +91,7 @@ Edit by ownership:
 - markup only: `index.html`
 - gems/world/shops/gear content: `assets/content.js`
 - encounter HP/rewards/enemy rules/AI: `shared/encounters.js`
+- cutscenes/NPCs/dialogue trees/quest definitions: `shared/story.js`
 - deterministic board/RNG primitives: `assets/combat-core.js`
 - behavior/gameplay/runtime: `assets/app.js`
 - visuals/responsive rules: `assets/styles.css`
@@ -145,7 +147,7 @@ This avoids deploying a newer untested SHA by accident.
 
 - Never commit secrets.
 - Never paste production auth tokens into source, issues, PR descriptions, or logs.
-- Do not make browser/localStorage data authoritative for Gold, XP, ownership, world progress, or equipment.
+- Do not make browser/localStorage data authoritative for Gold, XP, ownership, world progress, equipment, quest completion, or quest rewards.
 - Keep server-side ownership/slot/world/shop validation.
 - Preserve idempotent reward settlement.
 - Rat and Bandit victories are replay-verified, but do not call combat fully anti-cheat: the browser still runs the responsive live simulation and the server verifies the transcript after the fight rather than owning every action live.
