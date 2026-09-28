@@ -603,8 +603,8 @@ function fallColumns(s){
  }
  if(!findMatches(s)&&!legalMoves(s).length)buildBoard(s);
 }
-function resolve(s,matches,actor,target,keepTurn=false){
- let cascade=0,current=matches,currentTarget=target,comboRoots=null;
+function resolve(s,matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){
+ let current=matches,currentTarget=target;
  while(current){
   const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1}
   if(!comboRoots)comboRoots=comboChargeTypes(counts);
@@ -624,7 +624,7 @@ function reshuffleBoard(s){buildBoard(s)}
 function trySwap(s,a,b,actor,force=false){
  swap(s,a,b);const m=findMatches(s);
  if(!m&&!force){swap(s,a,b);return false}
- if(m)resolve(s,m,actor,b);else afterAction(s,actor);
+ if(m)resolve(s,m,actor,b,0);else afterAction(s,actor);
  return true;
 }
 function afterAction(s,actor,keepTurn=false){
@@ -717,7 +717,7 @@ function activate(s,index){
 }
 function target(s,x,y){
  if(!s.targetMode||!s.playerTurn||!Number.isInteger(x)||!Number.isInteger(y)||x<0||x>=W||y<0||y>=H)return false;
- const mode=s.targetMode,keepTurn=s.targetKeepsTurn;s.targetMode=null;s.targetKeepsTurn=false;
+ const mode=s.targetMode,keepTurn=s.targetKeepsTurn;s.targetMode=null;s.targetKeepsTurn=false;let comboRoots=null;
  if(mode==='pin'){s.pinColumn=x;s.pinTurns=1;afterAction(s,'player',keepTurn);return true}
  if(mode==='paint')s.board[y][x]='red';
  if(mode==='wildcraft')s.board[y][x]='wild';
@@ -728,11 +728,12 @@ function target(s,x,y){
   if(mode==='break')cells=[{x,y}];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
+  const broken={};for(const q of cells){const type=s.board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}comboRoots=comboChargeTypes(broken);
   if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1,'player')}
   for(const q of cells)s.board[q.y][q.x]='';
   fallColumns(s);
  }
- const m=findMatches(s);if(m)resolve(s,m,'player',{x,y},keepTurn);else afterAction(s,'player',keepTurn);return true;
+ const m=findMatches(s);if(m)resolve(s,m,'player',{x,y},comboRoots!==null?1:0,keepTurn,comboRoots);else afterAction(s,'player',keepTurn);return true;
 }
 
 function applyCombatAction(s,action){

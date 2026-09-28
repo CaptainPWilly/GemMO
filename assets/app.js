@@ -252,7 +252,7 @@ function cancelArmedAbility(index){
  setLog(spec.name+' cancelled. No charge spent.','system');render();touchActivity();return true;
 }
 async function applyTarget(p){
- const mode=targetMode,keepTurn=targetKeepsTurn;if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
+ const mode=targetMode,keepTurn=targetKeepsTurn;if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});let comboRoots=null;
  if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player',keepTurn);return}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
@@ -264,12 +264,12 @@ async function applyTarget(p){
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
   if(cells.length){
-   const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}recordBrokenGems(broken);
+   const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}recordBrokenGems(broken);comboRoots=comboChargeTypes(broken);
    if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=center(cellAt(p));applyColor(type,1,'player');effectOrigin=null}}
    await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns();
   }
  }
- render();const m=findMatches();if(m)await resolve(m,'player',p,0,keepTurn);else{busy=false;afterAction('player',keepTurn)}
+ render();const m=findMatches();if(m)await resolve(m,'player',p,comboRoots!==null?1:0,keepTurn,comboRoots);else{busy=false;afterAction('player',keepTurn)}
 }
 
 function activate(index){
