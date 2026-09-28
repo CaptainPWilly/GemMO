@@ -7,7 +7,8 @@ geMMO is a live, web-first match-3 RPG prototype.
 The production stack is intentionally small:
 
 ```text
-GitHub Pages (index.html)
+GitHub Pages
+  index.html + assets/
         ↓ HTTPS
 Render Node account/game API
         ↓
@@ -22,14 +23,19 @@ Read **[CONTRIBUTING.md](CONTRIBUTING.md)** before changing production behavior.
 
 For architecture and trust boundaries, read **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**.
 
+For browser-client ownership and expansion rules, read **[docs/FRONTEND.md](docs/FRONTEND.md)**.
+
 For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Repository map
 
 | Path | Purpose |
 |---|---|
-| `index.html` | Live browser client, UI, match-3 engine, world renderer, responsive layouts |
-| `tests/abilities.cjs` | Browser/gameplay regression harness |
+| `index.html` | Thin live browser shell and semantic UI markup |
+| `assets/content.js` | Client world, shops, gem catalog, gear, and other expandable content |
+| `assets/app.js` | Live runtime, UI behavior, match-3 engine, world renderer, authenticated API client |
+| `assets/styles.css` | Canonical responsive dungeon visual system |
+| `tests/abilities.cjs` | Production-client/gameplay regression harness |
 | `server/server.cjs` | HTTP API and auth endpoints |
 | `server/db.cjs` | Local SQLite + Turso database adapter and persistence logic |
 | `server/catalog.cjs` | Server-authoritative shop/gear/world catalog |
