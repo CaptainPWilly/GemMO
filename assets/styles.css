@@ -698,7 +698,7 @@ html,body{background:#060705;color:var(--text)}
 /* Tablet and large-screen composition */
 @media (min-width:700px){
   .app{width:min(100vw,1040px);box-shadow:0 0 100px #000a}
-  :root{--page-x:clamp(30px,5vw,58px);--page-top:clamp(28px,4vw,48px)}
+  .app{--page-x:clamp(30px,5vw,58px);--page-top:clamp(28px,4vw,48px)}
   .pageHero{margin-bottom:28px}.pageHero p{font-size:13px}
   .splashSigil{width:132px;height:132px}.splashBrand h1{font-size:104px}.splashEnter{width:360px}
   .menuPage{justify-content:center;padding-top:calc(34px + env(safe-area-inset-top))}.menuBrand{text-align:center}.menuBrand p{text-align:center}.menuNav{gap:10px}.menuNav .primary{min-height:78px;padding:13px 15px}.menuNav .menuPrimary{min-height:92px}.menuButtonCopy b{font-size:12px}.menuButtonCopy small{font-size:7px}.menuSnapshot{gap:10px}
