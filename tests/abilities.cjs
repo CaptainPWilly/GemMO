@@ -31,6 +31,14 @@ assert(src.includes("recordCombatAction({t:'swap'"),'player swaps must enter the
 assert(src.includes("recordCombatAction({t:'ability'"),'gem activations must enter the combat proof transcript');
 assert(src.includes("const STARTER_CHOICES=[{color:'red',id:'dagger'},{color:'yellow',id:'sling'},{color:'blue',id:'crystal-wand'}]"),'only Dagger, Sling and Crystal Wand are starter choices');
 assert(html.includes('class="sackHero"')&&html.includes('class="sackToolbar"'),'Sack uses the modern deck-style layout');
+assert(html.includes('id="worldGold"')&&html.includes('id="worldSackBtn"')&&html.includes('id="worldInventoryBtn"')&&html.includes('id="worldEffectsBtn"'),'world map exposes Gold, Sack, Inventory, and Effects controls');
+assert(html.includes('id="worldSackPip"')&&html.includes('id="worldInventoryPip"'),'world map includes new-item notification pips');
+assert(html.includes('id="worldEffectsPanel"')&&html.includes('id="worldEffectsList"'),'world map includes the current-effects drawer');
+assert(styles.includes('.worldQuickbar')&&styles.includes('.worldEffectsPanel')&&styles.includes('.worldPip'),'world HUD has responsive dock, effects, and pip styling');
+assert(src.includes("function worldSeenKey(kind,userId){return 'gemmo.seen.'+userId+'.'+kind}"),'new-item seen state is account-scoped client UI state');
+assert(src.includes("account?.profile?.gold||0"),'world Gold is rendered from the server-synced account profile');
+assert(src.includes("function currentWorldEffects()"),'world effects are derived from the current loadout');
+
 assert(styles.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'collection cards use compact mobile columns');
 src=src.replace("showScreen('splash');",`globalThis.api={setHintDelay:v=>hintDelay=v,ITEMS,GEAR,EQUIPMENT_SLOTS,WORLD_NODES,worldCanTravel,worldPath,worldCleared,sackIsValid,gearStats,playerMaxHP,reservoirCap,canEquipGear,equipGear,unequipGear,getEquipment:()=>({...equipment}),resetEquipment:()=>{equipment={...DEFAULT_EQUIPMENT}},setInventory:v=>inventory=v.slice(),setTestAccount:v=>account=v,setWorldClears:v=>worldState.clearedEncounters=v.slice(),applyTarget,afterAction,fallColumns,reshuffleBoard,touchActivity,showHint,damagePlayer,findMatches,legalMoves,reservoirCap,enemyUseActive,setEnemyReady:color=>ec[color]=ENEMY[color].cap,startFight,applyColor,activate,trySwap,tapCell,get:()=>({charges,sack,pHP,eHP,pGuard,eGuard,freeSwap,overdrive,playerTurn,board,buffs,pinColumn,pinTurns,guardTurns,evadeTurns,actionNumber,targetMode}),setHP:v=>pHP=v,setGuard:v=>eGuard=v,setBoard:v=>{board=v;render()},setTurn:v=>playerTurn=v,setSack:v=>sack=v,setReady:i=>{charges[itemById(sack[i]).color]=itemById(sack[i]).cap;playerTurn=true;pHP=10},finish:async()=>{await Promise.all(damageAnimations.splice(0))}};showScreen('splash');`);
 const scheduled=new Map();let nextTimer=1;
