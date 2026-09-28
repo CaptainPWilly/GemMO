@@ -6,7 +6,7 @@ const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,sta
 const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
-const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,BRANCHES}=require('../shared/progression.js');
+const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,skillRank,canPurchase,BRANCHES}=require('../shared/progression.js');
 const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,applyCascadeCharge}=require('./combat.cjs');
 
 (async()=>{
@@ -16,7 +16,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
   assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);
-  assert.deepEqual([xpForLevel(1),xpForLevel(2),xpForLevel(3),xpForLevel(4),xpForLevel(5)],[0,20,45,75,110]);assert.equal(levelForXp(44),2);assert.equal(levelForXp(45),3);assert.equal(availableSkillPoints(3,['red-cap-1']),2);assert.equal(BRANCHES.length,6);const skillTest=skillEffects(['neutral-vitality','neutral-bulwark','red-cap-1','red-start']);assert.equal(skillTest.maxHP,2);assert.equal(skillTest.startGuard,1);assert.equal(skillTest.caps.red,1);assert.equal(skillTest.startCharge.red,1);
+  assert.deepEqual([xpForLevel(1),xpForLevel(2),xpForLevel(3),xpForLevel(4),xpForLevel(5)],[0,20,45,75,110]);assert.equal(levelForXp(44),2);assert.equal(levelForXp(45),3);assert.equal(availableSkillPoints(3,['red-cap-1']),2);assert.equal(availableSkillPoints(3,['red-cap-1','red-cap-1@2']),1);assert.equal(BRANCHES.length,6);assert.equal(BRANCHES.flatMap(b=>b.nodes).reduce((n,s)=>n+s.maxRank,0),37);assert.equal(skillRank('red-cap-1',['red-cap-1','red-cap-1@2']),2);assert.equal(canPurchase('red-start',['red-cap-1'],3).reason,'skill_prerequisite');assert.equal(canPurchase('red-start',['red-cap-1','red-cap-1@2'],3).ok,true);const skillTest=skillEffects(['neutral-vitality','neutral-vitality@2','neutral-bulwark','red-cap-1','red-cap-1@2','red-start']);assert.equal(skillTest.maxHP,4);assert.equal(skillTest.startGuard,1);assert.equal(skillTest.caps.red,2);assert.equal(skillTest.startCharge.red,1);
   {
     const blank={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     const charged=createRatCombat({seed:7,sack:['dagger',null,null,null,null],equipment:blank,rewardBudget:{gold:0,xp:0}});

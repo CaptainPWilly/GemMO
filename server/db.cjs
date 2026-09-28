@@ -7,7 +7,7 @@ const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 const {verifyCombatTranscript}=require('./combat.cjs');
 const {QUESTS,CUTSCENES,NPCS}=require('../shared/story.js');
-const {levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased}=require('../shared/progression.js');
+const {levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased,rankMap}=require('../shared/progression.js');
 
 const SCHEMA=[
   'CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username_norm TEXT NOT NULL UNIQUE,username_display TEXT NOT NULL,password_hash TEXT NOT NULL,created_at INTEGER NOT NULL,failed_logins INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0) STRICT;',
@@ -185,7 +185,7 @@ async function accountSnapshot(db,userId){
   const inventory=inventoryRows.map(r=>r.item_id),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,starter:starter?{gemId:starter.gem_id,chosenAt:Number(starter.chosen_at)}:null,needsStarter:!starter&&inventory.length===0,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,starter:starter?{gemId:starter.gem_id,chosenAt:Number(starter.chosen_at)}:null,needsStarter:!starter&&inventory.length===0,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -337,7 +337,7 @@ async function buySkill(db,userId,skillId){
     const profile=await tx.prepare('SELECT level,xp FROM profiles WHERE user_id=?').get(userId);if(!profile)throw Object.assign(new Error('profile_missing'),{status:404});
     const level=levelForXp(Number(profile.xp)),rows=await tx.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY purchased_at,skill_id').all(userId),purchased=normalizePurchased(rows.map(r=>r.skill_id)),check=canPurchase(skillId,purchased,level);
     if(!check.ok)throw Object.assign(new Error(check.reason),{status:check.reason==='invalid_skill'?400:409});
-    const now=Date.now();await tx.prepare('INSERT INTO skill_unlocks(user_id,skill_id,purchased_at) VALUES(?,?,?)').run(userId,skillId,now);if(Number(profile.level)!==level)await tx.prepare('UPDATE profiles SET level=?,updated_at=? WHERE user_id=?').run(level,now,userId);await audit(tx,userId,'skill_unlocked',skillId+':lv'+level);return skillId;
+    const now=Date.now();await tx.prepare('INSERT INTO skill_unlocks(user_id,skill_id,purchased_at) VALUES(?,?,?)').run(userId,check.token,now);if(Number(profile.level)!==level)await tx.prepare('UPDATE profiles SET level=?,updated_at=? WHERE user_id=?').run(level,now,userId);await audit(tx,userId,'skill_unlocked',skillId+':rank'+check.nextRank+':lv'+level);return check.token;
   });
 }
 async function buyShopItem(db,userId,shopId,itemId){

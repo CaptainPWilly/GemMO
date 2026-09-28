@@ -22,7 +22,7 @@ function worldPath(from,to){
 
 const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
 const {comboChargeTypes,comboChargeBonus}=COMBAT_RULES;
-const {BRANCHES:SKILL_BRANCHES,SKILL_BY_ID,xpProgress,skillEffects}=PROGRESSION;
+const {BRANCHES:SKILL_BRANCHES,SKILL_BY_ID,xpProgress,skillEffects,skillRank,requirementMet,pointsSpent}=PROGRESSION;
 const {CUTSCENES,QUESTS,NPCS,DIALOGUES}=STORY;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
 let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
@@ -683,13 +683,13 @@ async function travelWorld(nodeId){
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
 function drawSkills(){
- if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=new Set(account.skills?.purchased||[]),points=account.skills?.availablePoints??Math.max(0,progress.level-purchased.size);
+ if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??Math.max(0,progress.level-pointsSpent(purchased));
  $('skillPoints').textContent=points+' POINT'+(points===1?'':'S');$('skillLevel').textContent='LEVEL '+progress.level;$('skillXP').textContent=progress.current+' / '+progress.required+' XP';
- $('skillTree').innerHTML=SKILL_BRANCHES.map(branch=>'<section class="skillBranch '+branch.id+'"><div class="skillBranchHead"><b>'+branch.label+'</b><small>'+branch.nodes.filter(n=>purchased.has(n.id)).length+'/'+branch.nodes.length+'</small></div><div class="skillNodes">'+branch.nodes.map(node=>{const owned=purchased.has(node.id),locked=!owned&&((node.requires&&!purchased.has(node.requires))||points<1);return '<button class="skillNode '+(owned?'owned':locked?'locked':'available')+'" data-skill="'+node.id+'" '+(owned||locked?'disabled':'')+'><span class="tier">'+node.tier+'</span><span><b>'+node.name+'</b><small>'+node.desc+'</small></span><span class="skillCost">'+(owned?'LEARNED':'1 PT')+'</span></button>'}).join('')+'</div></section>').join('');
- document.querySelectorAll('.skillNode.available').forEach(btn=>btn.onclick=()=>void buySkillClient(btn.dataset.skill));
+ $('skillTree').innerHTML=SKILL_BRANCHES.map(branch=>{const spent=branch.nodes.reduce((sum,node)=>sum+skillRank(node.id,purchased),0),capacity=branch.nodes.reduce((sum,node)=>sum+node.maxRank,0);return '<section class="skillBranch '+branch.id+'"><div class="skillBranchHead"><b>'+branch.label+'</b><small>'+spent+'/'+capacity+' PTS</small></div><div class="skillNodes">'+branch.nodes.map(node=>{const rank=skillRank(node.id,purchased),maxed=rank>=node.maxRank,prereq=requirementMet(node.requires,purchased),locked=!maxed&&(!prereq||points<1),state=maxed?'owned':rank>0?'invested':locked?'locked':'available',type=node.kind==='notable'?'NOTABLE':'RANKED';return '<button class="skillNode '+state+'" data-skill="'+node.id+'" '+(maxed||locked?'disabled':'')+'><span class="tier">'+node.tier+'</span><span><span class="skillType">'+type+'</span><b>'+node.name+'</b><small>'+node.desc+'</small></span><span class="skillCost">'+(node.maxRank>1?rank+'/'+node.maxRank:maxed?'LEARNED':'1 PT')+'</span></button>'}).join('')+'</div></section>'}).join('');
+ document.querySelectorAll('.skillNode.available,.skillNode.invested').forEach(btn=>{if(!btn.disabled)btn.onclick=()=>void buySkillClient(btn.dataset.skill)});
 }
 function openSkills(){if(!account||worldState.currentNode!=='shrine')return;$('skillStatus').textContent='';showScreen('skills');drawSkills()}
-async function buySkillClient(skillId){if(!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;$('skillStatus').textContent='Attuning…';try{const data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);$('skillStatus').textContent=SKILL_BY_ID[skillId].name+' learned.';drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}}
+async function buySkillClient(skillId){if(!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}}
 function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function shopCard(entry,owned){
