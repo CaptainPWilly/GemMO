@@ -2,7 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
-const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG}=require('./catalog.cjs');
+const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS}=require('./catalog.cjs');
 const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 const {verifyCombatTranscript}=require('./combat.cjs');
@@ -214,12 +214,8 @@ async function completeEncounter(db,userId,encounterId){
   await db.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,flag,now);
   await audit(db,userId,'encounter_cleared',encounterId);
 }
-const MATCH_REWARD_POLICY=Object.freeze({
-  rat:{gold:[8,12],xp:[6,10]},
-  bandit:{gold:[18,24],xp:[12,18]}
-});
 function rollRewardBudget(encounterId){
-  const policy=MATCH_REWARD_POLICY[encounterId];if(!policy)return null;
+  const policy=ENCOUNTERS[encounterId]?.reward;if(!policy)return null;
   return {gold:randomInt(policy.gold[0],policy.gold[1]+1),xp:randomInt(policy.xp[0],policy.xp[1]+1)};
 }
 async function startMatch(db,userId,encounterId){
@@ -258,7 +254,7 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     }
     const row=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
     if(!node?.encounter||node.encounter!==match.encounter_id)throw Object.assign(new Error('encounter_not_here'),{status:409});
-    const policy=MATCH_REWARD_POLICY[match.encounter_id];if(!policy)throw Object.assign(new Error('invalid_encounter'),{status:400});
+    const policy=ENCOUNTERS[match.encounter_id]?.reward;if(!policy)throw Object.assign(new Error('invalid_encounter'),{status:400});
     const storedBudget=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId);
     const rewardBudget=storedBudget?{gold:Number(storedBudget.gold_cap),xp:Number(storedBudget.xp_cap)}:{gold:policy.gold[1],xp:policy.xp[1]};
     let awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp),authority='legacy-budget';
@@ -275,7 +271,7 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
       return {alreadySettled:true,gold:Number(settled.gold),xp:Number(settled.xp),encounterId:settled.encounter_id};
     }
     await tx.prepare('UPDATE profiles SET gold=gold+?,xp=xp+?,updated_at=? WHERE user_id=?').run(awardGold,awardXp,now,userId);
-    if(match.encounter_id==='rat')await tx.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:rat',now);
+    await tx.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:'+match.encounter_id,now);
     await audit(tx,userId,'match_settled',match.encounter_id+':'+matchId+':g'+awardGold+':xp'+awardXp);
     return {alreadySettled:false,won:true,gold:awardGold,xp:awardXp,encounterId:match.encounter_id,rewardBudget,authority};
   });
