@@ -581,3 +581,39 @@ html,body{background:#060705;color:var(--text)}
   .combatant,.turn #turnText,.turnBadge{transition:none}
   .turnBadge.turnPulse{animation:none}
 }
+
+
+/* Story layer: cutscenes, NPC dialogue, and quest journal. */
+.worldQuickbar{grid-template-columns:repeat(4,minmax(0,1fr))}
+.worldQuestPanel{
+  position:absolute;z-index:7;left:10px;right:10px;bottom:calc(204px + env(safe-area-inset-bottom));
+  max-height:min(50vh,390px);overflow:auto;padding:12px;
+  border:1px solid #66583f;border-radius:7px;
+  background:linear-gradient(180deg,rgba(28,29,24,.98),rgba(12,13,10,.99));
+  box-shadow:0 16px 40px #000b,inset 0 1px rgba(255,255,255,.025);backdrop-filter:blur(8px)
+}
+.worldQuestList{display:grid;gap:8px;padding-top:10px}
+.worldQuest{display:grid;gap:5px;padding:10px;border:1px solid #494236;border-left:3px solid #766346;border-radius:5px;background:#151611}
+.worldQuest.active{border-left-color:#9d8352}.worldQuest.ready{border-left-color:#d9b35d;box-shadow:inset 0 0 18px #d9b35d0d}.worldQuest.completed{opacity:.58;border-left-color:#65715d}
+.worldQuestHead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.worldQuestHead small{font-size:7px;letter-spacing:1.3px;color:#9e8d70}.worldQuestHead b{font:16px Georgia,serif;color:#e2d3b6;text-align:right}
+.worldQuest p{margin:0!important;font-size:9px!important;line-height:1.4!important;color:#9d9484!important}.worldQuest strong{font-size:9px;color:#d8c39a}.worldQuest span{font-size:7px;letter-spacing:.9px;color:#817765}
+.storyOverlay{position:absolute;z-index:220;inset:0;display:grid;place-items:end center;padding:0;background:#050604;color:#eee2c8;overflow:hidden}
+.storyOverlay[hidden]{display:none!important}.storyBackdrop{position:absolute;inset:0;background:radial-gradient(circle at 50% 28%,#6d5334 0,#27251d 34%,#090a08 78%);transform:scale(1.03)}
+.storyBackdrop:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 0 32%,#0809079c 65%,#070806 100%),repeating-linear-gradient(90deg,#ffffff02 0 1px,transparent 1px 5px)}
+.storyCard{position:relative;z-index:1;width:100%;min-height:44%;padding:28px 20px calc(24px + env(safe-area-inset-bottom));background:linear-gradient(180deg,transparent,#0b0c09 15%,#0b0c09 100%);display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+.storyPortrait{width:64px;height:76px;display:grid;place-items:center;border:1px solid #8a744d;background:linear-gradient(145deg,#3e3526,#171814);font:36px Georgia,serif;color:#e6ca8b;box-shadow:inset 0 0 0 3px #12130f}
+.storyCopy{min-width:0;max-width:720px}.storyCopy small{display:block;min-height:12px;color:#ae976c;font-size:8px;letter-spacing:2px}.storyCopy h2{margin:4px 0 8px;font:clamp(27px,8vw,42px) Georgia,serif;color:#f0ddb7}.storyCopy p{margin:0 0 18px!important;color:#c6baa1!important;font-size:13px!important;line-height:1.6!important}
+.storyChoices{display:grid;gap:8px}.storyChoices button,.storyContinue{width:100%;padding:12px 13px;text-align:left;border:1px solid #6b5a3e;border-radius:4px;background:linear-gradient(180deg,#29251c,#171814);color:#ead7ad;font-size:10px;font-weight:800;letter-spacing:.5px}
+.storyChoices button:active,.storyContinue:active{transform:translateY(1px)}.storyChoices button:disabled{opacity:.45}.storyContinue{text-align:center}
+.storySkip{position:absolute;z-index:2;top:calc(14px + env(safe-area-inset-top));right:14px;padding:8px 10px;border:1px solid #50483a;background:#11120edd;color:#9e9584;border-radius:4px;font-size:8px;letter-spacing:1px}
+.storyStatus{min-height:17px!important;margin:8px 0 0!important;font-size:8px!important;color:#d6b56c!important}
+@media(min-width:700px){
+  .worldQuestPanel{left:auto;right:22px;width:380px;bottom:calc(244px + env(safe-area-inset-bottom));max-height:460px}
+  .storyCard{min-height:38%;padding:34px clamp(7vw,72px,110px) calc(36px + env(safe-area-inset-bottom));grid-template-columns:88px minmax(0,720px);justify-content:center;gap:24px}
+  .storyPortrait{width:88px;height:104px;font-size:48px}.storyCopy p{font-size:16px!important}.storyChoices button,.storyContinue{font-size:12px;padding:14px 16px}
+}
+@media(max-width:390px){
+  .worldQuickbar{gap:4px;left:7px;right:7px}.worldQuickButton{padding-left:2px;padding-right:2px}
+  .storyCard{padding-left:14px;padding-right:14px;grid-template-columns:50px minmax(0,1fr);gap:10px}.storyPortrait{width:50px;height:60px;font-size:27px}.storyCopy h2{font-size:25px}.storyCopy p{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){.storyBackdrop{transform:none}}
