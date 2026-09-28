@@ -1,5 +1,6 @@
 'use strict';
 const {GEAR,ENCOUNTERS}=require('./catalog.cjs');
+const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp','env'],WEIGHTS=[15,15,15,15,15,10,8,7];
 const GEM=Object.freeze({
@@ -571,23 +572,28 @@ function enemyReservoir(s,type){return encounterSpec(s).reservoirs[type]}
 function scaledEnemyValue(value,scale,min=0){return Math.max(min,Math.ceil(value*scale))}
 function enemyMoveScore(s,type){const ai=encounterSpec(s).ai;if(type==='green')return s.eHP<ai.woundedBelow?ai.greenWounded:ai.greenHealthy;return ai[type]||0}
 function lowestReservoir(s,exclude){let best=null,ratio=Infinity;for(const c of ['red','blue','green','yellow','purple']){if(c===exclude)continue;const cap=reservoirCap(s,c);if(!cap||s.charges[c]>=cap)continue;const r=s.charges[c]/cap;if(r<ratio){best=c;ratio=r}}return best}
-function applyColor(s,type,n,actor){
+function applyColor(s,type,n,actor,comboBonus=false){
  if(actor==='player'){
-  const colored=['red','blue','green','yellow','purple'].includes(type),mult=s.overdrive&&colored?2:1;
+  const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
   if(colored){const cap=reservoirCap(s,type);s.charges[type]=Math.min(cap,s.charges[type]+n*mult)}
-  if(type==='red'){damageEnemy(s,n*mult);if(s.buffs.redwake)damageEnemy(s,2)}
-  if(type==='blue'){s.pGuard+=n*mult;s.guardTurns=2;if(s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
-  if(type==='green'&&s.buffs.aftergrowth)s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
-  if(type==='yellow'&&s.buffs.momentum){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
-  if(mult===2)s.overdrive=false;
+  if(type==='red'){damageEnemy(s,n*mult);if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
+  if(type==='blue'){s.pGuard+=n*mult;s.guardTurns=2;if(!comboBonus&&s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
+  if(type==='green'&&!comboBonus&&s.buffs.aftergrowth)s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
+  if(type==='yellow'&&!comboBonus&&s.buffs.momentum){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
+  if(!comboBonus&&mult===2)s.overdrive=false;
   if(type==='gold')s.gold=Math.min(s.rewardBudget.gold,s.gold+n);
   if(type==='xp')s.xp=Math.min(s.rewardBudget.xp,s.xp+n);
  }else{
   const reservoir=enemyReservoir(s,type);if(reservoir)s.ec[type]=Math.min(reservoir.cap,s.ec[type]+n);
-  if(type==='red'){const rules=encounterSpec(s).match,raw=n+(s.enemyReload?(rules.reloadBonus||0):0);s.enemyReload=false;if(!s.enemyEffects.disarm)damagePlayer(s,scaledEnemyValue(raw,rules.redScale,rules.redMin))}
+  if(type==='red'){const rules=encounterSpec(s).match,raw=n+(!comboBonus&&s.enemyReload?(rules.reloadBonus||0):0);if(!comboBonus)s.enemyReload=false;if(!s.enemyEffects.disarm)damagePlayer(s,scaledEnemyValue(raw,rules.redScale,rules.redMin))}
   if(type==='blue'){const rules=encounterSpec(s).match;s.eGuard+=scaledEnemyValue(n,rules.blueScale,rules.blueMin);s.evadeTurns=2}
  }
  if(type==='env'){damagePlayer(s,1);damageEnemy(s,1)}
+}
+function applyCascadeCharge(s,roots,cascadeDepth,actor){
+ const bonus=comboChargeBonus(cascadeDepth);if(!bonus)return 0;
+ for(const type of roots)applyColor(s,type,bonus,actor,true);
+ return bonus;
 }
 function fallColumns(s){
  for(let x=0;x<W;x++){
@@ -598,11 +604,13 @@ function fallColumns(s){
  if(!findMatches(s)&&!legalMoves(s).length)buildBoard(s);
 }
 function resolve(s,matches,actor,target,keepTurn=false){
- let cascade=0,current=matches,currentTarget=target;
+ let cascade=0,current=matches,currentTarget=target,comboRoots=null;
  while(current){
   const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1}
+  if(!comboRoots)comboRoots=comboChargeTypes(counts);
   let makeWild=null,match4=false;for(const run of current.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild)makeWild=run.cells.find(p=>currentTarget&&p.x===currentTarget.x&&p.y===currentTarget.y)||run.cells[Math.floor(run.cells.length/2)]}
-  for(const [type,n] of Object.entries(counts))applyColor(s,type,n,actor,cascade);
+  for(const [type,n] of Object.entries(counts))applyColor(s,type,n,actor);
+  if(cascade>0)applyCascadeCharge(s,comboRoots,cascade,actor);
   for(const p of current.cells)s.board[p.y][p.x]='';
   if(makeWild)s.board[makeWild.y][makeWild.x]='wild';
   if(match4&&actor==='player')s.extraTurn=true;
@@ -756,4 +764,4 @@ function suggestCombatAction(s){
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap};
+module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,applyCascadeCharge};

@@ -9,6 +9,7 @@ The live browser client is intentionally build-free so GitHub Pages can publish 
 | `index.html` | Semantic page/overlay markup and asset loading only |
 | `assets/content.js` | Expandable client content: world graph, shops, gems, equipment definitions, board type metadata |
 | `shared/encounters.js` | Shared encounter definitions consumed unchanged by browser and Node |
+| `shared/combat-rules.js` | Shared deterministic rule helpers used by browser presentation and server replay |
 | `shared/story.js` | Shared cutscene, NPC, dialogue-tree, and quest definitions |
 | `assets/combat-core.js` | Pure deterministic combat primitives: seeded RNG, swap, match detection, legal-move discovery |
 | `assets/app.js` | Runtime state, UI behavior, world renderer, combat orchestration/presentation, API/session client |
@@ -21,12 +22,13 @@ The shell loads assets in this order:
 assets/styles.css
 assets/content.js
 shared/encounters.js
+shared/combat-rules.js
 shared/story.js
 assets/combat-core.js
 assets/app.js
 ```
 
-`shared/encounters.js`, `shared/story.js`, and `combat-core.js` must load before `app.js`.
+`shared/encounters.js`, `shared/combat-rules.js`, `shared/story.js`, and `combat-core.js` must load before `app.js`.
 
 ## Expansion rules
 
@@ -86,7 +88,7 @@ Avoid:
 
 The current stylesheet still contains historical component declarations beneath the canonical theme. Future visual work should simplify those sections instead of stacking another theme layer on top.
 
-The same rule now applies to runtime structure: deterministic board/RNG primitives belong in `combat-core.js`; encounter orchestration, animation, UI, and network behavior stay in `app.js`. Continue extracting coherent pure seams instead of introducing a framework rewrite.
+The same rule now applies to runtime structure: deterministic board/RNG primitives belong in `combat-core.js`; small rules that must be identical in browser and replay belong in `shared/combat-rules.js`; encounter orchestration, animation, UI, and network behavior stay in `app.js`. Continue extracting coherent pure seams instead of introducing a framework rewrite.
 
 ## Test philosophy
 

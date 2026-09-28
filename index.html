@@ -110,10 +110,11 @@
 </div>
 <div class="rulebook">
   <h2>Board law</h2>
-  <p><span class="ruleTag">MATCH 3+</span><span class="ruleTag">MATCH 4 = EXTRA TURN</span><span class="ruleTag">MATCH 5 = WILD</span></p>
+  <p><span class="ruleTag">MATCH 3+</span><span class="ruleTag">CASCADE = CHARGE OPENER</span><span class="ruleTag">MATCH 4 = EXTRA TURN</span><span class="ruleTag">MATCH 5 = WILD</span></p>
   <ul>
     <li>Swap adjacent tiles. A normal swap must create a legal match.</li>
     <li>Matches resolve, columns refill, and any cascades belong to the same fighter.</li>
+    <li>The colored gems in Combo 1 become the chain anchors. Combo 2 adds +1 core value to each anchor, Combo 3 adds +2, Combo 4 adds +3, and so on. Cascade charge does not retrigger ability-style match procs.</li>
     <li>A line of 4 or more gives the player an extra action. A line of 5 or more forges a Wild.</li>
     <li>If the board has no legal move, it reshuffles while preserving HP and charge reservoirs.</li>
   </ul>
@@ -156,7 +157,7 @@
     <div class="right combatant enemySide"><div class="name" id="enemyName">ENEMY</div><div class="stats" id="estats">0 HP · 0 EVADE</div><div class="health" id="ehealth" role="progressbar" aria-label="Enemy health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div></div>
   </div>
   <div id="turnBadge" class="turnBadge turn-player" role="status" aria-live="polite">✦ YOUR TURN · 1 ✦</div><div id="statusTags" class="statusTags"></div><div class="boardShell"><div class="board" id="board"></div></div>
-  <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>ENV: RIFT</span><span>MATCH 4: +TURN</span></div><div id="moveHistory" class="moveHistory" aria-label="Recent combat moves"><div class="moveHistoryEmpty">MATCH HISTORY</div></div><div class="log combatMessage" id="log" role="status">Same board. Your colors use your Sack.</div></div>
+  <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>CASCADE: +ANCHOR</span><span>MATCH 4: +TURN</span></div><div id="moveHistory" class="moveHistory" aria-label="Recent combat moves"><div class="moveHistoryEmpty">MATCH HISTORY</div></div><div class="log combatMessage" id="log" role="status">Same board. Your colors use your Sack.</div></div>
   <div id="abilityBanner" class="abilityBanner" aria-live="polite" hidden><small id="abilityActor"></small><strong id="abilityName"></strong><span id="abilityDetail"></span></div><div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
   <button id="effectsBtn" class="effectsBtn">CURRENT EFFECTS</button><div class="foot">SWIPE OR TAP 2 GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
 </div>
@@ -168,6 +169,7 @@
 </div>
 <script src="assets/content.js"></script>
 <script src="shared/encounters.js"></script>
+<script src="shared/combat-rules.js"></script>
 <script src="shared/story.js"></script>
 <script src="assets/combat-core.js"></script>
 <script src="assets/app.js"></script>

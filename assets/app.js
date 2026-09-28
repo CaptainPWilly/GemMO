@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS,STORY=globalThis.GEMMO_STORY;if(!COMBAT_CORE||!ENCOUNTERS||!STORY)throw new Error('geMMO runtime dependencies missing');
+const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,COMBAT_RULES=globalThis.GEMMO_COMBAT_RULES,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS,STORY=globalThis.GEMMO_STORY;if(!COMBAT_CORE||!COMBAT_RULES||!ENCOUNTERS||!STORY)throw new Error('geMMO runtime dependencies missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
@@ -21,6 +21,7 @@ function worldPath(from,to){
 }
 
 const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
+const {comboChargeTypes,comboChargeBonus}=COMBAT_RULES;
 const {CUTSCENES,QUESTS,NPCS,DIALOGUES}=STORY;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
 let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
@@ -105,24 +106,24 @@ function lowestReservoir(exclude){
  for(const color of order){if(color===exclude)continue;const cap=reservoirCap(color);if(!cap||charges[color]>=cap)continue;const ratio=charges[color]/cap;if(ratio<bestRatio){best=color;bestRatio=ratio}}
  return best;
 }
-function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
- const colored=['red','blue','green','yellow','purple'].includes(type),mult=overdrive&&colored?2:1;
+function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(actor==='player'){
+ const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&overdrive&&colored?2:1;
  if(colored){const cap=reservoirCap(type),before=charges[type];charges[type]=Math.min(cap,charges[type]+n*mult);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+' ('+charges[type]+'/'+cap+')')}
- if(type==='red'){damageEnemy(n*mult);notes.push('Strike '+n*mult);if(buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}}
- if(type==='blue'){pGuard+=n*mult;guardTurns=2;notes.push('Guard +'+n*mult);if(buffs.holdfast){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
- if(type==='green'&&buffs.aftergrowth){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
- if(type==='yellow'&&buffs.momentum){const target=lowestReservoir('yellow');if(target){const before=charges[target],cap=reservoirCap(target);charges[target]=Math.min(cap,charges[target]+2);notes.push('Momentum: '+target+' +'+(charges[target]-before))}}
- if(mult===2){overdrive=false;notes.push('Overdrive ×2')}
+ if(type==='red'){damageEnemy(n*mult);notes.push('Strike '+n*mult);if(!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}}
+ if(type==='blue'){pGuard+=n*mult;guardTurns=2;notes.push('Guard +'+n*mult);if(!comboBonus&&buffs.holdfast){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
+ if(type==='green'&&!comboBonus&&buffs.aftergrowth){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
+ if(type==='yellow'&&!comboBonus&&buffs.momentum){const target=lowestReservoir('yellow');if(target){const before=charges[target],cap=reservoirCap(target);charges[target]=Math.min(cap,charges[target]+2);notes.push('Momentum: '+target+' +'+(charges[target]-before))}}
+ if(!comboBonus&&mult===2){overdrive=false;notes.push('Overdrive ×2')}
  if(type==='gold'){const before=gold,cap=activeRewardBudget?.gold??Infinity;gold=Math.min(cap,gold+n);notes.push('Gold +'+(gold-before))}
  if(type==='xp'){const before=xp,cap=activeRewardBudget?.xp??Infinity;xp=Math.min(cap,xp+n);notes.push('XP +'+(xp-before))}
  }else{
  const reservoir=enemyReservoir(type);if(reservoir)charge(ec,type,n,reservoir.cap);
- if(type==='red'){const rules=encounterSpec().match,raw=n+(enemyReload?(rules.reloadBonus||0):0),dm=scaledEnemyValue(raw,rules.redScale,rules.redMin);enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
+ if(type==='red'){const rules=encounterSpec().match,raw=n+(!comboBonus&&enemyReload?(rules.reloadBonus||0):0),dm=scaledEnemyValue(raw,rules.redScale,rules.redMin);if(!comboBonus)enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
  if(type==='blue'){const rules=encounterSpec().match,v=scaledEnemyValue(n,rules.blueScale,rules.blueMin);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
  }
  if(type==='env'){damagePlayer(1);damageEnemy(1);notes.push('Rift: both -1')}
- if(cascade>0&&notes.length)notes.push('Cascade '+cascade);
- if(notes.length)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
+ if(cascade>0&&notes.length&&!comboBonus)notes.push('Cascade '+cascade);
+ if(notes.length&&!comboBonus)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
 }
 function enemyAbilityReady(ability){
  const reservoir=enemyReservoir(ability.color);if(!reservoir||ec[ability.color]<reservoir.cap)return false;
@@ -193,11 +194,12 @@ async function fallColumns(){
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
-async function resolve(matches,actor,target,cascade=0,keepTurn=false){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;counts[type]=(counts[type]||0)+1;broken[actual]=(broken[actual]||0)+1}recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
+async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;counts[type]=(counts[type]||0)+1;broken[actual]=(broken[actual]||0)+1}if(!comboRoots)comboRoots=comboChargeTypes(counts);recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
  for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
+ if(cascade>0){const bonus=comboChargeBonus(cascade);for(const type of comboRoots)applyColor(type,bonus,actor,cascade,true);recordComboCharge(comboRoots,bonus,cascade+1)}
  for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
- await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn)}busy=false;afterAction(actor,keepTurn)}
+ await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}busy=false;afterAction(actor,keepTurn)}
 async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
  if(actor==='player')recordCombatAction({t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y});
@@ -367,8 +369,8 @@ function renderMoveHistory(){
  const host=$('moveHistory');if(!host)return;
  if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">MATCH HISTORY</div>';return}
  host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
-  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" title="'+type+' × '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
-  return '<article class="moveHistoryItem '+move.actor+' '+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+(breaks||'<span class="moveNoBreak">—</span>')+'</div></article>';
+  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" data-gem="'+type+'" title="'+type+' value '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
+  return '<article class="moveHistoryItem '+move.actor+' '+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+(move.comboDepth?' · COMBO '+move.comboDepth:'')+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+(breaks||'<span class="moveNoBreak">—</span>')+'</div></article>';
  }).join('');
 }
 function beginCombatMove(actor,label){
@@ -379,6 +381,12 @@ function recordBrokenGems(counts){
  if(!activeCombatMove||!counts)return;
  for(const [type,value] of Object.entries(counts))activeCombatMove.breaks[type]=(activeCombatMove.breaks[type]||0)+value;
  renderMoveHistory();
+}
+function recordComboCharge(types,amount,comboNumber){
+ if(!activeCombatMove||!types?.length||amount<=0)return;
+ for(const type of types)activeCombatMove.breaks[type]=(activeCombatMove.breaks[type]||0)+amount;
+ activeCombatMove.comboDepth=comboNumber;renderMoveHistory();
+ for(const type of types){const gem=document.querySelector('.moveHistoryItem.latest .moveBreak[data-gem="'+type+'"]');if(!gem)continue;gem.dataset.charge='+'+amount+'!';gem.classList.add('comboCharging');if(!reducedMotion())void gem.animate([{transform:'scale(.86)',filter:'brightness(1)'},{transform:'scale(1.22)',filter:'brightness(1.75)'},{transform:'scale(1)',filter:'brightness(1)'}],{duration:460,easing:'cubic-bezier(.2,.85,.2,1)'})}
 }
 function finishCombatMove(){activeCombatMove=null}
 function announceAbility(actor,name,description){

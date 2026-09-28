@@ -34,6 +34,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 | `index.html` | Thin live browser shell and semantic UI markup |
 | `assets/content.js` | Client world, shops, gem catalog, gear, and other expandable content |
 | `shared/encounters.js` | Shared browser/server encounter contract: HP, rewards, match rules, enemy reservoirs, abilities, AI weights |
+| `shared/combat-rules.js` | Shared cross-runtime combat rules such as cascade-anchor charging |
 | `shared/story.js` | Shared cutscene, NPC, dialogue-tree, and quest definitions |
 | `assets/combat-core.js` | Pure deterministic browser combat primitives: seeded RNG, matching, swaps, legal-move discovery |
 | `assets/app.js` | Live runtime, UI behavior, combat orchestration, world renderer, authenticated API client |
@@ -64,7 +65,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 - Combat Gold/XP are settled to the account on victory through match tickets. Every match receives a server-issued loot budget.
 - Rat and Bandit victories are **server replay-verified** from a server seed plus a player-intent transcript; combat rewards come from the replay, not from the browser's claimed result.
 - The browser still runs the live fight for responsiveness; the server independently reconstructs completed fights before accepting victory/progression. See the architecture document.
-- Combat has an always-available menu for Gemology/Surrender, a live **Current Effects** drawer, and a compact visual move history that shows the actual board gems destroyed with their counts.
+- Combat has an always-available menu for Gemology/Surrender, a live **Current Effects** drawer, and a compact visual move history that shows actual gem value. Combo 1's colored gems become cascade anchors: Combo 2 adds +1 value, Combo 3 +2, and so on, with the anchored crystals visibly charging in the history rail.
 - Layouts adapt across phone, tablet portrait, and tablet landscape.
 
 ## Production health
