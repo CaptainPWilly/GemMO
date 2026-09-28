@@ -176,7 +176,7 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
 
  // Shared pool keeps unspent charge; either item can spend it.
  a.setSack(['dagger','axe','shield','salve','boots']);a.startFight();a.applyColor('red',99,'player');assert.equal(a.get().charges.red,16);assert.equal(a.reservoirCap('red'),16);await a.finish();
- a.setHP(24);a.startFight();a.applyColor('red',12,'player');await a.finish();a.activate(1);assert.equal(a.get().charges.red,3);
+ a.setHP(24);a.startFight();a.setEnemyHP(100);a.applyColor('red',12,'player');await a.finish();a.activate(1);assert.equal(a.get().charges.red,3);
  a.startFight();a.applyColor('purple',3,'player');assert.equal(a.get().charges.purple,0);
  const grid=()=>Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));
  for(const type of ['red','blue','green','yellow','purple','gold','xp']){
@@ -206,17 +206,17 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  equip('boots');const bootsChargeAfterArm=a.get().charges.yellow;a.activate(0);assert.equal(a.get().freeSwap,false,'tapping Quickstep again cancels it');assert.equal(a.get().charges.yellow,bootsChargeAfterArm+6,'Quickstep cancel restores charge');a.setReady(0);a.activate(0);a.setBoard(grid());es.get('board').events.pointerdown({clientX:20,clientY:20,pointerId:1});es.get('board').events.pointerup({clientX:65,clientY:20,pointerId:1});await new Promise(resolve=>setImmediate(resolve));assert.equal(a.get().board[0][0],'blue');assert.equal(a.get().freeSwap,false);
  equip('wayfarer-lyre');a.setHP(0);a.afterAction('enemy');assert.equal(a.get().pHP,0,'regeneration cannot revive a defeated fighter');
 
- // Core board contract: Red always attacks, Blue always Guards; Green/Yellow/Purple are charge-only without equipped effects.
+ // Core board contract: Red uses Sack ATK, Blue uses Sack DEF; Green/Yellow/Purple are charge-only without equipped effects.
  a.setSack(['dagger','shield','salve','boots','charm']);a.startFight();assert.equal(a.findMatches(),null,'fresh board starts without free matches');assert(a.legalMoves().length>0,'fresh board always has a legal move');a.setHP(20);
  a.applyColor('red',3,'player');assert.equal(a.get().eHP,21);assert.equal(a.get().charges.red,3);await a.finish();
- a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,3);assert.equal(a.get().charges.blue,3);
+ a.applyColor('blue',3,'player');assert.equal(a.get().pGuard,6);assert.equal(a.get().charges.blue,3);
  a.applyColor('green',3,'player');assert.equal(a.get().pHP,20);assert.equal(a.get().charges.green,3);
  const hpBeforeUtility=a.get().pHP,enemyBeforeUtility=a.get().eHP,guardBeforeUtility=a.get().pGuard;
  a.applyColor('yellow',3,'player');a.applyColor('purple',3,'player');assert.equal(a.get().pHP,hpBeforeUtility);assert.equal(a.get().eHP,enemyBeforeUtility);assert.equal(a.get().pGuard,guardBeforeUtility);assert.equal(a.get().charges.yellow,3);assert.equal(a.get().charges.purple,3);
 
  // Attunements proc on every qualifying match resolution, including cascades, and expire after 3 future player actions.
- equip('bloodstone-whet');assert.equal(a.get().buffs.redwake,3);a.applyColor('red',3,'player',0);assert.equal(a.get().eHP,19);a.applyColor('red',3,'player',1);assert.equal(a.get().eHP,14);await a.finish();a.afterAction('player');assert.equal(a.get().buffs.redwake,2);a.afterAction('player');assert.equal(a.get().buffs.redwake,1);a.afterAction('player');assert.equal(a.get().buffs.redwake,0);
- equip('bastion-sigil');assert.equal(a.get().buffs.holdfast,3);a.applyColor('blue',3,'player',0);assert.equal(a.get().pGuard,5);a.applyColor('blue',3,'player',1);assert.equal(a.get().pGuard,10);
+ equip('bloodstone-whet');assert.equal(a.get().buffs.redwake,3);a.applyColor('red',3,'player',0);assert.equal(a.get().eHP,16);a.applyColor('red',3,'player',1);assert.equal(a.get().eHP,8);await a.finish();a.afterAction('player');assert.equal(a.get().buffs.redwake,2);a.afterAction('player');assert.equal(a.get().buffs.redwake,1);a.afterAction('player');assert.equal(a.get().buffs.redwake,0);
+ equip('bastion-sigil');assert.equal(a.get().buffs.holdfast,3);a.applyColor('blue',3,'player',0);assert.equal(a.get().pGuard,11);a.applyColor('blue',3,'player',1);assert.equal(a.get().pGuard,22);
  equip('heartseed');assert.equal(a.get().buffs.aftergrowth,3);a.applyColor('green',3,'player',0);assert.equal(a.get().pHP,12);a.applyColor('green',3,'player',1);assert.equal(a.get().pHP,14);
  equip('gamblers-thread');assert.equal(a.get().buffs.momentum,3);a.applyColor('yellow',3,'player',0);assert.equal(a.get().charges.red,2);a.applyColor('yellow',3,'player',1);assert.equal(a.get().charges.blue,2);
 
