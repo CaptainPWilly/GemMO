@@ -8,6 +8,7 @@ The **browser implementation is live**.
 
 - UI markup/shell: `index.html`
 - Expandable browser content: `assets/content.js`
+- Shared encounter definitions used by browser and server: `shared/encounters.js`
 - Deterministic browser combat primitives: `assets/combat-core.js`
 - Browser runtime/gameplay/world renderer/API client: `assets/app.js`
 - Browser visual system: `assets/styles.css`
@@ -88,6 +89,7 @@ Edit by ownership:
 
 - markup only: `index.html`
 - gems/world/shops/gear content: `assets/content.js`
+- encounter HP/rewards/enemy rules/AI: `shared/encounters.js`
 - deterministic board/RNG primitives: `assets/combat-core.js`
 - behavior/gameplay/runtime: `assets/app.js`
 - visuals/responsive rules: `assets/styles.css`
