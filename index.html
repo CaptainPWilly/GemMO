@@ -131,11 +131,11 @@
 <button id="leaveFight" hidden>☰ MENU</button>
 <div class="game" hidden>
   <div class="top">
-    <div><div class="name">YOU</div><div class="stats" id="pstats">18 HP · 0 GUARD</div><div class="health" id="phealth" role="progressbar" aria-label="Your health" aria-valuemin="0" aria-valuemax="18"><div class="healthFill" id="pfill"></div></div></div>
+    <div class="combatant playerSide"><div class="name">YOU</div><div class="stats" id="pstats">18 HP · 0 GUARD</div><div class="health" id="phealth" role="progressbar" aria-label="Your health" aria-valuemin="0" aria-valuemax="18"><div class="healthFill" id="pfill"></div></div></div>
     <div class="turn"><div id="turnText">YOUR MOVE</div><small>ONE BOARD · TWO SACKS</small><button class="sacksBtn" id="sacksBtn">VIEW SACKS</button></div>
-    <div class="right"><div class="name" id="enemyName">ENEMY</div><div class="stats" id="estats">0 HP · 0 EVADE</div><div class="health" id="ehealth" role="progressbar" aria-label="Enemy health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div></div>
+    <div class="right combatant enemySide"><div class="name" id="enemyName">ENEMY</div><div class="stats" id="estats">0 HP · 0 EVADE</div><div class="health" id="ehealth" role="progressbar" aria-label="Enemy health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div></div>
   </div>
-  <div id="turnBadge" class="turnBadge">✦ TURN 1 ✦</div><div id="statusTags" class="statusTags"></div><div class="boardShell"><div class="board" id="board"></div></div>
+  <div id="turnBadge" class="turnBadge turn-player" role="status" aria-live="polite">✦ YOUR TURN · 1 ✦</div><div id="statusTags" class="statusTags"></div><div class="boardShell"><div class="board" id="board"></div></div>
   <div class="status"><div class="resource"><span id="gold">GOLD 0</span><span id="xp">XP 0</span><span>ENV: RIFT</span><span>MATCH 4: +TURN</span></div><div class="log" id="log" role="status">Same board. Your colors use your Sack.</div></div>
   <div id="abilityBanner" class="abilityBanner" aria-live="polite" hidden><small id="abilityActor"></small><strong id="abilityName"></strong><span id="abilityDetail"></span></div><div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
   <button id="historyBtn" class="historyBtn">EQUIP</button><div class="foot">SWIPE OR TAP 2 GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
