@@ -123,7 +123,7 @@ async function createDb(options={}){
   await applyDataMigrations(db);
   return db;
 }
-const DATA_RESET_KEY='2026-09-26-fresh-sacks-v1';
+const DATA_RESET_KEY='2026-09-28-expanded-effects-v2';
 async function transaction(db,fn){return db.transaction(fn)}
 async function audit(db,userId,type,detail=''){await db.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(?,?,?,?)').run(userId??null,type,String(detail).slice(0,500),Date.now())}
 async function applyDataMigrations(db){
@@ -132,7 +132,7 @@ async function applyDataMigrations(db){
   const now=Date.now();
   await transaction(db,async tx=>{
     if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))return;
-    // Fresh-sacks reset: preserve account credentials and active login sessions,
+    // Expanded-effects reset: preserve account credentials and active login sessions,
     // but wipe every piece of earned/equipped/progression state exactly once.
     await tx.prepare('DELETE FROM matches').run();
     await tx.prepare('DELETE FROM sack_slots').run();
@@ -143,7 +143,7 @@ async function applyDataMigrations(db){
     await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=?").run(now);
     await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=?').run(now);
     await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(DATA_RESET_KEY,now);
-    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','fresh-sacks-v1',now);
+    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','expanded-effects-v2',now);
   });
   return true;
 }
