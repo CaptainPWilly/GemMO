@@ -41,7 +41,7 @@ const BRANCHES=Object.freeze([
 ]);
 const SKILLS=Object.freeze(BRANCHES.flatMap(b=>b.nodes.map(n=>Object.freeze({...n,branch:b.id}))));
 const SKILL_BY_ID=Object.freeze(Object.fromEntries(SKILLS.map(s=>[s.id,s])));
-function xpForLevel(level){const lv=Math.max(1,Math.floor(Number(level)||1)),n=lv-1;return 30*n+15*n*(n-1)/2}
+function xpForLevel(level){const lv=Math.max(1,Math.floor(Number(level)||1)),n=lv-1;return 20*n+5*n*(n-1)/2}
 function xpToNext(level){const lv=Math.max(1,Math.floor(Number(level)||1));return xpForLevel(lv+1)-xpForLevel(lv)}
 function levelForXp(xp){const total=Math.max(0,Math.floor(Number(xp)||0));let level=1;while(level<999&&total>=xpForLevel(level+1))level++;return level}
 function xpProgress(xp){const total=Math.max(0,Math.floor(Number(xp)||0)),level=levelForXp(total),floor=xpForLevel(level),next=xpForLevel(level+1);return {level,total,current:total-floor,required:next-floor,floor,next}}

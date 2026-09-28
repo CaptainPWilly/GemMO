@@ -365,9 +365,9 @@ async function settleVictory(){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
    else throw error;
   }
-  applyAccount(data.account);rewardsSettled=true;encounterClearSaved=worldCleared(activeEncounter);
-  const awardedGold=data.settlement?.gold??gold,awardedXp=data.settlement?.xp??xp;
-  $('resultText').textContent='+'+awardedGold+' GOLD · +'+awardedXp+' XP'+(firstClear&&worldCleared(activeEncounter)&&unlockText?' · '+unlockText:'');
+  const previousLevel=account?.profile?.level||1;applyAccount(data.account);rewardsSettled=true;encounterClearSaved=worldCleared(activeEncounter);
+  const awardedGold=data.settlement?.gold??gold,awardedXp=data.settlement?.xp??xp,newLevel=account?.profile?.level||previousLevel,levelGain=Math.max(0,newLevel-previousLevel),points=account?.skills?.availablePoints||0;
+  $('resultText').textContent='+'+awardedGold+' GOLD · +'+awardedXp+' XP'+(levelGain?' · LEVEL '+newLevel+'! · '+points+' SKILL POINT'+(points===1?'':'S'):'')+(firstClear&&worldCleared(activeEncounter)&&unlockText?' · '+unlockText:'');
  }catch(error){$('resultText').textContent='SAVE FAILED · '+saveErrorText(error);$('resultRetry').hidden=false}
  finally{encounterSettling=false;$('resultMenu').disabled=false}
 }
