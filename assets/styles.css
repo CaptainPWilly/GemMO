@@ -740,3 +740,18 @@ html,body{background:#060705;color:var(--text)}
   .menuNav .primary:hover,.shopItem:not(:disabled):hover,.gearCard:not(:disabled):hover,.gearSlot:hover,.sackPage .itemCard:not(:disabled):hover,.sackPage .sackSlot:hover,.worldQuickButton:hover,.worldAction:hover{transform:translateY(-2px);filter:brightness(1.06);border-color:#766649;box-shadow:0 9px 22px #0006}
 }
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #c4a56b;outline-offset:2px}
+
+/* Shrine progression */
+.skillsPage{background:radial-gradient(circle at 50% 0,#3c3347 0,#191713 42%,#0d0e0c 100%)}
+.skillHero{max-width:900px;margin:0 auto 18px;display:flex;justify-content:space-between;align-items:end;gap:18px;padding:18px;border:1px solid #514637;border-radius:var(--radius-lg);background:linear-gradient(145deg,#211d22,#12130f);box-shadow:0 16px 36px #0006}
+.skillHero small{font-size:calc(8px + var(--text-bump));letter-spacing:1.6px;color:#9e8eaa}.skillHero h1{margin:3px 0;font:clamp(34px,9vw,54px) Georgia,serif;color:#ead8f2}.skillHero p{margin:5px 0 0;color:#a89f92;line-height:1.45}
+.skillSummary{min-width:132px;display:grid;text-align:right;gap:3px}.skillSummary b{font-size:calc(15px + var(--text-bump));color:#f3d788}.skillSummary span{font-weight:850}.skillSummary small{color:#918778}
+.skillTree{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.skillBranch{--skill:#a99985;border:1px solid #453e34;border-top:3px solid var(--skill);border-radius:12px;padding:13px;background:linear-gradient(180deg,#191914,#10110e);min-width:0}
+.skillBranch.red{--skill:var(--r)}.skillBranch.blue{--skill:var(--b)}.skillBranch.green{--skill:var(--g)}.skillBranch.yellow{--skill:var(--y)}.skillBranch.purple{--skill:var(--p)}.skillBranch.neutral{--skill:#d0b983}
+.skillBranchHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.skillBranchHead b{font:calc(15px + var(--text-bump)) Georgia,serif;color:#e9dfce}.skillBranchHead small{font-size:calc(7px + var(--text-bump));color:#82796d}
+.skillNodes{display:grid;gap:8px}.skillNode{width:100%;display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:9px;text-align:left;border:1px solid #3d382f;border-radius:9px;padding:10px;background:#12130f;color:#d9cfbd}.skillNode:not(:disabled):active{transform:scale(.99)}
+.skillNode .tier{width:31px;height:31px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--skill) 55%,#514637);border-radius:50%;color:var(--skill);font-weight:900}.skillNode b{display:block;font-size:calc(11px + var(--text-bump))}.skillNode small{display:block;margin-top:3px;color:#8f877a;line-height:1.35;font-size:calc(8px + var(--text-bump))}.skillNode .skillCost{font-size:calc(8px + var(--text-bump));font-weight:900;color:#cbb98f}
+.skillNode.owned{border-color:color-mix(in srgb,var(--skill) 68%,#574b3a);background:color-mix(in srgb,var(--skill) 9%,#12130f);box-shadow:inset 3px 0 var(--skill)}.skillNode.owned .skillCost{color:#d9cfbd}.skillNode.locked{opacity:.48}.skillStatus{max-width:900px;margin:12px auto 0;min-height:22px;color:#b8aa95}
+@media(max-width:620px){.skillHero{align-items:start;flex-direction:column}.skillSummary{text-align:left}.skillTree{grid-template-columns:1fr}}
+@media(min-width:900px){.skillTree{grid-template-columns:repeat(3,minmax(0,1fr))}}

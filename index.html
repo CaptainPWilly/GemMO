@@ -77,6 +77,11 @@
 <div class="shopGrid" id="shopGrid"></div>
 <p class="shopStatus" id="shopStatus" role="status"></p>
 </section>
+<section class="page skillsPage" id="skillsPage" hidden>
+<header class="pageTopbar"><button id="skillsBack">← SHRINE</button><span class="eyebrow">ATTUNEMENT · SKILL TREE</span></header>
+<div class="skillHero"><div><small>THE SHRINE</small><h1>Attunement</h1><p>One skill point per level. Invest freely across every branch.</p></div><div class="skillSummary"><b id="skillPoints">1 POINT</b><span id="skillLevel">LEVEL 1</span><small id="skillXP">0 / 30 XP</small></div></div>
+<div id="skillTree" class="skillTree"></div><p id="skillStatus" class="skillStatus" role="status"></p>
+</section>
 <section class="page starterPage" id="starterPage" hidden>
   <header class="pageTopbar"><span class="eyebrow">FIRST GEM · LEVEL 1</span></header>
   <div class="pageHero starterHero"><small>YOUR FIRST BUILD CHOICE</small><h1>Choose Your First</h1><p>Pick one damage gem. The other four Sack slots begin empty.</p></div>
@@ -213,6 +218,7 @@
 <script src="assets/content.js"></script>
 <script src="shared/encounters.js"></script>
 <script src="shared/combat-rules.js"></script>
+<script src="shared/progression.js"></script>
 <script src="shared/story.js"></script>
 <script src="assets/combat-core.js"></script>
 <script src="assets/app.js"></script>
