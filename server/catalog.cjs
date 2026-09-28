@@ -89,8 +89,7 @@ const GEAR=Object.freeze({
   'twine-ring':{slot:'ring',hp:1,caps:{yellow:1}},'copper-band':{slot:'ring',caps:{red:1,blue:1}}
 });
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
-const STARTER_GEMS=Object.freeze({red:'dagger',yellow:'sling',blue:'crystal-wand'});
-const STARTER_GEM_SET=new Set(Object.values(STARTER_GEMS));
+const DEFAULT_STARTER_GEM='dagger';
 const WORLD_NODES=Object.freeze({
   camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','item-shop','crossroads']},
   'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem',neighbors:['camp']},
@@ -110,4 +109,4 @@ const SHOP_CATALOG=Object.freeze({
     'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15
   })
 });
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS};
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS};

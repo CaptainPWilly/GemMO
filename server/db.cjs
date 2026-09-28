@@ -2,7 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
-const {GEM_SET,GEAR,EQUIPMENT_SLOTS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS}=require('./catalog.cjs');
+const {GEM_SET,GEAR,EQUIPMENT_SLOTS,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS}=require('./catalog.cjs');
 const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 const {verifyCombatTranscript}=require('./combat.cjs');
@@ -129,7 +129,7 @@ async function createDb(options={}){
   await applyDataMigrations(db);
   return db;
 }
-const DATA_RESET_KEY='2026-09-28-expanded-effects-v2';
+const DATA_RESET_KEY='2026-09-28-iron-dagger-start-v3';
 async function transaction(db,fn){return db.transaction(fn)}
 async function audit(db,userId,type,detail=''){await db.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(?,?,?,?)').run(userId??null,type,String(detail).slice(0,500),Date.now())}
 async function applyDataMigrations(db){
@@ -138,8 +138,8 @@ async function applyDataMigrations(db){
   const now=Date.now();
   await transaction(db,async tx=>{
     if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))return;
-    // Expanded-effects reset: preserve account credentials and active login sessions,
-    // but wipe every piece of earned/equipped/progression state exactly once.
+    // Iron-Dagger reset: preserve credentials and active sessions, wipe gameplay state,
+    // then reseed every account at the same Level 1 / ATK 1 starting line.
     await tx.prepare('DELETE FROM matches').run();
     await tx.prepare('DELETE FROM sack_slots').run();
     await tx.prepare('DELETE FROM starter_choices').run();
@@ -151,8 +151,10 @@ async function applyDataMigrations(db){
     await tx.prepare('UPDATE equipment_slots SET item_id=NULL').run();
     await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=?").run(now);
     await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=?').run(now);
+    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) SELECT id,?,'gem',1 FROM users").run(DEFAULT_STARTER_GEM);
+    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) SELECT id,0,? FROM users').run(DEFAULT_STARTER_GEM);
     await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(DATA_RESET_KEY,now);
-    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','expanded-effects-v2',now);
+    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','iron-dagger-start-v3',now);
   });
   return true;
 }
@@ -162,18 +164,19 @@ async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
     await tx.prepare('INSERT INTO profiles(user_id,level,xp,gold,created_at,updated_at) VALUES(?,1,0,0,?,?)').run(userId,now,now);
     for(const slot of Object.keys(EQUIPMENT_SLOTS))await tx.prepare('INSERT INTO equipment_slots(user_id,slot,item_id) VALUES(?,?,NULL)').run(userId,slot);
     await tx.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach','camp',?)").run(userId,now);
-    await audit(tx,userId,'account_created_blank');
+    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,'gem',1)").run(userId,DEFAULT_STARTER_GEM);
+    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,?)').run(userId,DEFAULT_STARTER_GEM);
+    await audit(tx,userId,'account_created_iron_dagger',DEFAULT_STARTER_GEM);
     return userId;
   });
 }
 async function userByName(db,usernameNorm){return await db.prepare('SELECT * FROM users WHERE username_norm=?').get(usernameNorm)}
 async function accountSnapshot(db,userId){
   const user=await db.prepare('SELECT id,username_display,created_at FROM users WHERE id=?').get(userId);if(!user)return null;
-  const [profile,inventoryRows,equipmentRows,starter,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
+  const [profile,inventoryRows,equipmentRows,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
     db.prepare('SELECT level,xp,gold,created_at,updated_at FROM profiles WHERE user_id=?').get(userId),
     db.prepare('SELECT item_id FROM inventory WHERE user_id=? AND qty>0 ORDER BY item_id').all(userId),
     db.prepare('SELECT slot,item_id FROM equipment_slots WHERE user_id=? ORDER BY slot').all(userId),
-    db.prepare('SELECT gem_id,chosen_at FROM starter_choices WHERE user_id=?').get(userId),
     db.prepare('SELECT region,current_node,updated_at FROM world_state WHERE user_id=?').get(userId),
     db.prepare("SELECT flag FROM world_flags WHERE user_id=? AND flag LIKE 'encounter:%' ORDER BY flag").all(userId),
     db.prepare('SELECT slot,gem_id FROM sack_slots WHERE user_id=? ORDER BY slot').all(userId),
@@ -185,7 +188,7 @@ async function accountSnapshot(db,userId){
   const inventory=inventoryRows.map(r=>r.item_id),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,starter:starter?{gemId:starter.gem_id,chosenAt:Number(starter.chosen_at)}:null,needsStarter:!starter&&inventory.length===0,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -197,18 +200,6 @@ async function updateSack(db,userId,sack){
     await tx.prepare('DELETE FROM sack_slots WHERE user_id=?').run(userId);
     for(let slot=0;slot<sack.length;slot++)if(sack[slot])await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,?,?)').run(userId,slot,sack[slot]);
     await audit(tx,userId,'sack_updated',equipped.join(','));
-  });
-}
-async function chooseStarter(db,userId,gemId){
-  if(!STARTER_GEM_SET.has(gemId))throw Object.assign(new Error('invalid_starter'),{status:400});
-  await transaction(db,async tx=>{
-    if(await tx.prepare('SELECT 1 ok FROM starter_choices WHERE user_id=?').get(userId))throw Object.assign(new Error('starter_already_chosen'),{status:409});
-    if(await tx.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND qty>0').get(userId))throw Object.assign(new Error('starter_state_invalid'),{status:409});
-    const now=Date.now();
-    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,'gem',1)").run(userId,gemId);
-    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,?)').run(userId,gemId);
-    await tx.prepare('INSERT INTO starter_choices(user_id,gem_id,chosen_at) VALUES(?,?,?)').run(userId,gemId,now);
-    await audit(tx,userId,'starter_chosen',gemId);
   });
 }
 async function hasWorldFlag(db,userId,flag){return !!(await db.prepare('SELECT 1 ok FROM world_flags WHERE user_id=? AND flag=?').get(userId,flag))}
@@ -380,4 +371,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,chooseStarter,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};

@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
-const {STARTER_GEMS,ENCOUNTERS}=require('./catalog.cjs');
+const {DEFAULT_STARTER_GEM,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,skillRank,canPurchase,BRANCHES}=require('../shared/progression.js');
@@ -11,7 +11,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
-  assert.deepEqual(STARTER_GEMS,{red:'dagger',yellow:'sling',blue:'crystal-wand'},'fresh accounts have exactly three starter choices');
+  assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');
   assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
@@ -97,13 +97,9 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.skills.purchased,[]);
-    assert.equal(r.data.account.inventory.length,0);assert.deepEqual(r.data.account.sack,[null,null,null,null,null]);assert.equal(r.data.account.needsStarter,true);
+    assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);assert.equal(r.data.account.needsStarter,false,'new accounts start ready with the Iron Dagger');
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');
-    r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,403,'cannot equip unowned starter before choice');
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'axe'}});assert.equal(r.status,400,'only three starter gems are legal');
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'dagger'}});assert.equal(r.status,200);
-    assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);assert.equal(r.data.account.needsStarter,false);
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,409,'starter choice is one-time even when the second choice is valid');
+    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,410,'starter selection endpoint is retired');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,200);
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','shield',null,null,null]}});assert.equal(r.status,403,'cannot equip gems not owned');
     r=await call('/v1/story/cutscene',{method:'POST',token,body:{cutsceneId:'not-real'}});assert.equal(r.status,400,'unknown cutscenes are rejected');
@@ -191,9 +187,9 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     await db.prepare('DELETE FROM app_migrations WHERE key=?').run(DATA_RESET_KEY);
     assert.equal(await applyDataMigrations(db),true,'fresh-sacks reset applies once');
     r=await call('/v1/account',{token:reloginToken});assert.equal(r.status,200,'reset preserves login sessions and account credentials');
-    assert.deepEqual(r.data.account.inventory,[],'reset wipes collected inventory');
-    assert.deepEqual(r.data.account.sack,[null,null,null,null,null],'reset empties every Sack');
-    assert.equal(r.data.account.needsStarter,true,'reset returns existing accounts to starter choice');
+    assert.deepEqual(r.data.account.inventory,['dagger'],'reset wipes collected inventory and reseeds only the Iron Dagger');
+    assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'reset equips the Iron Dagger in Sack slot 1');
+    assert.equal(r.data.account.needsStarter,false,'reset removes starter selection entirely');
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
     assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.skills.purchased,[],'reset clears skill progression');assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');

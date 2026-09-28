@@ -55,7 +55,8 @@ assert(src.includes("resultBody.transcript=combatTranscript"),'verified victorie
 assert(src.includes("makeCombatRng(activeAuthority.seed)"),'authoritative combat must use the server-issued deterministic seed');
 assert(src.includes("recordCombatAction({t:'swap'"),'player swaps must enter the combat proof transcript');
 assert(src.includes("recordCombatAction({t:'ability'"),'gem activations must enter the combat proof transcript');
-assert(src.includes("const STARTER_CHOICES=[{color:'red',id:'dagger'},{color:'yellow',id:'sling'},{color:'blue',id:'crystal-wand'}]"),'only Dagger, Sling and Crystal Wand are starter choices');
+assert(!src.includes('STARTER_CHOICES')&&!html.includes('id="starterPage"'),'starter selection UI is removed');
+assert(src.includes("const DEFAULT_SACK=['dagger',null,null,null,null]"),'client default Sack begins with the Iron Dagger');
 assert(html.includes('class="sackHero"')&&html.includes('class="sackToolbar"'),'Sack uses the modern deck-style layout');
 assert(html.includes('id="worldGold"')&&html.includes('id="worldSackBtn"')&&html.includes('id="worldInventoryBtn"')&&html.includes('id="worldEffectsBtn"'),'world map exposes Gold, Sack, Inventory, and Effects controls');
 assert(!html.includes('id="worldZoomIn"')&&!html.includes('id="worldZoomOut"'),'world map does not expose zoom buttons');
