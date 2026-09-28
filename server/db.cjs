@@ -25,6 +25,7 @@ const SCHEMA=[
   "CREATE INDEX IF NOT EXISTS idx_matches_user_open ON matches(user_id,settled_at);",
   "CREATE TABLE IF NOT EXISTS match_reward_budgets(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,gold_cap INTEGER NOT NULL CHECK(gold_cap>=0),xp_cap INTEGER NOT NULL CHECK(xp_cap>=0)) STRICT;",
   "CREATE TABLE IF NOT EXISTS match_combat_proofs(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,version TEXT NOT NULL,seed INTEGER NOT NULL,sack_json TEXT NOT NULL,equipment_json TEXT NOT NULL) STRICT;",
+  "CREATE TABLE IF NOT EXISTS match_skill_proofs(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,skills_json TEXT NOT NULL) STRICT;",
   'CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,last_seen_at INTEGER NOT NULL,revoked_at INTEGER) STRICT;',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);',
   'CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);',
@@ -276,7 +277,9 @@ async function startMatch(db,userId,encounterId){
       const sack=Array(5).fill(null),equipment=Object.fromEntries(Object.keys(EQUIPMENT_SLOTS).map(slot=>[slot,null]));
       for(const row of await tx.prepare('SELECT slot,gem_id FROM sack_slots WHERE user_id=? ORDER BY slot').all(userId))sack[Number(row.slot)]=row.gem_id;
       for(const row of await tx.prepare('SELECT slot,item_id FROM equipment_slots WHERE user_id=? ORDER BY slot').all(userId))equipment[row.slot]=row.item_id;
+      const skills=normalizePurchased((await tx.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY purchased_at,skill_id').all(userId)).map(r=>r.skill_id));
       await tx.prepare('INSERT INTO match_combat_proofs(match_id,version,seed,sack_json,equipment_json) VALUES(?,?,?,?,?)').run(id,authority.mode,authority.seed,JSON.stringify(sack),JSON.stringify(equipment));
+      await tx.prepare('INSERT INTO match_skill_proofs(match_id,skills_json) VALUES(?,?)').run(id,JSON.stringify(skills));
     }
     await audit(tx,userId,'match_started',encounterId+':'+id+':budget'+rewardBudget.gold+'/'+rewardBudget.xp+(authority?':'+authority.mode:''));
   });
@@ -306,8 +309,8 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     let awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp),authority='legacy-budget';
     const proof=await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId);
     if(proof?.version==='replay-v1'){
-      const skillRows=await tx.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY skill_id').all(userId);
-      const replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills:skillRows.map(r=>r.skill_id),rewardBudget,transcript});
+      const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]);
+      const replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,rewardBudget,transcript});
       if(!replay.won)throw Object.assign(new Error('combat_proof_failed'),{status:409});
       awardGold=replay.gold;awardXp=replay.xp;authority='replay-v1';
       if(gold!==awardGold||xp!==awardXp)await audit(tx,userId,'match_result_mismatch',match.encounter_id+':'+matchId+':client'+gold+'/'+xp+':server'+awardGold+'/'+awardXp);
