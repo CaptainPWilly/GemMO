@@ -11,6 +11,9 @@ assert(html.includes('src="assets/content.js"')&&html.indexOf('assets/content.js
 assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
 assert(!src.includes('const ITEMS=[')&&!src.includes('const WORLD_NODES={'),'runtime must not re-embed expandable content');
+assert(!/<style[\s>]/i.test(html),'index.html must stay free of inline styles');
+assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(html),'index.html must stay free of inline application scripts');
+assert.equal((styles.match(/:root\s*\{/g)||[]).length,1,'the visual system must have one canonical palette root');
 assert(styles.includes('@media (min-width:700px)'),'tablet breakpoint must exist');
 assert(styles.includes('orientation:landscape'),'landscape tablet layout must exist');
 assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-pane grid');
