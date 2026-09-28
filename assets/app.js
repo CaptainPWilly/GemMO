@@ -69,7 +69,7 @@ function canEquipGear(slot,id){
 function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slot]=id;return true}
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger',null,null,null,null];
-let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false;
+let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false,textSize='large';
 let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
@@ -582,7 +582,8 @@ function applyAccount(next){
  lastAccountSync=JSON.stringify({sack,equipment});
  drawAccount();refreshWorldHud();
 }
-function saveDeviceSettings(){try{localStorage.setItem('gemmo.motionOff',String(motionOff));localStorage.setItem('gemmo.hintDelay',String(hintDelay));localStorage.setItem('gemmo.apiBase',apiBase)}catch{}}
+function applyTextSize(){const app=document.querySelector('.app');if(!app)return;for(const cls of ['text-normal','text-large','text-xl'])app.classList.remove(cls);app.classList.add('text-'+textSize)}
+function saveDeviceSettings(){try{localStorage.setItem('gemmo.motionOff',String(motionOff));localStorage.setItem('gemmo.hintDelay',String(hintDelay));localStorage.setItem('gemmo.textSize',textSize);localStorage.setItem('gemmo.apiBase',apiBase)}catch{}}
 function scheduleAccountSync(){
  if(!accountToken||!account||account.needsStarter||!sackIsValid())return;
  clearTimeout(accountSyncTimer);accountSyncTimer=setTimeout(()=>void syncAccountLoadout(),250);
@@ -746,7 +747,7 @@ async function submitAuth(mode){
 async function logoutAccount(){try{if(accountToken)await accountRequest('/v1/auth/logout',{method:'POST'})}catch{}clearAccountSession();$('accountStatus').textContent='Logged out.'}
 function save(){saveDeviceSettings();scheduleAccountSync()}
 try{localStorage.removeItem?.('gemmo.sack.v1');localStorage.removeItem?.('gemmo.equipment.v1');localStorage.removeItem?.('gemmo.inventory.v1');localStorage.removeItem?.('gemmo.worldNode')}catch{}
-try{motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint)}catch{}
+try{motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint);const savedTextSize=localStorage.getItem('gemmo.textSize');if(['normal','large','xl'].includes(savedTextSize))textSize=savedTextSize}catch{}applyTextSize();
 function animateScreenChange(previous,next){
  if(motionOff||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
  const target=next==='fight'?document.querySelector('.game'):$(next+'Page'),veil=$('screenVeil');
@@ -905,6 +906,7 @@ $('worldViewport').addEventListener('pointerup',e=>endWorldPointer(e));$('worldV
 window.addEventListener?.('resize',()=>{if(screen==='world')drawWorld()});
 $('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
+$('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').value;applyTextSize();saveDeviceSettings()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
 $('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};

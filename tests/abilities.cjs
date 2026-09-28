@@ -34,12 +34,16 @@ assert(styles.includes('orientation:landscape'),'landscape tablet layout must ex
 assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-pane grid');
 assert(html.includes('class="splashSigil"')&&html.includes('class="menuNav"')&&html.includes('class="menuSnapshot"'),'splash and menu use the unified game-shell hierarchy');
 assert(html.includes('class="pageHero compact"')&&html.includes('class="settingsStack"')&&html.includes('class="shopHero"'),'utility and catalogue screens use shared page hierarchy');
+assert(html.includes('id="textSize"')&&html.includes('value="normal"')&&html.includes('value="large"')&&html.includes('value="xl"'),'settings expose normal, large and extra-large text sizes');
+assert(styles.includes('--text-bump:1.5px')&&styles.includes('.app.text-normal{--text-bump:0px}')&&styles.includes('.app.text-xl{--text-bump:3px}'),'large typography is the default with reversible text-size tokens');
+assert((styles.match(/font-size:calc\(/g)||[]).length>25,'fixed-size interface typography participates in the global text-size system');
 assert(styles.includes('/* Unified responsive layout system.')&&styles.includes('--content-max:900px')&&styles.includes('.pageHero{'),'canonical responsive layout system is present');
 assert(styles.includes('@media(hover:hover) and (pointer:fine)')&&styles.includes('button:focus-visible'),'layout system includes pointer polish and keyboard focus states');
 assert((styles.match(/\/\* Adaptive tablet layout \*\//g)||[]).length===0,'legacy generic tablet layout block stays removed');
 assert(src.includes("localStorage.getItem('gemmo.session')"),'login token must persist across browser restarts');
 assert(src.includes("localStorage.setItem('gemmo.session'"),'successful login must remember the session');
 assert(src.includes("localStorage.removeItem('gemmo.session'"),'logout must clear the remembered session');
+assert(src.includes("localStorage.getItem('gemmo.textSize')")&&src.includes("localStorage.setItem('gemmo.textSize',textSize)")&&src.includes("function applyTextSize()"),'text-size preference persists locally and applies globally');
 assert(src.includes("localDevHost?'http://127.0.0.1:8787':'https://gemmo.onrender.com'"),'localhost must default to the local API');
 assert(src.includes("won:false,gold:0,xp:0"),'defeats must settle their match ticket with zero rewards');
 assert(src.includes('activeRewardBudget=data.match?.rewardBudget||null'),'client must accept the server-issued reward budget');
