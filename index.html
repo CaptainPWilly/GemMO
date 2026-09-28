@@ -28,10 +28,20 @@
 <section class="page worldPage" id="worldPage" hidden>
 <div class="worldHud">
   <button id="worldCamp">☰ CAMP</button>
-  <div class="worldTitle"><small>LEVEL 1</small><b>WORLD</b></div>
+  <div class="worldTitle"><small id="worldLevel">LEVEL 1</small><b>WORLD</b></div>
+  <div class="worldGold" aria-label="Gold"><span>◆</span><b id="worldGold">0</b></div>
   <div class="worldZoom"><button id="worldZoomOut" aria-label="Zoom out">−</button><button id="worldZoomIn" aria-label="Zoom in">+</button></div>
 </div>
 <div class="worldViewport" id="worldViewport"><canvas id="worldCanvas" aria-label="Isometric world map"></canvas></div>
+<nav class="worldQuickbar" aria-label="World menu">
+  <button class="worldQuickButton" id="worldSackBtn"><span class="worldQuickIcon">◇</span><span>SACK</span><i class="worldPip" id="worldSackPip" hidden></i></button>
+  <button class="worldQuickButton" id="worldInventoryBtn"><span class="worldQuickIcon">▣</span><span>INVENTORY</span><i class="worldPip" id="worldInventoryPip" hidden></i></button>
+  <button class="worldQuickButton" id="worldEffectsBtn"><span class="worldQuickIcon">✦</span><span>EFFECTS</span></button>
+</nav>
+<div class="worldEffectsPanel" id="worldEffectsPanel" hidden>
+  <div class="worldEffectsHead"><div><small>ACTIVE LOADOUT</small><h3>Current Effects</h3></div><button id="worldEffectsClose" aria-label="Close effects">×</button></div>
+  <div class="worldEffectsList" id="worldEffectsList"></div>
+</div>
 <div class="worldCard">
   <div class="worldCardTop"><div><small id="worldKind">SAFE</small><h2 id="worldNodeName">Ember Camp</h2></div><button class="worldAction" id="worldAction">HERE</button></div>
   <p id="worldNodeDesc" hidden></p>
