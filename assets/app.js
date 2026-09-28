@@ -669,11 +669,23 @@ function startFight(){
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen(account?'menu':'splash'));$('shopBack').onclick=()=>enterWorld();
-$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>showScreen('sack');$('worldInventoryBtn').onclick=()=>showScreen('inventory');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldZoomIn').onclick=()=>{worldCamera.zoom=Math.min(1.55,worldCamera.zoom+.12);drawWorld()};$('worldZoomOut').onclick=()=>{worldCamera.zoom=Math.max(.68,worldCamera.zoom-.12);drawWorld()};
+$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>showScreen('sack');$('worldInventoryBtn').onclick=()=>showScreen('inventory');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;
 $('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
 function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function worldMid(a,b){return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}}
+$('worldViewport').addEventListener('wheel',e=>{
+ if(screen!=='world')return;
+ e.preventDefault();
+ const rect=$('worldViewport').getBoundingClientRect(),oldZoom=worldCamera.zoom;
+ const factor=Math.exp(-e.deltaY*.0015),newZoom=Math.max(.68,Math.min(1.65,oldZoom*factor));
+ if(newZoom===oldZoom)return;
+ const cx=rect.width/2,cy=92,px=e.clientX-rect.left,py=e.clientY-rect.top,scale=newZoom/oldZoom;
+ worldCamera.zoom=newZoom;
+ worldCamera.panX=px-cx-(px-cx-worldCamera.panX)*scale;
+ worldCamera.panY=py-cy-(py-cy-worldCamera.panY)*scale;
+ drawWorld();
+},{passive:false});
 $('worldViewport').addEventListener('pointerdown',e=>{
  worldPointers.set(e.pointerId,{x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY});$('worldViewport').setPointerCapture?.(e.pointerId);$('worldViewport').classList.add('dragging');
  const pair=worldPair();
