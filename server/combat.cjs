@@ -2,7 +2,7 @@
 const {GEAR,ENCOUNTERS}=require('./catalog.cjs');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 
-const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp','env'],WEIGHTS=[15,15,15,15,15,10,8,7];
+const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
 const GEM=Object.freeze({
   "hand-crossbow": [
     "red",
@@ -588,7 +588,6 @@ function applyColor(s,type,n,actor,comboBonus=false){
   if(type==='red'){const rules=encounterSpec(s).match,raw=n+(!comboBonus&&s.enemyReload?(rules.reloadBonus||0):0);if(!comboBonus)s.enemyReload=false;if(!s.enemyEffects.disarm)damagePlayer(s,scaledEnemyValue(raw,rules.redScale,rules.redMin))}
   if(type==='blue'){const rules=encounterSpec(s).match;s.eGuard+=scaledEnemyValue(n,rules.blueScale,rules.blueMin);s.evadeTurns=2}
  }
- if(type==='env'){damagePlayer(s,1);damageEnemy(s,1)}
 }
 function applyCascadeCharge(s,roots,cascadeDepth,actor){
  const bonus=comboChargeBonus(cascadeDepth);if(!bonus)return 0;
@@ -762,7 +761,7 @@ function suggestCombatAction(s){
  if(s.freeSwap)return {t:'swap',ax:0,ay:0,bx:1,by:0};
  for(let i=0;i<s.sack.length;i++){const v=spec(s.sack[i]);if(v&&s.charges[v.color]>=v.cap&&!['boost'].includes(v.kind))return {t:'ability',slot:i}}
  let best=null,bestScore=-Infinity;
- for(const [a,b] of legalMoves(s)){swap(s,a,b);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=t==='red'?20:t==='blue'?5:t==='green'?2:t==='gold'||t==='xp'?1:t==='env'?-4:0}swap(s,a,b);if(score>bestScore){bestScore=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}
+ for(const [a,b] of legalMoves(s)){swap(s,a,b);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=t==='red'?20:t==='blue'?5:t==='green'?2:t==='gold'||t==='xp'?1:0}swap(s,a,b);if(score>bestScore){bestScore=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}

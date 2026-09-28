@@ -15,6 +15,8 @@ assert(html.includes('href="assets/styles.css"'),'production shell must load the
 assert(html.includes('src="assets/content.js"')&&html.includes('src="shared/encounters.js"')&&html.includes('src="shared/combat-rules.js"')&&html.includes('src="shared/story.js"')&&html.includes('src="assets/combat-core.js"')&&html.indexOf('assets/content.js')<html.indexOf('shared/encounters.js')&&html.indexOf('shared/encounters.js')<html.indexOf('shared/combat-rules.js')&&html.indexOf('shared/combat-rules.js')<html.indexOf('shared/story.js')&&html.indexOf('shared/story.js')<html.indexOf('assets/combat-core.js')&&html.indexOf('assets/combat-core.js')<html.indexOf('assets/app.js'),'production shell must load content, shared encounter/combat/story rules, combat core, then runtime');
 assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
+assert.deepEqual(Array.from(c.GEMMO_CONTENT.TYPES),['red','blue','green','yellow','purple','gold','xp'],'generated board has five colors, Gold and XP only; Wild remains forged');
+assert(!content.includes("'env'")&&!html.includes('ENVIRONMENT · RIFT')&&!src.includes("type==='env'"),'standalone Environment gem rules stay removed');
 assert(encounterDefs.includes("else root.GEMMO_ENCOUNTERS=encounters"),'encounter definitions must be shared between browser and server');
 assert(combatRules.includes("else root.GEMMO_COMBAT_RULES=rules"),'cascade rules must be shared between browser and server');
 assert(storyDefs.includes("else root.GEMMO_STORY=story"),'story definitions must be shared between browser and server');
@@ -171,7 +173,7 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  a.setHP(24);a.startFight();a.applyColor('red',12,'player');await a.finish();a.activate(1);assert.equal(a.get().charges.red,3);
  a.startFight();a.applyColor('purple',3,'player');assert.equal(a.get().charges.purple,0);
  const grid=()=>Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple'][(x+y)%5]));
- for(const type of ['red','blue','green','yellow','purple','gold','xp','env']){
+ for(const type of ['red','blue','green','yellow','purple','gold','xp']){
   const g=grid();g[0][0]=type;g[0][1]='wild';g[0][2]=type;a.setBoard(g);const m=a.findMatches();assert(m&&m.runs.some(r=>r.type===type&&r.len>=3),type+' accepts Wild');assert.equal(new Set(m.cells.map(p=>p.x+','+p.y)).size,m.cells.length,'Wild counted once');
  }
  const all=grid();all[0][0]=all[0][1]=all[0][2]='wild';all[0][3]='';a.setBoard(all);assert(!a.findMatches()?.runs.some(r=>r.cells.every(p=>p.y===0)&&r.cells.length===3),'all-Wild trio needs a real type');

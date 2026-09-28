@@ -25,7 +25,7 @@ return deepFreeze({
    purple:{name:'DEADEYE',cap:10,visible:false}
   },
   actives:[],
-  ai:{red:4,purple:3,greenHealthy:1,greenWounded:3,woundedBelow:18,yellow:2,blue:2,gold:0,xp:0,env:1},
+  ai:{red:4,purple:3,greenHealthy:1,greenWounded:3,woundedBelow:18,yellow:2,blue:2,gold:0,xp:0},
   unlockText:'BANDIT PATH UNLOCKED'
  },
  bandit:{
@@ -48,7 +48,7 @@ return deepFreeze({
    {color:'blue',name:'SIDESTEP',kind:'guard',power:6,when:{guardAtMost:2},detail:'+6 Evade.'},
    {color:'yellow',name:'RELOAD',kind:'reload',power:2,detail:'next Bolt +2.'}
   ],
-  ai:{red:4,purple:3,greenHealthy:1,greenWounded:3,woundedBelow:18,yellow:2,blue:2,gold:0,xp:0,env:1},
+  ai:{red:4,purple:3,greenHealthy:1,greenWounded:3,woundedBelow:18,yellow:2,blue:2,gold:0,xp:0},
   unlockText:''
  }
 });

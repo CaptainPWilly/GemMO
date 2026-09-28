@@ -121,7 +121,6 @@ function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(act
  if(type==='red'){const rules=encounterSpec().match,raw=n+(!comboBonus&&enemyReload?(rules.reloadBonus||0):0),dm=scaledEnemyValue(raw,rules.redScale,rules.redMin);if(!comboBonus)enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
  if(type==='blue'){const rules=encounterSpec().match,v=scaledEnemyValue(n,rules.blueScale,rules.blueMin);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
  }
- if(type==='env'){damagePlayer(1);damageEnemy(1);notes.push('Rift: both -1')}
  if(cascade>0&&notes.length&&!comboBonus)notes.push('Cascade '+cascade);
  if(notes.length&&!comboBonus)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
 }
@@ -161,7 +160,7 @@ function burst(origin,color,count=7){
  $('fxLayer').appendChild(p);animate(p,[{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) rotate(160deg) scale(.1)',opacity:0}],{duration:300+Math.random()*100,easing:'cubic-bezier(.12,.7,.25,1)'}).then(()=>p.remove())}
 }
 async function popCells(cells){
- const points=cells.map(p=>({el:cellAt(p).firstElementChild,origin:center(cellAt(p)),color:{red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',env:'#ccdfbc',wild:'#fff'}[board[p.y][p.x]]}));
+ const points=cells.map(p=>({el:cellAt(p).firstElementChild,origin:center(cellAt(p)),color:{red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'}[board[p.y][p.x]]}));
  await Promise.all(points.map(async({el,origin,color},i)=>{burst(origin,color,Math.min(7,Math.floor(120/points.length)));await animate(el,[{transform:'rotate(45deg) scale(1)',opacity:1},{transform:'rotate(45deg) scale(.82)',opacity:1,offset:.2},{transform:'rotate(65deg) scale(1.28)',opacity:.9,offset:.5},{transform:'rotate(85deg) scale(.15)',opacity:0}],{duration:MOTION.pop,delay:i%3*12,easing:'ease-out'});el.style.opacity='0'}))
 }
 function damageFlight(side,amount,blocked){
