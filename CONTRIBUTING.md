@@ -6,7 +6,10 @@ This repository ships directly to the live game. Keep changes small, tested, and
 
 The **browser implementation is live**.
 
-- Gameplay/UI/world: `index.html`
+- UI markup/shell: `index.html`
+- Expandable browser content: `assets/content.js`
+- Browser runtime/gameplay/world renderer/API client: `assets/app.js`
+- Browser visual system: `assets/styles.css`
 - Browser regression tests: `tests/abilities.cjs`
 - API/auth: `server/server.cjs`
 - Persistence/database behavior: `server/db.cjs`
@@ -80,10 +83,15 @@ Before opening a PR, test the actual UI at minimum on:
 
 ### Client-only gameplay/UI change
 
-Usually edit:
+Edit by ownership:
 
-- `index.html`
-- `tests/abilities.cjs`
+- markup only: `index.html`
+- gems/world/shops/gear content: `assets/content.js`
+- behavior/gameplay/runtime: `assets/app.js`
+- visuals/responsive rules: `assets/styles.css`
+- regression coverage: `tests/abilities.cjs`
+
+Do not put application CSS or JS back inline in `index.html`. Read `docs/FRONTEND.md` before adding a new encounter, region, or major UI surface.
 
 ### Persistent rule/catalog change
 
@@ -96,7 +104,7 @@ Examples:
 - world graph/encounter IDs
 - persistent equipment validation
 
-Relevant server definitions live in `server/catalog.cjs`.
+Relevant server definitions live in `server/catalog.cjs`. Matching browser definitions live in `assets/content.js`.
 
 ### Database/API change
 
