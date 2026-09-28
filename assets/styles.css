@@ -14,6 +14,15 @@
   --gold:#c3a05e;
   --xp:#6f99a0;
   --env:#77766d;
+  --content-max:900px;
+  --reading-max:720px;
+  --page-x:clamp(14px,4vw,42px);
+  --page-top:clamp(18px,4vw,38px);
+  --radius-sm:6px;
+  --radius-md:10px;
+  --radius-lg:16px;
+  --surface:#151611;
+  --surface-raised:#1b1c17;
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#050a12;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden;touch-action:manipulation}button{font:inherit;color:inherit}.app{width:min(100vw,540px);height:100dvh;margin:auto;position:relative;background:radial-gradient(circle at 50% 0,#172743 0,#08111f 42%,#050a12 100%);overflow:hidden}.game{height:100%;display:flex;flex-direction:column;gap:7px;padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(13,23,40,.9);border:1px solid var(--line);border-radius:15px;padding:8px 10px;min-height:61px}.name{font-size:10px;letter-spacing:1.25px;color:var(--muted);font-weight:800}.stats{font-size:13px;font-weight:850;margin-top:4px}.right{text-align:right}.turn{text-align:center;font-size:10px;letter-spacing:1px;font-weight:900;color:var(--g)}.turn small{display:block;color:var(--muted);font-size:8px;margin-top:4px;font-weight:650;letter-spacing:.8px}.sacksBtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;font-size:9px;padding:6px 8px;margin-top:5px;color:var(--muted)}
@@ -99,70 +108,6 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .shopStatus{min-height:24px;color:#e9c77b!important;font-size:9px}.shopBack{background:transparent;border:1px solid #554b38;color:#cbbd9f;padding:8px 9px;border-radius:4px;font-size:9px}
 @media(max-width:360px){.shopGrid,.shopColorGrid,.shopGearGrid{grid-template-columns:1fr}.shopItem{min-height:80px}}
 .captchaWrap{margin:12px 0 2px;min-height:82px;display:grid;place-items:center;width:100%}.captchaWrap #turnstileWidget{width:100%;display:grid;place-items:center}.captchaWrap[hidden]{display:none!important}.captchaWrap small{display:block;margin-top:5px;color:#aa9b7b;text-align:center}.screenVeil{position:absolute;inset:0;z-index:120;pointer-events:none;opacity:0;background:radial-gradient(circle at 50% 35%,#efd18b18,#08080688 70%);will-change:opacity}.page,.game{will-change:transform,opacity}
-
-/* Adaptive tablet layout */
-@media (min-width:700px){
-  .app{width:min(100vw,960px);box-shadow:0 0 80px #0008}
-  .page{padding:clamp(32px,5vw,54px) clamp(30px,6vw,64px) calc(34px + env(safe-area-inset-bottom))}
-  .page h1{font-size:clamp(44px,6vw,58px)}
-  .splashPage h1,.menuPage h1{font-size:clamp(78px,11vw,104px)}
-  .primary{width:min(380px,70vw);padding:18px;font-size:13px}
-  .menuPage nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:min(720px,86%)}.menuPage nav .primary{width:100%;margin:0}
-  #loadout{grid-template-columns:repeat(5,minmax(100px,1fr));gap:9px}
-  .equip{min-height:105px;padding:10px 6px}.equip b{font-size:15px}.equip span{font-size:9px}.equip small{font-size:8px}
-  #collection{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.inventoryGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.shopItem{min-height:92px}.shopColorCatalog,.shopGearCatalog{gap:16px}
-  .equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
-  .gemologyGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.gemologyCard.wide{grid-column:1/-1}
-  .starterGrid{grid-template-columns:1fr 1fr}
-  .accountBox{max-width:700px}.accountActions{grid-template-columns:1fr 1fr}
-  .modalCard{max-width:720px;padding:22px}.modal h2{font-size:28px}.sack{padding:14px}.line{font-size:12px}
-  .combatOverlay{padding:calc(30px + env(safe-area-inset-top)) clamp(28px,7vw,70px) calc(30px + env(safe-area-inset-bottom))}
-  .combatOverlay h2{font-size:30px}.combatOverlay button,.effectsDrawer button{font-size:12px;padding:13px}
-  .effectsDrawer{left:50%;right:auto;width:min(760px,92vw);translate:-50% 0;border:1px solid #8c713f;border-bottom:0;border-radius:10px 10px 0 0}
-  .combatEquipGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
-  .worldHud{padding:calc(14px + env(safe-area-inset-top)) 22px 12px}.worldHud button{font-size:11px;padding:10px 12px}.worldTitle b{font-size:24px}
-  .worldViewport{inset:0 0 166px}.worldCard{left:50%;right:auto;transform:translateX(-50%);width:min(760px,calc(100% - 44px));min-height:136px;padding:16px;bottom:calc(16px + env(safe-area-inset-bottom));border-radius:9px}
-  .worldCard h2{font-size:28px}.worldCard p{font-size:12px!important}.worldLegend{font-size:9px}.worldAction{font-size:10px;padding:13px;min-width:130px}
-}
-@media (min-width:700px) and (orientation:portrait){
-  .game{padding:calc(16px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));gap:9px}
-  .top{width:min(100%,700px);align-self:center;padding:14px 16px;min-height:78px}.name{font-size:13px}.stats{font-size:13px}.turn{font-size:11px}.turn small{font-size:8px}
-  .boardShell{width:min(100%,620px,calc(100dvh - 430px));align-self:center}
-  #turnBadge,#statusTags,.status,#abilityBanner,#reservoirs,.slots,.effectsBtn,.foot{width:min(100%,620px);align-self:center}
-  .turnBadge{font-size:13px}.statusTag{font-size:9px;padding:5px 8px}.resource{font-size:9px}.log{font-size:12px}
-  .slots{gap:7px}.slot{height:118px;padding:9px 5px}.slotName{font-size:12px}.effect{font-size:8px}.charge{font-size:10px}.orb{width:18px;height:18px}
-  .effectsBtn{padding:8px;font-size:10px}
-}
-@media (min-width:700px) and (orientation:landscape){
-  .app{width:min(100vw,1180px)}
-  .game{
-    display:grid;
-    grid-template-columns:minmax(380px,min(68dvh,58vw,620px)) minmax(300px,1fr);
-    grid-template-rows:auto auto auto minmax(42px,1fr) auto auto auto auto auto;
-    grid-template-areas:
-      "top top"
-      "board turn"
-      "board tags"
-      "board status"
-      "board ability"
-      "board reservoirs"
-      "board slots"
-      "board equip"
-      "board foot";
-    column-gap:18px;row-gap:7px;
-    padding:calc(14px + env(safe-area-inset-top)) 18px calc(14px + env(safe-area-inset-bottom));
-  }
-  .top{grid-area:top;min-height:70px;padding:10px 18px}.name{font-size:12px}.stats{font-size:12px}
-  .boardShell{grid-area:board;width:100%;max-width:none;align-self:center;justify-self:stretch}
-  #turnBadge{grid-area:turn}#statusTags{grid-area:tags}.status{grid-area:status}.abilityBanner{grid-area:ability}.reservoirs{grid-area:reservoirs}.slots{grid-area:slots}.effectsBtn{grid-area:equip}.foot{grid-area:foot}
-  #turnBadge,#statusTags,.status,.abilityBanner,.reservoirs,.slots,.effectsBtn,.foot{width:auto;align-self:stretch}
-  .status{min-height:44px;align-self:start}.log{font-size:11px}.resource{flex-wrap:wrap;row-gap:4px}
-  .slots{margin-top:0;gap:6px}.slot{height:clamp(88px,14dvh,112px);padding:7px 3px}.slotName{font-size:10px}.effect{font-size:7px}.charge{font-size:9px}
-  .effectsBtn{padding:7px}.foot{font-size:7px}
-  #leaveFight{top:calc(18px + env(safe-area-inset-top));left:24px}
-  .combatOverlay{left:50%;right:auto;width:min(760px,88vw);transform:translateX(-50%)}
-}
-
 
 /* Modern deck UI — compact, card-first, and intentionally quieter than the arena. */
 .sackPage{background:linear-gradient(180deg,#10151f 0,#0b0f16 100%);padding:calc(16px + env(safe-area-inset-top)) 14px calc(24px + env(safe-area-inset-bottom));color:#f4f7fb}
@@ -670,3 +615,125 @@ html,body{background:#060705;color:var(--text)}
 @media(prefers-reduced-motion:reduce){
   .moveBreak.comboCharging:after{animation:none;opacity:1;transform:translate(-50%,-2px)}
 }
+
+/* Unified responsive layout system.
+   Generic page geometry lives here; specialized world/combat/story rules remain with their components. */
+.app{width:min(100vw,540px)}
+.page:not(.worldPage){
+  padding:calc(var(--page-top) + env(safe-area-inset-top)) var(--page-x) calc(32px + env(safe-area-inset-bottom));
+  scroll-padding-top:calc(var(--page-top) + env(safe-area-inset-top));overscroll-behavior:contain
+}
+:is(.sackPage,.shopPage,.starterPage,.accountPage,.inventoryPage,.gemologyPage,.settingsPage)>*{
+  width:min(100%,var(--content-max));margin-left:auto;margin-right:auto
+}
+.pageTopbar,.page:not(.splashPage):not(.menuPage):not(.worldPage)>header{
+  min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;
+  padding-bottom:10px;border-bottom:1px solid #2f2d27
+}
+.pageTopbar button,.page:not(.splashPage):not(.menuPage):not(.worldPage)>header button{min-width:38px;min-height:38px;border-radius:8px}
+.pageTopbar .eyebrow,.page>header .eyebrow{margin-left:auto;text-align:right}
+.pageHero{display:grid;gap:5px;margin-top:2px;margin-bottom:22px}
+.pageHero.compact{margin-bottom:18px}
+.pageHero small{font-size:8px;font-weight:850;letter-spacing:2.1px}
+.pageHero h1{margin:0;font-size:clamp(38px,9vw,54px);line-height:.98;letter-spacing:-1.6px}
+.pageHero p{max-width:620px;margin:5px 0 0;font-size:11px;line-height:1.55}
+
+/* Splash */
+.splashPage{padding:calc(30px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));gap:0}
+.splashSigil{position:relative;width:108px;height:108px;display:grid;place-items:center;margin-bottom:22px}
+.splashSigil:before,.splashSigil:after{content:"";position:absolute;inset:0;border:1px solid #62543e;transform:rotate(45deg);border-radius:12px;box-shadow:0 0 40px #0008,inset 0 0 22px #c89a4920}
+.splashSigil:after{inset:14px;border-color:#9d7b49;opacity:.55}
+.splashSigil span{position:relative;z-index:1;font-size:42px;color:#c19e61;text-shadow:0 0 20px #b88c4866}
+.splashBrand{text-align:center}.splashBrand small{font-size:8px;letter-spacing:3px;color:#8f826c;font-weight:850}
+.splashBrand h1{font-size:clamp(68px,18vw,94px);line-height:.88;margin:6px 0 12px;letter-spacing:-5px}
+.splashBrand p{margin:0;font-size:11px;letter-spacing:1.2px;color:#867e70}
+.splashEnter{display:grid;gap:3px;place-items:center;width:min(330px,86vw);margin:42px 0 0;padding:16px 18px}
+.splashEnter span{font-size:12px;font-weight:900;letter-spacing:2.2px}.splashEnter small{font-size:6px;letter-spacing:1.2px;color:#a7987e}
+.splashFooter{display:flex;align-items:center;gap:9px;margin-top:24px;color:#615d54;font-size:7px;letter-spacing:1.4px}.splashFooter i{width:18px;height:1px;background:#4a463d}
+
+/* Main menu */
+.menuPage{justify-content:flex-start;padding-top:calc(44px + env(safe-area-inset-top));padding-bottom:calc(24px + env(safe-area-inset-bottom))}
+.menuBrand{width:min(100%,760px);text-align:left;margin:0 auto 26px}.menuBrand .eyebrow{display:block;margin-bottom:5px}.menuBrand h1{font-size:clamp(58px,16vw,86px);line-height:.9;margin:0;letter-spacing:-4px}.menuBrand p{margin:10px 2px 0;color:#817a6e;font-size:11px}
+.menuNav{width:min(100%,760px);display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 auto}
+.menuNav .primary{width:100%;min-height:68px;margin:0;padding:10px 12px;display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;text-align:left;letter-spacing:0}
+.menuNav .menuPrimary{grid-column:1/-1;min-height:80px;background:linear-gradient(180deg,#59452b,#30261a);border-color:#9b7a4d}
+.menuIcon{width:34px;height:34px;display:grid;place-items:center;border:1px solid #514a3d;border-radius:9px;background:#10110e;color:#b79b68;font-size:15px}.menuPrimary .menuIcon{width:40px;height:40px;border-color:#80643f;color:#e3c17b}
+.menuButtonCopy{display:grid;gap:2px;min-width:0}.menuButtonCopy b{font-size:10px;letter-spacing:1.4px}.menuButtonCopy small{font-size:6px;letter-spacing:.8px;color:#777064;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.menuPrimary .menuButtonCopy b{font-size:13px}.menuPrimary .menuButtonCopy small{color:#a89a80}
+.menuArrow{font-size:16px;color:#686257}.menuPrimary .menuArrow{color:#d4b87e}
+.menuSnapshot{width:min(100%,760px);display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px auto 0;text-align:left}
+.menuSnapshot>div{min-width:0;padding:9px 11px;border:1px solid #35322b;border-radius:8px;background:#10110d}.menuSnapshot small{display:block;font-size:6px;letter-spacing:1.3px;color:#6f685d}.menuSnapshot b{display:block;margin-top:3px;color:#9c9383;font-size:8px;line-height:1.35;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Account + settings use readable, card-based columns. */
+.accountPage .accountBox{max-width:620px;margin:0 auto 12px;padding:18px;border-radius:var(--radius-md)}
+.accountPage .accountSecurity,.accountPage .accountDanger,.accountPage .accountStatus{max-width:620px}
+.accountPage .accountBox label{margin-top:13px}.accountPage .accountBox input{height:46px;border-radius:8px;padding:0 12px}.accountPage .accountActions{gap:8px}.accountPage .accountActions button,.accountPage .accountButton{min-height:44px;border-radius:8px;font-weight:800;letter-spacing:.7px}
+#accountLoggedIn h2{margin:5px 0 14px;font:32px Georgia,serif;color:#e3d4b8}.accountStats{gap:8px}.accountStats b{min-width:72px;border-radius:7px;padding:9px 10px;text-align:center}
+.settingsStack{display:grid;gap:10px;max-width:760px}
+.settingsCard{padding:16px;border:1px solid #444035;border-radius:var(--radius-md);background:linear-gradient(180deg,#191a16,#11120f);box-shadow:0 10px 24px #0005}
+.settingsCardHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #302e27}.settingsCardHead small{display:block;font-size:7px;letter-spacing:1.5px;color:#7b7367}.settingsCardHead h2{margin:2px 0 0;font:21px Georgia,serif;color:#d9c7a4}.settingsGlyph{width:34px;height:34px;display:grid;place-items:center;border:1px solid #4d4639;border-radius:8px;background:#11120f;color:#b49b6a}
+.settingsCard .setting{justify-content:space-between;gap:16px;margin:14px 0 8px}.settingsCard .setting>span{display:grid;gap:2px}.settingsCard .setting b{font-size:11px;color:#d6cbb7}.settingsCard .setting small{font-size:8px;line-height:1.35;color:#837b6e}.settingsCard .setting input{flex:0 0 auto}
+.settingsCard select{height:44px;margin-top:14px;border-radius:7px}.settingsCard>p{margin:8px 0 0;font-size:9px;color:#7d766a}
+
+/* Catalogue/readable layouts */
+.shopHero{display:grid;gap:10px;margin-bottom:14px}.shopHero>div:first-child{display:grid;gap:3px}.shopHero small{font-size:7px;letter-spacing:1.7px;color:#776f63}.shopHero h1{margin:0;font-size:clamp(38px,10vw,52px);line-height:1}.shopHero p{margin:4px 0 0;max-width:560px}
+.shopPage .shopBar{margin:0;border-radius:9px;padding:11px 12px;background:linear-gradient(180deg,#1c1d18,#11120f)}
+.shopGrid{gap:10px}.shopColorCatalog,.shopGearCatalog{gap:18px}.shopColorSection,.shopGearSection{gap:8px}.shopColorHead,.shopGearHead{padding:0 3px 3px}.shopColorHead b,.shopGearHead b{font-size:10px}.shopItem{border-radius:8px;min-height:96px;padding-top:11px;padding-bottom:10px}.shopItem b{font-size:14px}.shopItem p{line-height:1.35}.shopStatus{margin-top:11px}
+.starterHero{margin-bottom:12px}.starterWarning{display:flex;gap:6px;align-items:baseline;margin:0 0 16px;border:1px solid #403b31;border-left:3px solid #8f7144;border-radius:8px;padding:10px 12px;background:#12130f}.starterWarning b{color:#d6bd8b;white-space:nowrap}.starterGrid{gap:10px}.starterPage .starterGem{border-radius:10px}
+.gemologyPage .gemologyGrid{align-items:stretch;gap:10px}.gemologyPage .gemologyCard{border-radius:9px;padding:15px;min-height:142px;box-shadow:0 8px 20px #0004}.gemologyPage .gemologyCard h2{font-size:22px}.gemologyPage .gemologyCard p{line-height:1.45}.gemologyPage .rulebook{max-width:var(--reading-max);margin-left:auto;margin-right:auto}.rulebook{padding-top:16px}.rulebook h2{margin-top:18px}.ruleTag{border-radius:999px;padding:4px 7px}
+.inventoryPage .equipmentHero{border-radius:11px;padding:16px;box-shadow:0 12px 28px #0005}.inventoryPage .equipmentGrid,.inventoryPage .inventoryGrid{align-items:stretch}.equipmentGrid{gap:8px}.gearSlot,.gearCard{border-radius:8px}.unequipGear{min-height:36px;border-radius:8px}
+.sackPage .sackHero{margin-top:16px}.sackPage .sackSlot,.sackPage .itemCard{transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}.sackPage .sackSlot:active,.sackPage .itemCard:not(:disabled):active{transform:translateY(1px) scale(.985)}
+
+/* World: make the map dominant and group HUD controls as one chrome family. */
+.worldHud{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+.worldHud button,.worldGold{min-height:38px;border-radius:8px}
+.worldQuickbar{gap:6px}.worldQuickButton{border-radius:9px;min-height:50px}.worldQuickIcon{font-size:18px}
+.worldCard{border-radius:10px;padding:13px 14px}.worldAction{border-radius:8px;min-height:42px}.worldLegend{display:flex;flex-wrap:wrap;gap:5px 10px}.worldLegend span{margin:0}
+
+/* Combat: board-first spacing and cleaner chrome. */
+.game{padding-left:max(9px,env(safe-area-inset-left));padding-right:max(9px,env(safe-area-inset-right))}
+.top{border-radius:9px}.combatant{border-radius:8px}.boardShell{border-radius:10px;padding:5px}
+.turnBadge{border-radius:6px}.statusTags{scrollbar-width:none}.statusTags::-webkit-scrollbar{display:none}.effectsBtn{min-height:30px;border-radius:6px}
+.moveHistoryItem{border-radius:7px}.abilityBanner{border-radius:7px}.slot{border-radius:7px}
+
+/* Tablet and large-screen composition */
+@media (min-width:700px){
+  .app{width:min(100vw,1040px);box-shadow:0 0 100px #000a}
+  .app{--page-x:clamp(30px,5vw,58px);--page-top:clamp(28px,4vw,48px)}
+  .pageHero{margin-bottom:28px}.pageHero p{font-size:13px}
+  .splashSigil{width:132px;height:132px}.splashBrand h1{font-size:104px}.splashEnter{width:360px}
+  .menuPage{justify-content:center;padding-top:calc(34px + env(safe-area-inset-top))}.menuBrand{text-align:center}.menuBrand p{text-align:center}.menuNav{gap:10px}.menuNav .primary{min-height:78px;padding:13px 15px}.menuNav .menuPrimary{min-height:92px}.menuButtonCopy b{font-size:12px}.menuButtonCopy small{font-size:7px}.menuSnapshot{gap:10px}
+  .accountPage .accountBox{padding:22px}.settingsStack{grid-template-columns:1fr 1fr;gap:12px}.settingsCard{padding:19px}
+  .shopHero{grid-template-columns:minmax(0,1fr) 180px;align-items:end;gap:20px}.shopHero .shopBar{display:grid;gap:4px;justify-items:end;text-align:right}.shopHero .shopBar b{font-size:14px}
+  .gemologyGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.gemologyCard.wide{grid-column:1/-1}
+  .shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .starterPage .starterGrid{grid-template-columns:repeat(3,minmax(0,1fr));max-width:780px}.starterPage .starterGem{min-height:240px}
+  .inventoryGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .worldHud{padding:calc(14px + env(safe-area-inset-top)) 22px 12px}.worldHud button{font-size:11px;padding:10px 12px}.worldTitle b{font-size:24px}
+  .worldQuickbar{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 44px));bottom:calc(174px + env(safe-area-inset-bottom));gap:9px}.worldQuickButton{min-height:58px;font-size:9px}
+  .worldCard{left:50%;right:auto;transform:translateX(-50%);width:min(760px,calc(100% - 44px));min-height:138px;padding:16px;bottom:calc(16px + env(safe-area-inset-bottom))}.worldCard h2{font-size:28px}.worldViewport{inset:0 0 238px}
+  .worldEffectsPanel,.worldQuestPanel{left:auto;right:22px;width:380px;bottom:calc(248px + env(safe-area-inset-bottom));max-height:460px}
+}
+@media (min-width:700px) and (orientation:portrait){
+  .game{padding:calc(16px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));gap:8px}
+  .top{width:min(100%,700px);align-self:center;padding:14px 16px;min-height:78px}
+  .boardShell{width:min(100%,620px,calc(100dvh - 430px));align-self:center}
+  #turnBadge,#statusTags,.status,#abilityBanner,#reservoirs,.slots,.effectsBtn,.foot{width:min(100%,620px);align-self:center}
+  .turnBadge{font-size:13px}.statusTag{font-size:9px;padding:5px 8px}.slots{gap:7px}.slot{height:118px;padding:9px 5px}.slotName{font-size:12px}.effect{font-size:8px}.charge{font-size:10px}
+}
+@media (min-width:700px) and (orientation:landscape){
+  .app{width:min(100vw,1180px)}
+  .game{display:grid;grid-template-columns:minmax(380px,min(68dvh,58vw,620px)) minmax(310px,1fr);grid-template-rows:auto auto auto minmax(42px,1fr) auto auto auto auto auto;grid-template-areas:"top top" "board turn" "board tags" "board status" "board ability" "board reservoirs" "board slots" "board equip" "board foot";column-gap:20px;row-gap:7px;padding:calc(14px + env(safe-area-inset-top)) 20px calc(14px + env(safe-area-inset-bottom))}
+  .top{grid-area:top;min-height:70px;padding:10px 18px}.boardShell{grid-area:board;width:100%;max-width:none;align-self:center}
+  #turnBadge{grid-area:turn}#statusTags{grid-area:tags}.status{grid-area:status}.abilityBanner{grid-area:ability}.reservoirs{grid-area:reservoirs}.slots{grid-area:slots}.effectsBtn{grid-area:equip}.foot{grid-area:foot}
+  #turnBadge,#statusTags,.status,.abilityBanner,.reservoirs,.slots,.effectsBtn,.foot{width:auto;align-self:stretch}.status{min-height:44px;align-self:start}.resource{flex-wrap:wrap;row-gap:4px}.slots{margin-top:0;gap:6px}.slot{height:clamp(88px,14dvh,112px)}
+  #leaveFight{top:calc(18px + env(safe-area-inset-top));left:24px}.combatOverlay{left:50%;right:auto;width:min(760px,88vw);transform:translateX(-50%)}
+}
+@media(max-width:390px){
+  .menuPage{padding-left:10px;padding-right:10px}.menuBrand{margin-bottom:18px}.menuNav{gap:6px}.menuNav .primary{min-height:61px;padding:8px 9px}.menuIcon{width:30px;height:30px}.menuButtonCopy small{font-size:5.5px}.menuSnapshot{gap:6px}
+  .pageHero h1{font-size:36px}.settingsCard{padding:13px}.worldQuickbar{gap:4px;left:7px;right:7px}.worldQuickButton{padding-left:2px;padding-right:2px}
+}
+@media(hover:hover) and (pointer:fine){
+  .menuNav .primary,.shopItem,.gearCard,.gearSlot,.sackPage .itemCard,.sackPage .sackSlot,.worldQuickButton,.worldAction,.settingsCard{transition:transform .14s ease,border-color .14s ease,filter .14s ease,box-shadow .14s ease}
+  .menuNav .primary:hover,.shopItem:not(:disabled):hover,.gearCard:not(:disabled):hover,.gearSlot:hover,.sackPage .itemCard:not(:disabled):hover,.sackPage .sackSlot:hover,.worldQuickButton:hover,.worldAction:hover{transform:translateY(-2px);filter:brightness(1.06);border-color:#766649;box-shadow:0 9px 22px #0006}
+}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #c4a56b;outline-offset:2px}

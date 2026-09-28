@@ -32,6 +32,11 @@ assert.equal((styles.match(/:root\s*\{/g)||[]).length,1,'the visual system must 
 assert(styles.includes('@media (min-width:700px)'),'tablet breakpoint must exist');
 assert(styles.includes('orientation:landscape'),'landscape tablet layout must exist');
 assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-pane grid');
+assert(html.includes('class="splashSigil"')&&html.includes('class="menuNav"')&&html.includes('class="menuSnapshot"'),'splash and menu use the unified game-shell hierarchy');
+assert(html.includes('class="pageHero compact"')&&html.includes('class="settingsStack"')&&html.includes('class="shopHero"'),'utility and catalogue screens use shared page hierarchy');
+assert(styles.includes('/* Unified responsive layout system.')&&styles.includes('--content-max:900px')&&styles.includes('.pageHero{'),'canonical responsive layout system is present');
+assert(styles.includes('@media(hover:hover) and (pointer:fine)')&&styles.includes('button:focus-visible'),'layout system includes pointer polish and keyboard focus states');
+assert((styles.match(/\/\* Adaptive tablet layout \*\//g)||[]).length===0,'legacy generic tablet layout block stays removed');
 assert(src.includes("localStorage.getItem('gemmo.session')"),'login token must persist across browser restarts');
 assert(src.includes("localStorage.setItem('gemmo.session'"),'successful login must remember the session');
 assert(src.includes("localStorage.removeItem('gemmo.session'"),'logout must clear the remembered session');

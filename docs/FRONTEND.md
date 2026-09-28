@@ -73,20 +73,25 @@ Do not put new inline application CSS or JS back into `index.html`.
 
 geMMO has one canonical palette root in `assets/styles.css`. Theme tokens belong there.
 
+The stylesheet now also has one canonical **Unified responsive layout system** at the end of the file. It owns shared page geometry, content widths, page heroes, menu composition, utility-card layouts, world chrome geometry, and phone/tablet/landscape composition. Specialized component styling can live with its component, but do not add another generic tablet/page system.
+
 Prefer:
 
 - existing semantic variables
 - component classes
 - shared responsive breakpoints
+- `pageHero`, `pageTopbar`, and the shared content-width tokens for new full-page screens
+- board-first/world-first layouts where the gameplay surface stays visually dominant
 
 Avoid:
 
 - new competing `:root` palettes
 - page-specific copies of the same component
 - inline styles for reusable UI
+- generic layout overrides below the canonical responsive system
 - `!important` unless required to override third-party behavior
 
-The current stylesheet still contains historical component declarations beneath the canonical theme. Future visual work should simplify those sections instead of stacking another theme layer on top.
+Historical generic tablet rules were removed during the unified layout pass. Continue simplifying older component declarations when touching them rather than rebuilding a second shell.
 
 The same rule now applies to runtime structure: deterministic board/RNG primitives belong in `combat-core.js`; small rules that must be identical in browser and replay belong in `shared/combat-rules.js`; encounter orchestration, animation, UI, and network behavior stay in `app.js`. Continue extracting coherent pure seams instead of introducing a framework rewrite.
 
