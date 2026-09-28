@@ -458,6 +458,10 @@ function questRecord(id){return account?.quests?.find?.(q=>q.id===id)||null}
 function questStatus(id){return questRecord(id)?.status||'available'}
 function cutsceneSeen(id){return account?.story?.seenCutscenes?.includes?.(id)||false}
 function npcAtNode(nodeId){return Object.values(NPCS).find(npc=>npc.node===nodeId)||null}
+function npcQuestMarker(npc){
+ const dialogue=npc&&DIALOGUES[npc.dialogue],status=dialogue?questStatus(dialogue.questId):'completed';
+ return status==='available'?'!':status==='ready'?'?':'';
+}
 function renderWorldQuests(){
  const rows=(account?.quests||[]).map(row=>({row,quest:QUESTS[row.id]})).filter(v=>v.quest);
  $('worldQuestList').innerHTML=rows.length?rows.map(({row,quest})=>{
@@ -583,12 +587,13 @@ function drawWorld(){
  ctx.strokeStyle='#c1a36b';ctx.lineWidth=5*worldCamera.zoom;ctx.globalAlpha=.75;
  const done=new Set();for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible))for(const n of node.neighbors){if(!worldNodeVisible(WORLD_NODES[n]))continue;const key=[node.id,n].sort().join('|');if(done.has(key))continue;done.add(key);const a=objectPoint(node.x,node.y),b=objectPoint(WORLD_NODES[n].x,WORLD_NODES[n].y);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke()}ctx.globalAlpha=1;
  worldHits=[];
- for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom;
+ for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom,npc=npcAtNode(node.id);
   if(node.id==='camp'){ctx.fillStyle='#7c4c2d';ctx.beginPath();ctx.moveTo(p.x,p.y-22*s);ctx.lineTo(p.x+15*s,p.y);ctx.lineTo(p.x-15*s,p.y);ctx.closePath();ctx.fill();ctx.fillStyle='#e69245';ctx.beginPath();ctx.arc(p.x+13*s,p.y-2*s,3*s,0,Math.PI*2);ctx.fill()}
   if(node.id==='shrine'){ctx.fillStyle='#8a897c';ctx.fillRect(p.x-5*s,p.y-23*s,10*s,22*s);ctx.fillStyle='#aaa899';ctx.fillRect(p.x-9*s,p.y-25*s,18*s,5*s)}
   if(node.kind==='shop'){ctx.fillStyle=node.id==='gem-shop'?'#654f83':'#725135';ctx.fillRect(p.x-14*s,p.y-17*s,28*s,17*s);ctx.fillStyle='#d7bb82';ctx.beginPath();ctx.moveTo(p.x-18*s,p.y-18*s);ctx.lineTo(p.x+18*s,p.y-18*s);ctx.lineTo(p.x+12*s,p.y-28*s);ctx.lineTo(p.x-12*s,p.y-28*s);ctx.closePath();ctx.fill()}
   if(node.id==='rat'){ctx.strokeStyle='#5a4031';ctx.lineWidth=2*s;ctx.beginPath();ctx.arc(p.x,p.y-18*s,6*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(p.x-4*s,p.y-24*s,2*s,0,Math.PI*2);ctx.arc(p.x+3*s,p.y-24*s,2*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x+6*s,p.y-18*s);ctx.quadraticCurveTo(p.x+17*s,p.y-24*s,p.x+18*s,p.y-14*s);ctx.stroke()}
   if(node.id==='bandit-pass'){ctx.strokeStyle='#4f3123';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-27*s);ctx.stroke();ctx.fillStyle='#9a3f32';ctx.beginPath();ctx.moveTo(p.x,p.y-27*s);ctx.lineTo(p.x+16*s,p.y-22*s);ctx.lineTo(p.x,p.y-15*s);ctx.closePath();ctx.fill()}
+  if(npc){const nx=p.x-20*s,ny=p.y-8*s;ctx.strokeStyle='#292119';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(nx,ny-14*s);ctx.stroke();ctx.fillStyle='#d1a879';ctx.beginPath();ctx.arc(nx,ny-19*s,4*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5d4732';ctx.fillRect(nx-5*s,ny-15*s,10*s,12*s);const marker=npcQuestMarker(npc);if(marker){ctx.fillStyle='#f3d477';ctx.beginPath();ctx.arc(nx,ny-34*s,8*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#211b12';ctx.font='bold '+Math.max(10,12*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(marker,nx,ny-34*s)}}
   ctx.beginPath();ctx.arc(p.x,p.y-5*s,(selected?11:8)*s,0,Math.PI*2);ctx.fillStyle=node.kind==='encounter'?'#a7493d':current?'#f2d68f':'#d3bf83';ctx.fill();ctx.strokeStyle=selected?'#fff1bc':'#4e432d';ctx.lineWidth=selected?3:2;ctx.stroke();
   ctx.font=(selected?'bold ':'')+Math.max(9,10*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.lineWidth=3;ctx.strokeStyle='#151713';ctx.strokeText(node.name,p.x,p.y-35*s);ctx.fillStyle='#f4dfab';ctx.fillText(node.name,p.x,p.y-35*s);
   worldHits.push({id:node.id,x:p.x,y:p.y-5*s,r:24*s});
