@@ -1,6 +1,6 @@
 (()=>{
 'use strict';
-const W=8,H=8;
+const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE;if(!COMBAT_CORE)throw new Error('GEMMO_COMBAT_CORE missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
@@ -84,30 +84,14 @@ let board=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=f
 let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
-function makeCombatRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
+function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function recordCombatAction(action){if(activeAuthority?.mode==='replay-v1')combatTranscript.push(action)}
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function buildBoard(){board=[];for(let y=0;y<H;y++){let row=[];for(let x=0;x<W;x++){let k=roll(),tries=0;while(tries++<30&&((x>=2&&row[x-1]===k&&row[x-2]===k)||(y>=2&&board[y-1][x]===k&&board[y-2][x]===k)))k=roll();row.push(k)}board.push(row)}if(!legalMoves().length)return buildBoard();render()}
-function swap(a,b){[board[a.y][a.x],board[b.y][b.x]]=[board[b.y][b.x],board[a.y][a.x]]}
-function k(x,y){return x+','+y}
-function findMatches(){
- const cells=new Map(),runs=[];
- function scan(line){
-  for(const type of TYPES){
-   let run=[];
-   const flush=()=>{if(run.length>=3&&run.some(p=>board[p.y][p.x]===type)){
-    runs.push({type,len:run.length,cells:run.slice()});
-    for(const p of run){const key=k(p.x,p.y);if(!cells.has(key))cells.set(key,{...p,type:board[p.y][p.x]==='wild'?type:board[p.y][p.x]})}
-   }run=[]};
-   for(const p of line){const t=board[p.y][p.x];if(t===type||t==='wild')run.push(p);else flush()}flush();
-  }
- }
- for(let y=0;y<H;y++)scan(Array.from({length:W},(_,x)=>({x,y})));
- for(let x=0;x<W;x++)scan(Array.from({length:H},(_,y)=>({x,y})));
- return cells.size?{cells:[...cells.values()],runs}:null
-}
+function swap(a,b){COMBAT_CORE.swap(board,a,b)}
+function findMatches(){return COMBAT_CORE.findMatches(board,TYPES)}
 function reservoirCap(color){return sack.reduce((sum,id)=>sum+(itemById(id)?.color===color?itemById(id).cap:0),0)+gearStats().caps[color]}
-function legalMoves(){let list=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){let a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){let nx=x+dx,ny=y+dy;if(nx>=W||ny>=H)continue;let b={x:nx,y:ny};swap(a,b);if(findMatches())list.push([a,b]);swap(a,b)}}return list}
+function legalMoves(){return COMBAT_CORE.legalMoves(board,TYPES)}
 function damageEnemy(n){if(enemyEffects.mark&&n>0){n+=3;enemyEffects.mark=0;setLog('HUNTER’S MARK: +3 damage.')}let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
 function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);let blocked=Math.min(pGuard,n),dealt=n-blocked;pGuard-=blocked;pHP-=dealt;damageFlight('p',dealt,blocked);if(buffs.reflect&&dealt>0){buffs.reflect=0;const reflected=Math.max(1,Math.ceil(dealt/2));damageEnemy(reflected);setLog('REPRISAL: reflected '+reflected+' damage.')}}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}

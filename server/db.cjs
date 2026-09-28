@@ -226,7 +226,7 @@ async function startMatch(db,userId,encounterId){
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
   const rewardBudget=rollRewardBudget(encounterId);if(!rewardBudget)throw Object.assign(new Error('invalid_encounter'),{status:400});
-  const replayRequired=encounterId==='rat'||db.storage.location!==':memory:',id=randomUUID(),now=Date.now(),authority=replayRequired?{mode:'replay-v1',seed:randomInt(0,0x100000000)}:null;
+  const id=randomUUID(),now=Date.now(),authority={mode:'replay-v1',seed:randomInt(0,0x100000000)};
   await transaction(db,async tx=>{
     await tx.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
     await tx.prepare('INSERT INTO match_reward_budgets(match_id,gold_cap,xp_cap) VALUES(?,?,?)').run(id,rewardBudget.gold,rewardBudget.xp);

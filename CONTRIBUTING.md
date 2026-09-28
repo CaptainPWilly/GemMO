@@ -8,6 +8,7 @@ The **browser implementation is live**.
 
 - UI markup/shell: `index.html`
 - Expandable browser content: `assets/content.js`
+- Deterministic browser combat primitives: `assets/combat-core.js`
 - Browser runtime/gameplay/world renderer/API client: `assets/app.js`
 - Browser visual system: `assets/styles.css`
 - Browser regression tests: `tests/abilities.cjs`
@@ -87,6 +88,7 @@ Edit by ownership:
 
 - markup only: `index.html`
 - gems/world/shops/gear content: `assets/content.js`
+- deterministic board/RNG primitives: `assets/combat-core.js`
 - behavior/gameplay/runtime: `assets/app.js`
 - visuals/responsive rules: `assets/styles.css`
 - regression coverage: `tests/abilities.cjs`
@@ -144,7 +146,7 @@ This avoids deploying a newer untested SHA by accident.
 - Do not make browser/localStorage data authoritative for Gold, XP, ownership, world progress, or equipment.
 - Keep server-side ownership/slot/world/shop validation.
 - Preserve idempotent reward settlement.
-- Do not claim combat is fully anti-cheat yet; the board/action engine is still client-side.
+- Rat and Bandit victories are replay-verified, but do not call combat fully anti-cheat: the browser still runs the responsive live simulation and the server verifies the transcript after the fight rather than owning every action live.
 - Production storage must report `provider: turso` and `persistent: true`.
 - If `/health` reports local SQLite on Render, persistence is misconfigured.
 

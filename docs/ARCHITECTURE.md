@@ -8,11 +8,12 @@ Player browser
     └─ semantic UI shell
   assets/
     ├─ content.js       expandable world/catalog/gear content
-    ├─ styles.css      responsive dungeon visual system
+    ├─ combat-core.js   deterministic RNG/matching/legal-move primitives
+    ├─ styles.css       responsive dungeon visual system
     └─ app.js
         ├─ UI behavior
         ├─ isometric world renderer
-        ├─ local match-3 combat engine
+        ├─ combat orchestration/presentation
         └─ authenticated API client
           ↓
 Render Node service
@@ -51,15 +52,13 @@ A browser request cannot directly set profile wealth/progression.
 
 ### Combat authority
 
-**Rat is authoritative by deterministic replay.** Match start snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. The Rat clear and its Gold/XP are accepted only if that replay reaches a legal victory.
+**Rat and Bandit are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
 
-The browser still renders and simulates the live Rat fight for responsiveness, but its claimed HP, enemy death, Gold, and XP are not trusted at settlement.
+The browser still renders and simulates the live fight for responsiveness. Its claimed HP, enemy death, Gold, and XP are not trusted at settlement; replay output decides the accepted result.
 
-**Bandit is still on the bounded legacy path.** The browser owns its combat simulation and submits the result. The server binds it to a real match ticket and server-issued reward budget, so the client cannot exceed that match's economic ceiling, but it can still fabricate a Bandit victory.
+The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat and Bandit tickets use `replay-v1` regardless of local SQLite, file-backed SQLite, or Turso storage.
 
-**Do not describe all combat as fully anti-cheat yet.** Rat victory is replay-verified; Bandit victory is not.
-
-The next major trust upgrade is extending the deterministic verifier to the Bandit's active enemy abilities, then moving from after-the-fact replay toward server-owned live intent processing if latency/cost justify it.
+Replay verification is an important trust boundary, but it is still after-the-fact verification rather than server-owned live action processing. A future multiplayer/PvP boundary can move intent processing live if latency and operating cost justify it.
 
 ## Persistence
 
@@ -117,16 +116,15 @@ Bandit is hidden/locked until Rat is cleared.
 1. Client reaches an encounter node.
 2. Fight start requests `POST /v1/matches/start`.
 3. Server verifies the player is physically at that encounter and creates a unique match ID.
-4. On victory, client calls `POST /v1/matches/settle` with `won:true`; on defeat/surrender it settles `won:false` with zero rewards.
-5. Match start also creates a server-owned randomized reward budget appropriate to the encounter.
-6. Rat match start additionally snapshots Sack/equipment and issues a deterministic replay seed.
-7. Rat victory submits a compact player-intent transcript. The server rebuilds the board, replays swaps/abilities/targets, enemy turns, cascades, buffs, HP, and loot, and rejects any transcript that does not end in a legal Rat victory.
-8. Rat Gold/XP come from the replay result, not the browser's claimed totals.
-9. Bandit remains budget-bounded: Gold/XP are capped to the issued budget and attempted overclaims are audited.
-10. Rewards + encounter unlock are committed transactionally only for accepted victories.
-11. Loss settlement closes the ticket without rewards or encounter progress.
-12. Retrying any settled match is idempotent and cannot double-award.
-13. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
+4. Match start snapshots server-owned Sack/equipment, creates a server-owned reward budget, and issues a deterministic `replay-v1` seed.
+5. The browser seeds its local fight from that value and records player intents only.
+6. On victory, client calls `POST /v1/matches/settle` with `won:true`, its displayed Gold/XP, and the compact transcript. On defeat/surrender it settles `won:false` with zero rewards.
+7. The server rebuilds the fight from the snapshot and seed, replays swaps, abilities, targets, enemy actions, cascades, buffs, HP, and loot, and rejects any transcript that does not end in a legal victory.
+8. Accepted Gold/XP come from replay output, not from the browser's claimed totals. Mismatches are audited.
+9. Rewards and encounter unlocks are committed transactionally only for accepted victories.
+10. Retrying any settled match is idempotent and cannot double-award.
+11. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
+12. Historical proof-less tickets retain a bounded legacy settlement path solely for compatibility; new Rat and Bandit matches always carry replay authority.
 
 The client retries transient victory-settlement failures and exposes a manual **RETRY SAVE** action. Defeat settlement is best-effort because abandoned tickets are safely closed server-side.
 
