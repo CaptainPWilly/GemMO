@@ -206,7 +206,7 @@ async function trySwap(a,b,actor,force=false,startProgress=0){
 
  const m=findMatches();
  if(!m&&!force){swap(a,b);await swapMotion(a,b,true);setLog('That swap makes no match.');busy=false;render();return false}
- beginCombatMove(actor,force&&!m?'QUICKSTEP':'MATCH');
+ if(!activeCombatMove)beginCombatMove(actor,force&&!m?'QUICKSTEP':'MATCH');
  if(m)await resolve(m,actor,b,0);else{busy=false;setLog('Quickstep repositions the board.');afterAction(actor);render()}return true
 }
 function collapse(){for(let x=0;x<W;x++){let kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push(board[y][x]);let i=0;for(let y=H-1;y>=0;y--)board[y][x]=i<kept.length?kept[i++]:roll()}if(!legalMoves().length)buildBoard()}
