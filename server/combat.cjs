@@ -728,6 +728,7 @@ function target(s,x,y){
   if(mode==='break')cells=[{x,y}];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
+  if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1,'player')}
   for(const q of cells)s.board[q.y][q.x]='';
   fallColumns(s);
  }

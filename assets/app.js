@@ -70,10 +70,10 @@ function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slo
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger',null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false;
-let actionNumber=1,targetMode=null,targetKeepsTurn=false,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
+let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
-function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
-function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
+function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
+function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const itemById=id=>ITEMS.find(i=>i.id===id);
 function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
 function encounterSpec(id=activeEncounter){return ENCOUNTERS[id]||ENCOUNTERS.bandit}
@@ -140,7 +140,7 @@ function enemyUseActive(){
  else if(ability.kind==='guard'){eGuard+=ability.power;evadeTurns=2}
  else if(ability.kind==='reload')enemyReload=true;
  else return false;
- announceAbility(enemyLabel(),ability.name,detail);afterAction('enemy');checkEnd();return true;
+ announceAbility(enemyLabel(),ability.name,detail,ability.color);afterAction('enemy');checkEnd();return true;
 }
 
 const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -241,8 +241,18 @@ function afterAction(actor,keepTurn=false){
  finishCombatMove();render();checkEnd();touchActivity();
 }
 
+function commitArmedAbility(){
+ const index=armedAbilitySlot;if(index<0)return null;const spec=itemById(sack[index]);if(!spec)return null;
+ armedAbilitySlot=-1;recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);effectOrigin=center($('slots').children[index]);
+ announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.',spec.color);effectOrigin=null;return spec;
+}
+function cancelArmedAbility(index){
+ if(index!==armedAbilitySlot)return false;const spec=itemById(sack[index]);if(!spec)return false;
+ charges[spec.color]=Math.min(reservoirCap(spec.color),charges[spec.color]+spec.cap);targetMode=null;targetKeepsTurn=false;freeSwap=false;selected=null;armedAbilitySlot=-1;
+ setLog(spec.name+' cancelled. No charge spent.','system');render();touchActivity();return true;
+}
 async function applyTarget(p){
- const mode=targetMode,keepTurn=targetKeepsTurn;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
+ const mode=targetMode,keepTurn=targetKeepsTurn;if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});
  if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player',keepTurn);return}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
@@ -253,16 +263,28 @@ async function applyTarget(p){
   if(mode==='break')cells=[p];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
-  if(cells.length){const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}recordBrokenGems(broken);await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns()}
+  if(cells.length){
+   const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}recordBrokenGems(broken);
+   if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=center(cellAt(p));applyColor(type,1,'player');effectOrigin=null}}
+   await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns();
+  }
  }
  render();const m=findMatches();if(m)await resolve(m,'player',p,0,keepTurn);else{busy=false;afterAction('player',keepTurn)}
 }
 
 function activate(index){
- if(screen!=='fight'||!playerTurn||busy||freeSwap||targetMode||pHP<=0||eHP<=0)return;
+ if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;
+ if(cancelArmedAbility(index))return;if(freeSwap||targetMode)return;
  const spec=itemById(sack[index]);if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
  if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
- recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);touchActivity();charges[spec.color]-=spec.cap;const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
+ const needsTarget=['pin','paint','wildcraft','rotate','break','blast','reroll','purge','swap'].includes(spec.kind);
+ touchActivity();charges[spec.color]-=spec.cap;
+ if(needsTarget){
+  armedAbilitySlot=index;selected=null;
+  if(spec.kind==='swap')freeSwap=true;else{targetMode=spec.kind;targetKeepsTurn=spec.turnCost===0}
+  setLog('Choose a '+(spec.kind==='swap'?'swap':targetMode==='rotate'?'row':targetMode==='pin'?'column':'tile')+' on the board · tap '+spec.name+' again to cancel.');render();return;
+ }
+ recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
  if(spec.kind==='damage')damageEnemy(spec.power);
  if(spec.kind==='guard')pGuard+=spec.power;
  if(spec.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+spec.power);
@@ -292,15 +314,11 @@ function activate(index){
  if(spec.kind==='mark')enemyEffects.mark=1;
  if(spec.kind==='silence')enemyEffects.silence=1;
  if(pGuard>guardBefore)guardTurns=2;
- if(['pin','paint','wildcraft','rotate','break','blast','reroll','purge'].includes(spec.kind)){targetMode=spec.kind;targetKeepsTurn=spec.turnCost===0}
-
- effectOrigin=null;announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.');
- if(targetMode){selected=null;setLog('Choose a '+(targetMode==='rotate'?'row':targetMode==='pin'?'column':'tile')+' on the board.');render();return}
- if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player',spec.turnCost===0);
+ effectOrigin=null;announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.',spec.color);afterAction('player',spec.turnCost===0);
  checkEnd();render();
 }
 async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=enemyMoveScore(t)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
-function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(targetMode){void applyTarget(p);return}if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
+function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(targetMode){void applyTarget(p);return}if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){if(!commitArmedAbility()){freeSwap=false;render();return}freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
 async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
  try{
@@ -367,14 +385,15 @@ function setLog(message,kind='event'){
 function moveActorLabel(actor){return actor==='player'?'YOU':enemyLabel()}
 function renderMoveHistory(){
  const host=$('moveHistory');if(!host)return;
- if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">MATCH HISTORY</div>';return}
+ if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">COMBAT HISTORY</div>';return}
  host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
   const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" data-gem="'+type+'" title="'+type+' value '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
-  return '<article class="moveHistoryItem '+move.actor+' '+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+(move.comboDepth?' · COMBO '+move.comboDepth:'')+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+(breaks||'<span class="moveNoBreak">—</span>')+'</div></article>';
+  const ability=move.ability?'<span class="moveAbilityChip" style="--c:var(--'+(move.ability.color?.[0]||'gold')+')"><i>✦</i><b>ABILITY</b></span>':'';
+  return '<article class="moveHistoryItem '+move.actor+' '+(move.ability?'abilityMove ':'')+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+(move.comboDepth?' · COMBO '+move.comboDepth:'')+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+ability+breaks+(ability||breaks?'':'<span class="moveNoBreak">—</span>')+'</div></article>';
  }).join('');
 }
 function beginCombatMove(actor,label){
- const move={id:++logSequence,actor,actorLabel:moveActorLabel(actor),label:String(label||'MATCH').toUpperCase(),breaks:{}};
+ const move={id:++logSequence,actor,actorLabel:moveActorLabel(actor),label:String(label||'MATCH').toUpperCase(),breaks:{},ability:null};
  combatHistory.push(move);if(combatHistory.length>12)combatHistory.shift();activeCombatMove=move;renderMoveHistory();return move;
 }
 function recordBrokenGems(counts){
@@ -389,11 +408,10 @@ function recordComboCharge(types,amount,comboNumber){
  for(const type of types){const gem=document.querySelector('.moveHistoryItem.latest .moveBreak[data-gem="'+type+'"]');if(!gem)continue;gem.dataset.charge='+'+amount+'!';gem.classList.add('comboCharging');if(!reducedMotion())void gem.animate([{transform:'scale(.86)',filter:'brightness(1)'},{transform:'scale(1.22)',filter:'brightness(1.75)'},{transform:'scale(1)',filter:'brightness(1)'}],{duration:460,easing:'cubic-bezier(.2,.85,.2,1)'})}
 }
 function finishCombatMove(){activeCombatMove=null}
-function announceAbility(actor,name,description){
- const enemy=actor!=='You';if(!activeCombatMove)beginCombatMove(enemy?'enemy':'player',name);$('abilityBanner').hidden=false;$('abilityBanner').className='abilityBanner '+(enemy?'enemyAbility':'');
- $('abilityActor').textContent=enemy?'LAST ABILITY · '+actor:'LAST ABILITY · YOU';$('abilityName').textContent=name.toUpperCase();$('abilityDetail').textContent=description;
- setLog(actor+' uses '+name.toUpperCase()+' — '+description,'ability');
- void animate($('abilityBanner'),[{transform:'translateY(6px) scale(.97)',opacity:.4},{transform:'translateY(0) scale(1)',opacity:1}],{duration:220,easing:'ease-out'});
+function announceAbility(actor,name,description,color='gold'){
+ const enemy=actor!=='You';if(!activeCombatMove)beginCombatMove(enemy?'enemy':'player',name);
+ activeCombatMove.ability={name,description,color};renderMoveHistory();setLog(actor+' uses '+name.toUpperCase()+' — '+description,'ability');
+ const card=document.querySelector('.moveHistoryItem.latest');if(card)void animate(card,[{transform:'translateY(3px) scale(.98)',opacity:.6},{transform:'translateY(0) scale(1)',opacity:1}],{duration:220,easing:'ease-out'});
 }
 function flash(){let f=$('flash');f.classList.remove('go');void f.offsetWidth;f.classList.add('go')}
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
@@ -410,7 +428,7 @@ function updateTurnCue(){
 function render(){renderStatuses();boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');c.setAttribute('aria-label',(type||'Empty')+' gem, row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>{if(Date.now()>suppressClickUntil)tapCell(x,y)});if(x===pinColumn&&pinTurns)c.classList.add('pinnedCell');boardEl.appendChild(c)}$('pstats').textContent=pHP+' HP · '+pGuard+' GUARD';$('enemyName').textContent=enemyLabel();$('estats').textContent=eHP+' HP · '+eGuard+' EVADE';$('gold').textContent='GOLD '+gold+(activeRewardBudget?'/'+activeRewardBudget.gold:'');$('xp').textContent='XP '+xp+(activeRewardBudget?'/'+activeRewardBudget.xp:'');$('turnText').textContent=freeSwap?'QUICKSTEP · YOUR TURN':(playerTurn?'YOUR TURN':enemyLabel()+' TURN');$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side)}$('leaveFight').disabled=busy||!playerTurn||pendingHP.p>0||pendingHP.e>0;renderSlots()}
 function renderSlots(){
  $('reservoirs').innerHTML=['red','blue','green','yellow','purple'].map(color=>'<span style="--c:var(--'+color[0]+')">'+color.toUpperCase()+' <b>'+charges[color]+'/'+reservoirCap(color)+'</b></span>').join('');
- $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id);if(!v)return '<button class="slot" disabled data-slot="'+i+'" style="--c:#5f5a4e"><div class="orb"></div><div class="slotName">Empty</div><div class="effect">Earn a gem</div><div class="charge">—</div></button>';const ready=charges[v.color]>=v.cap;return '<button class="slot '+(ready?'ready':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(ready?'USE · '+v.cap:charges[v.color]+' / '+v.cap)+'</div></button>'}).join('');
+ $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id);if(!v)return '<button class="slot" disabled data-slot="'+i+'" style="--c:#5f5a4e"><div class="orb"></div><div class="slotName">Empty</div><div class="effect">Earn a gem</div><div class="charge">—</div></button>';const armed=i===armedAbilitySlot&&(!!targetMode||freeSwap),ready=charges[v.color]>=v.cap;return '<button class="slot '+(armed?'armed ':ready?'ready ':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(armed?'TAP TO CANCEL':ready?'USE · '+v.cap:charges[v.color]+' / '+v.cap)+'</div></button>'}).join('');
  document.querySelectorAll('.slot:not(:disabled)').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)));
 }
 $('sacksBtn').onclick=()=>{const boxes=document.querySelectorAll('.sackGrid .sack'),enemy=encounterSpec();boxes[0].innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+(v?v.item+' — '+v.name:'Empty')+'</div>'}).join('');boxes[1].innerHTML='<h3>'+enemy.name+'</h3>'+Object.entries(enemy.reservoirs).filter(([,v])=>v.visible).map(([color,v])=>'<div class="line">'+color[0].toUpperCase()+color.slice(1)+' — '+v.name[0]+v.name.slice(1).toLowerCase()+'</div>').join('');$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
@@ -829,12 +847,12 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
+ clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(account?.needsStarter||!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
  const gear=gearStats();pHP=playerMaxHP();eHP=enemyMaxHP();pGuard=gear.guard;eGuard=gold=xp=0;guardTurns=pGuard?2:0;charges={red:0,blue:0,green:0,yellow:0,purple:0};ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=pHP;shownHP.e=eHP;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
- encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');
+ encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
   void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}board=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
@@ -925,7 +943,7 @@ boardEl.addEventListener('pointerup',event=>{
  if(Math.max(Math.abs(dx),Math.abs(dy))<16)return;suppressClickUntil=Date.now()+450;touchActivity();
  if(targetMode){tapCell(a.x,a.y);return}
  const b={x:a.x+(Math.abs(dx)>Math.abs(dy)?Math.sign(dx):0),y:a.y+(Math.abs(dx)>Math.abs(dy)?0:Math.sign(dy))};
- if(b.x<0||b.x>7||b.y<0||b.y>7||busy||!playerTurn)return;selected=null;const force=freeSwap;freeSwap=false;void trySwap(a,b,'player',force,progress);
+ if(b.x<0||b.x>7||b.y<0||b.y>7||busy||!playerTurn)return;selected=null;const force=freeSwap;if(force&&!commitArmedAbility()){freeSwap=false;render();return}freeSwap=false;void trySwap(a,b,'player',force,progress);
 });
 boardEl.addEventListener('pointercancel',event=>{if(swipeStart&&event.pointerId===swipeStart.pointerId){clearSwipePreview();swipeStart=null}});
 document.querySelector('.app').addEventListener('pointerdown',touchActivity);document.querySelector('.app').addEventListener('keydown',touchActivity);
