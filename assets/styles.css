@@ -627,8 +627,10 @@ html,body{background:#060705;color:var(--text)}
   width:min(100%,var(--content-max));margin-left:auto;margin-right:auto
 }
 .pageTopbar,.page:not(.splashPage):not(.menuPage):not(.worldPage)>header{
-  min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px
+  min-height:42px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;
+  padding-bottom:10px;border-bottom:1px solid #2f2d27
 }
+.pageTopbar button,.page:not(.splashPage):not(.menuPage):not(.worldPage)>header button{min-width:38px;min-height:38px;border-radius:8px}
 .pageTopbar .eyebrow,.page>header .eyebrow{margin-left:auto;text-align:right}
 .pageHero{display:grid;gap:5px;margin-top:2px;margin-bottom:22px}
 .pageHero.compact{margin-bottom:18px}
@@ -664,7 +666,8 @@ html,body{background:#060705;color:var(--text)}
 /* Account + settings use readable, card-based columns. */
 .accountPage .accountBox{max-width:620px;margin:0 auto 12px;padding:18px;border-radius:var(--radius-md)}
 .accountPage .accountSecurity,.accountPage .accountDanger,.accountPage .accountStatus{max-width:620px}
-.accountPage .accountActions{gap:8px}.accountPage .accountActions button,.accountPage .accountButton{min-height:44px}
+.accountPage .accountBox label{margin-top:13px}.accountPage .accountBox input{height:46px;border-radius:8px;padding:0 12px}.accountPage .accountActions{gap:8px}.accountPage .accountActions button,.accountPage .accountButton{min-height:44px;border-radius:8px;font-weight:800;letter-spacing:.7px}
+#accountLoggedIn h2{margin:5px 0 14px;font:32px Georgia,serif;color:#e3d4b8}.accountStats{gap:8px}.accountStats b{min-width:72px;border-radius:7px;padding:9px 10px;text-align:center}
 .settingsStack{display:grid;gap:10px;max-width:760px}
 .settingsCard{padding:16px;border:1px solid #444035;border-radius:var(--radius-md);background:linear-gradient(180deg,#191a16,#11120f);box-shadow:0 10px 24px #0005}
 .settingsCardHead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #302e27}.settingsCardHead small{display:block;font-size:7px;letter-spacing:1.5px;color:#7b7367}.settingsCardHead h2{margin:2px 0 0;font:21px Georgia,serif;color:#d9c7a4}.settingsGlyph{width:34px;height:34px;display:grid;place-items:center;border:1px solid #4d4639;border-radius:8px;background:#11120f;color:#b49b6a}
@@ -729,3 +732,8 @@ html,body{background:#060705;color:var(--text)}
   .menuPage{padding-left:10px;padding-right:10px}.menuBrand{margin-bottom:18px}.menuNav{gap:6px}.menuNav .primary{min-height:61px;padding:8px 9px}.menuIcon{width:30px;height:30px}.menuButtonCopy small{font-size:5.5px}.menuSnapshot{gap:6px}
   .pageHero h1{font-size:36px}.settingsCard{padding:13px}.worldQuickbar{gap:4px;left:7px;right:7px}.worldQuickButton{padding-left:2px;padding-right:2px}
 }
+@media(hover:hover) and (pointer:fine){
+  .menuNav .primary,.shopItem,.gearCard,.gearSlot,.sackPage .itemCard,.sackPage .sackSlot,.worldQuickButton,.worldAction,.settingsCard{transition:transform .14s ease,border-color .14s ease,filter .14s ease,box-shadow .14s ease}
+  .menuNav .primary:hover,.shopItem:not(:disabled):hover,.gearCard:not(:disabled):hover,.gearSlot:hover,.sackPage .itemCard:not(:disabled):hover,.sackPage .sackSlot:hover,.worldQuickButton:hover,.worldAction:hover{transform:translateY(-2px);filter:brightness(1.06);border-color:#766649;box-shadow:0 9px 22px #0006}
+}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #c4a56b;outline-offset:2px}
