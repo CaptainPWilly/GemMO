@@ -193,7 +193,7 @@ async function fallColumns(){
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
-async function resolve(matches,actor,target,cascade=0,keepTurn=false){busy=true;let counts={};for(const p of matches.cells){let type=p.type||board[p.y][p.x];counts[type]=(counts[type]||0)+1}let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
+async function resolve(matches,actor,target,cascade=0,keepTurn=false){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;counts[type]=(counts[type]||0)+1;broken[actual]=(broken[actual]||0)+1}recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
  for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  for(const p of matches.cells)board[p.y][p.x]='';if(makeWild){board[makeWild.y][makeWild.x]='wild';setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
@@ -206,6 +206,7 @@ async function trySwap(a,b,actor,force=false,startProgress=0){
 
  const m=findMatches();
  if(!m&&!force){swap(a,b);await swapMotion(a,b,true);setLog('That swap makes no match.');busy=false;render();return false}
+ if(!activeCombatMove)beginCombatMove(actor,force&&!m?'QUICKSTEP':'MATCH');
  if(m)await resolve(m,actor,b,0);else{busy=false;setLog('Quickstep repositions the board.');afterAction(actor);render()}return true
 }
 function collapse(){for(let x=0;x<W;x++){let kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push(board[y][x]);let i=0;for(let y=H-1;y>=0;y--)board[y][x]=i<kept.length?kept[i++]:roll()}if(!legalMoves().length)buildBoard()}
@@ -235,7 +236,7 @@ function afterAction(actor,keepTurn=false){
   else if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}
   else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}
  }else playerTurn=true;
- render();checkEnd();touchActivity();
+ finishCombatMove();render();checkEnd();touchActivity();
 }
 
 async function applyTarget(p){
@@ -250,7 +251,7 @@ async function applyTarget(p){
   if(mode==='break')cells=[p];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
-  if(cells.length){await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns()}
+  if(cells.length){const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}recordBrokenGems(broken);await popCells(cells);for(const q of cells)board[q.y][q.x]='';await fallColumns()}
  }
  render();const m=findMatches();if(m)await resolve(m,'player',p,0,keepTurn);else{busy=false;afterAction('player',keepTurn)}
 }
@@ -259,7 +260,7 @@ function activate(index){
  if(screen!=='fight'||!playerTurn||busy||freeSwap||targetMode||pHP<=0||eHP<=0)return;
  const spec=itemById(sack[index]);if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
  if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
- recordCombatAction({t:'ability',slot:index});touchActivity();charges[spec.color]-=spec.cap;const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
+ recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);touchActivity();charges[spec.color]-=spec.cap;const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
  if(spec.kind==='damage')damageEnemy(spec.power);
  if(spec.kind==='guard')pGuard+=spec.power;
  if(spec.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+spec.power);
@@ -357,16 +358,31 @@ async function settleDefeat(){
  }catch{}
 }
 function checkEnd(){if(pHP<=0||eHP<=0)clearTimeout(hintTimer);if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);const won=eHP<=0;$('resultTitle').textContent=won?'VICTORY':'DEFEAT';$('resultText').textContent=won?'SAVING…':'';$('result').classList.add('show');if(won)void settleVictory();else void settleDefeat();render()}}
-let combatHistory=[],logSequence=0;
+let combatHistory=[],logSequence=0,activeCombatMove=null;
 function setLog(message,kind='event'){
- logEl.textContent=message;
- combatHistory.push({message,kind,seq:++logSequence});if(combatHistory.length>100)combatHistory.shift();
- const entry=document.createElement('div');entry.className='historyEntry '+kind;entry.textContent=logSequence+' · '+message;$('historyEntries').appendChild(entry);
- while($('historyEntries').children.length>100)$('historyEntries').firstElementChild.remove();
- $('historyEntries').scrollTop=$('historyEntries').scrollHeight;
+ logEl.textContent=message;logEl.dataset.kind=kind;
 }
+function moveActorLabel(actor){return actor==='player'?'YOU':enemyLabel()}
+function renderMoveHistory(){
+ const host=$('moveHistory');if(!host)return;
+ if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">MATCH HISTORY</div>';return}
+ host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
+  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" title="'+type+' × '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
+  return '<article class="moveHistoryItem '+move.actor+' '+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+(breaks||'<span class="moveNoBreak">—</span>')+'</div></article>';
+ }).join('');
+}
+function beginCombatMove(actor,label){
+ const move={id:++logSequence,actor,actorLabel:moveActorLabel(actor),label:String(label||'MATCH').toUpperCase(),breaks:{}};
+ combatHistory.push(move);if(combatHistory.length>12)combatHistory.shift();activeCombatMove=move;renderMoveHistory();return move;
+}
+function recordBrokenGems(counts){
+ if(!activeCombatMove||!counts)return;
+ for(const [type,value] of Object.entries(counts))activeCombatMove.breaks[type]=(activeCombatMove.breaks[type]||0)+value;
+ renderMoveHistory();
+}
+function finishCombatMove(){activeCombatMove=null}
 function announceAbility(actor,name,description){
- const enemy=actor!=='You';$('abilityBanner').hidden=false;$('abilityBanner').className='abilityBanner '+(enemy?'enemyAbility':'');
+ const enemy=actor!=='You';if(!activeCombatMove)beginCombatMove(enemy?'enemy':'player',name);$('abilityBanner').hidden=false;$('abilityBanner').className='abilityBanner '+(enemy?'enemyAbility':'');
  $('abilityActor').textContent=enemy?'LAST ABILITY · '+actor:'LAST ABILITY · YOU';$('abilityName').textContent=name.toUpperCase();$('abilityDetail').textContent=description;
  setLog(actor+' uses '+name.toUpperCase()+' — '+description,'ability');
  void animate($('abilityBanner'),[{transform:'translateY(6px) scale(.97)',opacity:.4},{transform:'translateY(0) scale(1)',opacity:1}],{duration:220,easing:'ease-out'});
@@ -767,13 +783,39 @@ function openCombatGemology(){
  $('combatGemologyContent').innerHTML=(grid?.outerHTML||'')+(rules?.outerHTML||'');$('combatGemologyPanel').hidden=false;
 }
 function closeCombatGemology(){$('combatGemologyPanel').hidden=true;resumeCombatView()}
-function drawCombatEquip(){
- const sackHtml=sack.map((id,i)=>{const v=itemById(id);return '<div class="combatEquipItem"><small>SACK '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color.toUpperCase()+' · '+v.effectLabel+' · '+v.name:'')+'</span></div>'}).join('');
- const gearHtml=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<div class="combatEquipItem"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><span>'+(g?gearBonusText(g):'')+'</span></div>'}).join('');
- $('combatEquipContent').innerHTML='<div class="combatEquipGrid">'+sackHtml+gearHtml+'</div>';
+function combatEffectRows(){
+ const rows=[
+  {side:'you',name:'Guard',value:pGuard,turns:guardTurns,detail:'Absorbs incoming damage point for point. Gaining Guard refreshes its duration.'},
+  {side:'enemy',name:'Evade',value:eGuard,turns:evadeTurns,detail:'Absorbs incoming damage point for point before enemy HP.'},
+  {side:'you',name:'Veilstep',value:buffs.dodge,turns:buffs.dodge,detail:'Halves incoming damage, rounded up.'},
+  {side:'enemy',name:'Venom',value:buffs.poison,turns:buffs.poison,detail:'Takes 2 damage after each enemy action.'},
+  {side:'you',name:'Restoring Verse',value:buffs.regen,turns:buffs.regen,detail:'Heals 2 HP after each enemy action.'},
+  {side:'you',name:'Resonance',value:buffs.focus,turns:buffs.focus,detail:'Adds 1 charge to every equipped color after each enemy action.'},
+  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:'Red match resolutions deal +2 bonus damage.'},
+  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:'Blue match resolutions grant +2 bonus Guard.'},
+  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:'Green match resolutions heal 2 HP.'},
+  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:'Yellow matches send +2 charge to your most depleted other color.'},
+  {side:'you',name:'Reprisal',value:buffs.reflect,turns:buffs.reflect,detail:'Reflects half of the next unblocked hit.'},
+  {side:'you',name:'Overdrive',value:overdrive?1:0,turns:null,detail:'Doubles the next colored match once.'},
+  {side:'you',name:'Earthbind',value:pinTurns,turns:pinTurns,detail:'The pinned column refills in place through the next enemy action.'},
+  {side:'enemy',name:'Bleed',value:enemyEffects.bleed,turns:enemyEffects.bleed,detail:'Takes 2 damage after each enemy action.'},
+  {side:'enemy',name:'Stun',value:enemyEffects.stun,turns:enemyEffects.stun,detail:'Loses its next action.'},
+  {side:'enemy',name:'Disarm',value:enemyEffects.disarm,turns:enemyEffects.disarm,detail:'Its next Red attack deals no damage.'},
+  {side:'enemy',name:'Silence',value:enemyEffects.silence,turns:enemyEffects.silence,detail:'Cannot use an active ability during its next action.'},
+  {side:'enemy',name:'Hunter’s Mark',value:enemyEffects.mark,turns:enemyEffects.mark,detail:'The next damage it takes is increased by 3.'},
+  {side:'enemy',name:'Reload',value:enemyReload?1:0,turns:null,detail:'Its next Red match receives the encounter reload bonus.'}
+ ];
+ return rows.filter(row=>row.value>0);
 }
-function openEquipDrawer(){if(screen!=='fight')return;pauseCombatView();drawCombatEquip();$('equipDrawer').hidden=false;void animate($('equipDrawer'),[{transform:'translateY(100%)'},{transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}
-async function closeEquipDrawer(){if($('equipDrawer').hidden)return;await animate($('equipDrawer'),[{transform:'translateY(0)'},{transform:'translateY(100%)'}],{duration:180,easing:'ease-in'});$('equipDrawer').hidden=true;resumeCombatView()}
+function drawCombatEffects(){
+ const rows=combatEffectRows(),section=side=>{
+  const items=rows.filter(row=>row.side===side);
+  return '<section class="combatEffectsGroup"><div class="combatEffectsGroupHead"><small>'+(side==='you'?'YOU':enemyLabel())+'</small><b>'+items.length+' ACTIVE</b></div>'+(items.length?items.map(row=>'<article class="combatEffectCard '+side+'"><div><strong>'+row.name+'</strong><p>'+row.detail+'</p></div><span>'+(row.name==='Guard'||row.name==='Evade'?row.value+(row.turns?' · '+row.turns+'T':''):row.turns!=null?row.turns+'T':'READY')+'</span></article>').join(''):'<div class="combatEffectsEmpty">No active effects.</div>')+'</section>';
+ };
+ $('combatEffectsContent').innerHTML=section('you')+section('enemy');
+}
+function openEffectsDrawer(){if(screen!=='fight')return;pauseCombatView();drawCombatEffects();$('effectsDrawer').hidden=false;void animate($('effectsDrawer'),[{transform:'translateY(100%)'},{transform:'translateY(0)'}],{duration:220,easing:'cubic-bezier(.2,.8,.2,1)'})}
+async function closeEffectsDrawer(){if($('effectsDrawer').hidden)return;await animate($('effectsDrawer'),[{transform:'translateY(0)'},{transform:'translateY(100%)'}],{duration:180,easing:'ease-in'});$('effectsDrawer').hidden=true;resumeCombatView()}
 function surrenderFight(){
  if(screen!=='fight')return;if(busy||pendingHP.p||pendingHP.e){$('combatMenuStatus').textContent='Finish the current action first.';return}
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
@@ -784,13 +826,13 @@ function startFight(){
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
  const gear=gearStats();pHP=playerMaxHP();eHP=enemyMaxHP();pGuard=gear.guard;eGuard=gold=xp=0;guardTurns=pGuard?2:0;charges={red:0,blue:0,green:0,yellow:0,purple:0};ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=pHP;shownHP.e=eHP;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
- encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];logSequence=0;$('historyEntries').innerHTML='';$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');
+ encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('abilityBanner').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
   void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}board=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
-function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
+function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
@@ -840,25 +882,14 @@ $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Nu
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
 $('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
-$('historyBtn').onclick=openEquipDrawer;$('closeEquipDrawer').onclick=()=>void closeEquipDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
+$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
 
 function renderStatuses(){
  updateTurnCue();
- const tags=[
- ['Guard',pGuard,guardTurns,'Absorbs incoming damage point for point. Expires after 2 enemy actions; gaining Guard refreshes the duration.'],
- ['Bandit Evade',eGuard,evadeTurns,'Absorbs damage point for point. Expires after 2 of your actions; gaining Evade refreshes it.'],
- ['Veilstep',buffs.dodge,buffs.dodge,'Halves incoming damage, rounded up. Duration counts remaining enemy actions.'],
- ['Venom',buffs.poison,buffs.poison,'Deals 2 damage after each Bandit action. Guard can absorb it.'],
- ['Verse',buffs.regen,buffs.regen,'Heals 2 HP after each Bandit action, up to your Max HP.'],
- ['Resonance',buffs.focus,buffs.focus,'Adds 1 charge to every equipped color after each Bandit action.'],
- ['Redwake',buffs.redwake,buffs.redwake,'For your remaining attuned actions, every Red match resolution deals +2 flat bonus damage, including cascades.'],
- ['Holdfast',buffs.holdfast,buffs.holdfast,'For your remaining attuned actions, every Blue match resolution grants +2 bonus Guard, including cascades.'],
- ['Aftergrowth',buffs.aftergrowth,buffs.aftergrowth,'For your remaining attuned actions, every Green match resolution heals 2 HP, including cascades.'],
- ['Momentum',buffs.momentum,buffs.momentum,'For your remaining attuned actions, every Yellow match resolution sends +2 charge to your most depleted other equipped color, including cascades.'],
- ['Pinned column',pinTurns,pinTurns,'Matched gaps refill in place. Surviving gems in the pinned column do not fall. Lasts through the next enemy action.']
- ];
- $('statusTags').innerHTML=tags.filter(t=>t[1]>0||t[0]==='Guard'||t[0]==='Bandit Evade').map(t=>'<button class="statusTag" title="'+t[3]+'" data-help="'+t[3]+'">'+t[0]+' '+(t[0]==='Guard'||t[0]==='Bandit Evade'?t[1]+' · ':'')+t[2]+' turns</button>').join('');
+ const rows=combatEffectRows();
+ $('statusTags').innerHTML=rows.slice(0,6).map(row=>'<button class="statusTag '+row.side+'" title="'+row.detail+'" data-help="'+row.detail+'">'+row.name+' '+(row.name==='Guard'||row.name==='Evade'?row.value+' · ':'')+(row.turns!=null?row.turns+'T':'')+'</button>').join('');
  document.querySelectorAll('.statusTag').forEach(b=>b.onclick=()=>setLog(b.dataset.help,'system'));
+ if(!$('effectsDrawer').hidden)drawCombatEffects();
 }
 function clearSwipePreview(){
  if(!swipeStart)return;for(const key of ['sourceEl','targetEl']){const el=swipeStart[key];if(el){el.style.transform='';el.classList.remove(key==='sourceEl'?'draggingGem':'dragNeighbor')}}
