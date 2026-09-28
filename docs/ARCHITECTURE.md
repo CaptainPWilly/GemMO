@@ -8,6 +8,7 @@ Player browser
     └─ semantic UI shell
   assets/
     ├─ content.js       expandable world/catalog/gear content
+    ├─ ../shared/encounters.js  browser/server encounter contract
     ├─ combat-core.js   deterministic RNG/matching/legal-move primitives
     ├─ styles.css       responsive dungeon visual system
     └─ app.js
@@ -124,14 +125,15 @@ Bandit is hidden/locked until Rat is cleared.
 9. Rewards and encounter unlocks are committed transactionally only for accepted victories.
 10. Retrying any settled match is idempotent and cannot double-award.
 11. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
-12. Historical proof-less tickets retain a bounded legacy settlement path solely for compatibility; new Rat and Bandit matches always carry replay authority.
+12. Historical proof-less tickets retain a bounded legacy settlement path solely for compatibility; every new supported encounter match carries replay authority.
+13. A verified victory writes the generic `encounter:<id>` clear flag, so future world locks can depend on any encounter without new settlement code.
 
 The client retries transient victory-settlement failures and exposes a manual **RETRY SAVE** action. Defeat settlement is best-effort because abandoned tickets are safely closed server-side.
 
-## Data/catalog duplication
+## Data/catalog boundaries
 
-Expandable client definitions now live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Persistent validation definitions still live in `server/catalog.cjs`, and deterministic combat definitions still exist server-side in `server/combat.cjs`.
+Expandable client world/gem/gear definitions live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Encounter definitions are deliberately different: `shared/encounters.js` is one browser/server source of truth for encounter HP, reward ranges, enemy match scaling, reservoirs, active abilities, AI weights, and first-clear UI text.
 
-If a persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks client/server gem parity.
+Persistent gem/equipment validation still lives in `server/catalog.cjs`, and deterministic combat execution lives in `server/combat.cjs`. If another persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks the important parity boundaries.
 
 Longer term, a generated shared catalog is desirable, but do not weaken server validation or introduce runtime network dependency just to remove duplication.

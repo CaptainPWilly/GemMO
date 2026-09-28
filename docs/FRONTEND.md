@@ -8,6 +8,7 @@ The live browser client is intentionally build-free so GitHub Pages can publish 
 | --- | --- |
 | `index.html` | Semantic page/overlay markup and asset loading only |
 | `assets/content.js` | Expandable client content: world graph, shops, gems, equipment definitions, board type metadata |
+| `shared/encounters.js` | Shared encounter definitions consumed unchanged by browser and Node |
 | `assets/combat-core.js` | Pure deterministic combat primitives: seeded RNG, swap, match detection, legal-move discovery |
 | `assets/app.js` | Runtime state, UI behavior, world renderer, combat orchestration/presentation, API/session client |
 | `assets/styles.css` | Canonical responsive visual system and dungeon theme |
@@ -18,11 +19,12 @@ The shell loads assets in this order:
 ```text
 assets/styles.css
 assets/content.js
+shared/encounters.js
 assets/combat-core.js
 assets/app.js
 ```
 
-`content.js` must load before `combat-core.js`, and `combat-core.js` must load before `app.js`.
+`shared/encounters.js` and `combat-core.js` must both load before `app.js`.
 
 ## Expansion rules
 
@@ -45,7 +47,7 @@ An encounter normally touches several ownership boundaries:
 - deterministic replay when the encounter awards authoritative progression
 - regression tests and architecture documentation
 
-A new encounter should not copy a second combat engine. Extend the deterministic combat model or introduce an encounter-specific rules layer around the shared engine.
+A new encounter starts in `shared/encounters.js`: define HP, reward ranges, match scaling, reservoirs, active abilities, and AI weights there, then place a world node that references its encounter ID. Do not add encounter-ID conditionals to the runtime or copy a second combat engine. Extend the generic interpreter only when a genuinely new rule kind is needed.
 
 ### Add a region or world area
 

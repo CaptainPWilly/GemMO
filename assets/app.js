@@ -1,10 +1,10 @@
 (()=>{
 'use strict';
-const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE;if(!COMBAT_CORE)throw new Error('GEMMO_COMBAT_CORE missing');
+const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS;if(!COMBAT_CORE||!ENCOUNTERS)throw new Error('geMMO runtime dependencies missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
-function worldNodeVisible(node){return node.id!=='bandit-pass'||worldCleared('rat')||worldState.currentNode==='bandit-pass'}
+function worldNodeVisible(node){return !!node&&(!node.requires||worldCleared(node.requires)||worldState.currentNode===node.id)}
 function worldCanTravel(from,to){const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&(!target.requires||worldCleared(target.requires)))}
 function worldPath(from,to){
  if(!WORLD_NODES[from]||!WORLD_NODES[to]||!worldNodeVisible(WORLD_NODES[to]))return null;
@@ -73,13 +73,16 @@ function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hin
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const itemById=id=>ITEMS.find(i=>i.id===id);
 function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
-const ENEMY={
- red:{name:'BOLT',cap:7}, blue:{name:'EVADE',cap:7}, green:{name:'BANDAGE',cap:6}, yellow:{name:'RELOAD',cap:6}, purple:{name:'DEADEYE',cap:10}
-};
-const ENCOUNTERS={rat:{name:'RAT',maxHP:10},bandit:{name:'BANDIT',maxHP:24}};
-function encounterSpec(){return ENCOUNTERS[activeEncounter]||ENCOUNTERS.bandit}
+function encounterSpec(id=activeEncounter){return ENCOUNTERS[id]||ENCOUNTERS.bandit}
+function enemyReservoir(type){return encounterSpec().reservoirs[type]}
 function enemyLabel(){return encounterSpec().name}
 function enemyMaxHP(){return encounterSpec().maxHP}
+function scaledEnemyValue(value,scale,min=0){return Math.max(min,Math.ceil(value*scale))}
+function enemyMoveScore(type){
+ const ai=encounterSpec().ai;
+ if(type==='green')return eHP<ai.woundedBelow?ai.greenWounded:ai.greenHealthy;
+ return ai[type]||0;
+}
 let board=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=false,overdrive=false,enemyReload=false,encounterClearSaved=false,encounterSettling=false,activeMatchId=null,activeRewardBudget=null,activeAuthority=null,combatRng=null,combatTranscript=[],matchStartPromise=null,rewardsSettled=false,lossSettlementStarted=false,lastMatchError='',combatPaused=false;
 let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
@@ -111,22 +114,30 @@ function applyColor(type,n,actor,cascade=0){let notes=[];if(actor==='player'){
  if(type==='gold'){const before=gold,cap=activeRewardBudget?.gold??Infinity;gold=Math.min(cap,gold+n);notes.push('Gold +'+(gold-before))}
  if(type==='xp'){const before=xp,cap=activeRewardBudget?.xp??Infinity;xp=Math.min(cap,xp+n);notes.push('XP +'+(xp-before))}
  }else{
- if(['red','blue','green','yellow','purple'].includes(type))charge(ec,type,n,ENEMY[type].cap);
- if(type==='red'){let raw=n+(enemyReload?2:0),dm=activeEncounter==='rat'?Math.max(1,Math.ceil(raw/2)):raw;enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
- if(type==='blue'){let v=activeEncounter==='rat'?Math.max(1,Math.ceil(n*.35)):Math.ceil(n*.75);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
+ const reservoir=enemyReservoir(type);if(reservoir)charge(ec,type,n,reservoir.cap);
+ if(type==='red'){const rules=encounterSpec().match,raw=n+(enemyReload?(rules.reloadBonus||0):0),dm=scaledEnemyValue(raw,rules.redScale,rules.redMin);enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
+ if(type==='blue'){const rules=encounterSpec().match,v=scaledEnemyValue(n,rules.blueScale,rules.blueMin);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
  }
  if(type==='env'){damagePlayer(1);damageEnemy(1);notes.push('Rift: both -1')}
  if(cascade>0&&notes.length)notes.push('Cascade '+cascade);
  if(notes.length)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
 }
+function enemyAbilityReady(ability){
+ const reservoir=enemyReservoir(ability.color);if(!reservoir||ec[ability.color]<reservoir.cap)return false;
+ if(ability.when?.hpAtMost!==undefined&&eHP>ability.when.hpAtMost)return false;
+ if(ability.when?.guardAtMost!==undefined&&eGuard>ability.when.guardAtMost)return false;
+ return true;
+}
 function enemyUseActive(){
- if(activeEncounter==='rat'||enemyEffects.silence)return false;
- if(ec.purple>=ENEMY.purple.cap){ec.purple=0;damagePlayer(6);announceAbility(enemyLabel(),'DEADEYE','6 damage.');afterAction('enemy');checkEnd();return true}
- if(ec.green>=ENEMY.green.cap&&eHP<=18){ec.green=0;eHP=Math.min(enemyMaxHP(),eHP+5);announceAbility(enemyLabel(),'BANDAGE','+5 HP.');afterAction('enemy');return true}
- if(ec.red>=ENEMY.red.cap){ec.red=0;if(enemyEffects.disarm)announceAbility(enemyLabel(),'QUICK SHOT','Disarmed — no damage.');else{damagePlayer(5);announceAbility(enemyLabel(),'QUICK SHOT','5 damage.')}afterAction('enemy');checkEnd();return true}
- if(ec.blue>=ENEMY.blue.cap&&eGuard<=2){ec.blue=0;eGuard+=6;evadeTurns=2;announceAbility(enemyLabel(),'SIDESTEP','+6 Evade.');afterAction('enemy');return true}
- if(ec.yellow>=ENEMY.yellow.cap){ec.yellow=0;enemyReload=true;announceAbility(enemyLabel(),'RELOAD','next Bolt +2.');afterAction('enemy');return true}
- return false
+ if(enemyEffects.silence)return false;
+ const ability=encounterSpec().actives.find(enemyAbilityReady);if(!ability)return false;
+ ec[ability.color]=0;let detail=ability.detail;
+ if(ability.kind==='damage'){if(ability.disarmable&&enemyEffects.disarm)detail=ability.blockedDetail||'Disarmed — no damage.';else damagePlayer(ability.power)}
+ else if(ability.kind==='heal')eHP=Math.min(enemyMaxHP(),eHP+ability.power);
+ else if(ability.kind==='guard'){eGuard+=ability.power;evadeTurns=2}
+ else if(ability.kind==='reload')enemyReload=true;
+ else return false;
+ announceAbility(enemyLabel(),ability.name,detail);afterAction('enemy');checkEnd();return true;
 }
 
 const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -283,7 +294,7 @@ function activate(index){
  if(spec.kind==='swap'){freeSwap=true;selected=null;render()}else afterAction('player',spec.turnCost===0);
  checkEnd();render();
 }
-async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=({red:4,purple:3,green:eHP<18?3:1,yellow:2,blue:2,gold:0,xp:0,env:1}[t]||0)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
+async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=enemyMoveScore(t)}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
 function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(targetMode){void applyTarget(p);return}if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
 async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
@@ -321,7 +332,7 @@ async function settleVictory(){
  encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
-  const unlockedRat=activeEncounter==='rat'&&!worldCleared('rat');
+  const firstClear=!worldCleared(activeEncounter),unlockText=encounterSpec().unlockText;
   let data;
   const resultBody={matchId:activeMatchId,won:true,gold,xp};if(activeAuthority?.mode==='replay-v1')resultBody.transcript=combatTranscript;
   try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
@@ -329,9 +340,9 @@ async function settleVictory(){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
    else throw error;
   }
-  applyAccount(data.account);rewardsSettled=true;encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');
+  applyAccount(data.account);rewardsSettled=true;encounterClearSaved=worldCleared(activeEncounter);
   const awardedGold=data.settlement?.gold??gold,awardedXp=data.settlement?.xp??xp;
-  $('resultText').textContent='+'+awardedGold+' GOLD · +'+awardedXp+' XP'+(unlockedRat&&worldCleared('rat')?' · BANDIT PATH UNLOCKED':'');
+  $('resultText').textContent='+'+awardedGold+' GOLD · +'+awardedXp+' XP'+(firstClear&&worldCleared(activeEncounter)&&unlockText?' · '+unlockText:'');
  }catch(error){$('resultText').textContent='SAVE FAILED · '+saveErrorText(error);$('resultRetry').hidden=false}
  finally{encounterSettling=false;$('resultMenu').disabled=false}
 }
@@ -366,7 +377,7 @@ function renderSlots(){
  $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id);if(!v)return '<button class="slot" disabled data-slot="'+i+'" style="--c:#5f5a4e"><div class="orb"></div><div class="slotName">Empty</div><div class="effect">Earn a gem</div><div class="charge">—</div></button>';const ready=charges[v.color]>=v.cap;return '<button class="slot '+(ready?'ready':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(ready?'USE · '+v.cap:charges[v.color]+' / '+v.cap)+'</div></button>'}).join('');
  document.querySelectorAll('.slot:not(:disabled)').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)));
 }
-$('sacksBtn').onclick=()=>{const boxes=document.querySelectorAll('.sackGrid .sack');boxes[0].innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+(v?v.item+' — '+v.name:'Empty')+'</div>'}).join('');boxes[1].innerHTML=activeEncounter==='rat'?'<h3>RAT</h3><div class="line">Red — Bite</div><div class="line">Blue — Evade</div>':'<h3>BANDIT</h3><div class="line">Red — Bolt</div><div class="line">Blue — Evade</div><div class="line">Green — Bandage</div><div class="line">Yellow — Reload</div><div class="line">Purple — Deadeye</div>';$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
+$('sacksBtn').onclick=()=>{const boxes=document.querySelectorAll('.sackGrid .sack'),enemy=encounterSpec();boxes[0].innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+(v?v.item+' — '+v.name:'Empty')+'</div>'}).join('');boxes[1].innerHTML='<h3>'+enemy.name+'</h3>'+Object.entries(enemy.reservoirs).filter(([,v])=>v.visible).map(([color,v])=>'<div class="line">'+color[0].toUpperCase()+color.slice(1)+' — '+v.name[0]+v.name.slice(1).toLowerCase()+'</div>').join('');$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
 
 async function accountRequest(path,options={}){
  const headers={'Content-Type':'application/json',...(options.headers||{})};if(accountToken)headers.Authorization='Bearer '+accountToken;

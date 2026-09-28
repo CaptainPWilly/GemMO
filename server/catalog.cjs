@@ -1,4 +1,5 @@
 'use strict';
+const ENCOUNTERS=require('../shared/encounters.js');
 
 const GEM_IDS=Object.freeze([
   "dagger",
@@ -109,4 +110,4 @@ const SHOP_CATALOG=Object.freeze({
     'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15
   })
 });
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG};
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,STARTER_GEMS,STARTER_GEM_SET,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS};
