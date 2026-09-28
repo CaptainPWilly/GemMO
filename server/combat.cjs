@@ -175,7 +175,7 @@ function target(s,x,y){
  if(mode==='rotate')s.board[y].unshift(s.board[y].pop());
  const m=findMatches(s);if(m)resolve(s,m,'player',{x,y});else afterAction(s,'player');return true;
 }
-function applyRatAction(s,action){
+function applyCombatAction(s,action){
  if(!action||typeof action!=='object'||s.pHP<=0||s.eHP<=0||!s.playerTurn)return false;
  if(action.t==='ability')return activate(s,action.slot);
  if(action.t==='target')return target(s,action.x,action.y);
@@ -189,12 +189,13 @@ function applyRatAction(s,action){
 function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,rewardBudget,transcript}){
  if(!['rat','bandit'].includes(encounterId)||!Array.isArray(transcript)||transcript.length>256)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
  const s=createCombat({encounterId,seed,sack,equipment,rewardBudget});
- for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyRatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
+ for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyCombatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
  return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP};
 }
+function applyRatAction(s,action){return applyCombatAction(s,action)}
 function verifyRatTranscript(args){return verifyCombatTranscript({...args,encounterId:'rat'})}
 function verifyBanditTranscript(args){return verifyCombatTranscript({...args,encounterId:'bandit'})}
-function suggestRatAction(s){
+function suggestCombatAction(s){
  if(!s.playerTurn||s.pHP<=0||s.eHP<=0)return null;
  if(s.targetMode)return {t:'target',x:0,y:0};
  if(s.freeSwap)return {t:'swap',ax:0,ay:0,bx:1,by:0};
@@ -203,4 +204,5 @@ function suggestRatAction(s){
  for(const [a,b] of legalMoves(s)){swap(s,a,b);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=t==='red'?20:t==='blue'?5:t==='green'?2:t==='gold'||t==='xp'?1:t==='env'?-4:0}swap(s,a,b);if(score>bestScore){bestScore=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}
  return best;
 }
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestRatAction,findMatches,legalMoves,reservoirCap};
+function suggestRatAction(s){return suggestCombatAction(s)}
+module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap};
