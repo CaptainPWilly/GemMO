@@ -4,9 +4,13 @@ const es=new Map(),document={getElementById(id){if(!es.has(id))es.set(id,new El(
 const root=path.join(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles=fs.readFileSync(path.join(root,'assets','styles.css'),'utf8');
+const content=fs.readFileSync(path.join(root,'assets','content.js'),'utf8');
 let src=fs.readFileSync(path.join(root,'assets','app.js'),'utf8');
 assert(html.includes('href="assets/styles.css"'),'production shell must load the canonical stylesheet');
+assert(html.includes('src="assets/content.js"')&&html.indexOf('assets/content.js')<html.indexOf('assets/app.js'),'production shell must load static content before runtime');
 assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
+assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
+assert(!src.includes('const ITEMS=[')&&!src.includes('const WORLD_NODES={'),'runtime must not re-embed expandable content');
 assert(styles.includes('@media (min-width:700px)'),'tablet breakpoint must exist');
 assert(styles.includes('orientation:landscape'),'landscape tablet layout must exist');
 assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-pane grid');
@@ -27,7 +31,7 @@ assert(html.includes('class="sackHero"')&&html.includes('class="sackToolbar"'),'
 assert(styles.includes('grid-template-columns:repeat(3,minmax(0,1fr))'),'collection cards use compact mobile columns');
 src=src.replace("showScreen('splash');",`globalThis.api={setHintDelay:v=>hintDelay=v,ITEMS,GEAR,EQUIPMENT_SLOTS,WORLD_NODES,worldCanTravel,worldPath,worldCleared,sackIsValid,gearStats,playerMaxHP,reservoirCap,canEquipGear,equipGear,unequipGear,getEquipment:()=>({...equipment}),resetEquipment:()=>{equipment={...DEFAULT_EQUIPMENT}},setInventory:v=>inventory=v.slice(),setTestAccount:v=>account=v,setWorldClears:v=>worldState.clearedEncounters=v.slice(),applyTarget,afterAction,fallColumns,reshuffleBoard,touchActivity,showHint,damagePlayer,findMatches,legalMoves,reservoirCap,enemyUseActive,setEnemyReady:color=>ec[color]=ENEMY[color].cap,startFight,applyColor,activate,trySwap,tapCell,get:()=>({charges,sack,pHP,eHP,pGuard,eGuard,freeSwap,overdrive,playerTurn,board,buffs,pinColumn,pinTurns,guardTurns,evadeTurns,actionNumber,targetMode}),setHP:v=>pHP=v,setGuard:v=>eGuard=v,setBoard:v=>{board=v;render()},setTurn:v=>playerTurn=v,setSack:v=>sack=v,setReady:i=>{charges[itemById(sack[i]).color]=itemById(sack[i]).cap;playerTurn=true;pHP=10},finish:async()=>{await Promise.all(damageAnimations.splice(0))}};showScreen('splash');`);
 const scheduled=new Map();let nextTimer=1;
-const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(src,c);const a=c.api;
+const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(content,c);vm.runInNewContext(src,c);const a=c.api;
 a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{level:1,xp:0,gold:0},user:{username:'TestHero'}});
 
 (async()=>{
