@@ -672,9 +672,13 @@ html,body{background:#060705;color:var(--text)}
 .settingsCard select{height:44px;margin-top:14px!important;border-radius:7px!important}.settingsCard>p{margin:8px 0 0!important;font-size:9px!important;color:#7d766a!important}
 
 /* Catalogue/readable layouts */
-.shopPage>h1{margin:4px auto 6px!important}.shopPage .shopBar{border-radius:8px;padding:11px 12px}
-.gemologyPage .gemologyGrid{align-items:stretch}.gemologyPage .gemologyCard{border-radius:8px;padding:14px;min-height:142px}.gemologyPage .gemologyCard h2{font-size:22px}.gemologyPage .rulebook{max-width:var(--reading-max);margin-left:auto;margin-right:auto}
-.inventoryPage .equipmentHero{border-radius:10px;padding:16px}.inventoryPage .equipmentGrid,.inventoryPage .inventoryGrid{align-items:stretch}
+.shopHero{display:grid;gap:10px;margin-bottom:14px}.shopHero>div:first-child{display:grid;gap:3px}.shopHero small{font-size:7px!important;letter-spacing:1.7px;color:#776f63!important}.shopHero h1{margin:0!important;font-size:clamp(38px,10vw,52px)!important;line-height:1}.shopHero p{margin:4px 0 0!important;max-width:560px}
+.shopPage .shopBar{margin:0;border-radius:9px;padding:11px 12px;background:linear-gradient(180deg,#1c1d18,#11120f)}
+.shopGrid{gap:10px}.shopColorCatalog,.shopGearCatalog{gap:18px}.shopColorSection,.shopGearSection{gap:8px}.shopColorHead,.shopGearHead{padding:0 3px 3px}.shopColorHead b,.shopGearHead b{font-size:10px}.shopItem{border-radius:8px;min-height:96px;padding-top:11px;padding-bottom:10px}.shopItem b{font-size:14px}.shopItem p{line-height:1.35!important}.shopStatus{margin-top:11px!important}
+.starterHero{margin-bottom:12px}.starterWarning{display:flex;gap:6px;align-items:baseline;margin:0 0 16px!important;border:1px solid #403b31!important;border-left:3px solid #8f7144!important;border-radius:8px;padding:10px 12px!important;background:#12130f!important}.starterWarning b{color:#d6bd8b;white-space:nowrap}.starterGrid{gap:10px}.starterPage .starterGem{border-radius:10px}
+.gemologyPage .gemologyGrid{align-items:stretch;gap:10px}.gemologyPage .gemologyCard{border-radius:9px;padding:15px;min-height:142px;box-shadow:0 8px 20px #0004}.gemologyPage .gemologyCard h2{font-size:22px}.gemologyPage .gemologyCard p{line-height:1.45!important}.gemologyPage .rulebook{max-width:var(--reading-max);margin-left:auto;margin-right:auto}.rulebook{padding-top:16px}.rulebook h2{margin-top:18px}.ruleTag{border-radius:999px;padding:4px 7px}
+.inventoryPage .equipmentHero{border-radius:11px;padding:16px;box-shadow:0 12px 28px #0005}.inventoryPage .equipmentGrid,.inventoryPage .inventoryGrid{align-items:stretch}.equipmentGrid{gap:8px}.gearSlot,.gearCard{border-radius:8px}.unequipGear{min-height:36px;border-radius:8px}
+.sackPage .sackHero{margin-top:16px}.sackPage .sackSlot,.sackPage .itemCard{transition:transform .12s ease,border-color .12s ease,box-shadow .12s ease}.sackPage .sackSlot:active,.sackPage .itemCard:not(:disabled):active{transform:translateY(1px) scale(.985)}
 
 /* World: make the map dominant and group HUD controls as one chrome family. */
 .worldHud{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
@@ -696,9 +700,11 @@ html,body{background:#060705;color:var(--text)}
   .splashSigil{width:132px;height:132px}.splashBrand h1{font-size:104px!important}.splashEnter{width:360px!important}
   .menuPage{justify-content:center;padding-top:calc(34px + env(safe-area-inset-top))}.menuBrand{text-align:center}.menuBrand p{text-align:center}.menuNav{gap:10px}.menuNav .primary{min-height:78px;padding:13px 15px!important}.menuNav .menuPrimary{min-height:92px}.menuButtonCopy b{font-size:12px}.menuButtonCopy small{font-size:7px!important}.menuSnapshot{gap:10px}
   .accountPage .accountBox{padding:22px}.settingsStack{grid-template-columns:1fr 1fr;gap:12px}.settingsCard{padding:19px}
+  .shopHero{grid-template-columns:minmax(0,1fr) 180px;align-items:end;gap:20px}.shopHero .shopBar{display:grid;gap:4px;justify-items:end;text-align:right}.shopHero .shopBar b{font-size:14px}
   .gemologyGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.gemologyCard.wide{grid-column:1/-1}
-  .shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .inventoryGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+  .shopGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.shopColorGrid,.shopGearGrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+  .starterPage .starterGrid{grid-template-columns:repeat(3,minmax(0,1fr));max-width:780px}.starterPage .starterGem{min-height:240px}
+  .inventoryGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.equipmentGrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
   .worldHud{padding:calc(14px + env(safe-area-inset-top)) 22px 12px}.worldHud button{font-size:11px;padding:10px 12px}.worldTitle b{font-size:24px}
   .worldQuickbar{left:50%;right:auto;transform:translateX(-50%);width:min(560px,calc(100% - 44px));bottom:calc(174px + env(safe-area-inset-bottom));gap:9px}.worldQuickButton{min-height:58px;font-size:9px}
   .worldCard{left:50%;right:auto;transform:translateX(-50%);width:min(760px,calc(100% - 44px));min-height:138px;padding:16px;bottom:calc(16px + env(safe-area-inset-bottom))}.worldCard h2{font-size:28px}.worldViewport{inset:0 0 238px}
