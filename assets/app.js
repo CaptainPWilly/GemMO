@@ -556,10 +556,21 @@ async function travelWorld(nodeId){
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
 function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
+function shopCard(entry,owned){
+ const v=shopItemData(entry.id),has=owned.has(entry.id);if(!v)return '';
+ const icon=v.color?'<span class="shopGemIcon itemGem '+v.color+'"></span>':'<span class="shopGearIcon">▣</span>';
+ return '<button class="shopItem '+(v.color?'gemShopItem':'gearShopItem')+'" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'>'+icon+'<span class="shopItemCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><p>'+v.desc+'</p></span><span class="shopPrice">'+(has?'OWNED':entry.price+' ◆')+'</span></button>';
+}
 function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
  $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Roadside Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'GEM SHOP':'ITEM SHOP';$('shopGold').textContent=gold+' GOLD';
- $('shopGrid').innerHTML=stock.map(entry=>{const v=shopItemData(entry.id),has=owned.has(entry.id);if(!v)return '';return '<button class="shopItem" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'><small>'+(v.color?v.color.toUpperCase():'GEAR')+'</small><b>'+v.name+'</b><strong>'+entry.price+' GOLD · '+(has?'OWNED':'BUY')+'</strong><p>'+v.sub+'<br>'+v.desc+'</p></button>'}).join('');
+ if(currentShop==='gem-shop'){
+  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'},order=['red','blue','green','yellow','purple'];
+  $('shopGrid').innerHTML='<div class="shopColorCatalog">'+order.map(color=>{
+   const entries=stock.filter(entry=>itemById(entry.id)?.color===color);if(!entries.length)return '';
+   return '<section class="shopColorSection '+color+'"><div class="shopColorHead"><span class="shopColorDot"></span><b>'+labels[color]+'</b><small>'+entries.length+'</small></div><div class="shopColorGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>';
+  }).join('')+'</div>';
+ }else $('shopGrid').innerHTML=stock.map(entry=>shopCard(entry,owned)).join('');
  document.querySelectorAll('.shopItem:not(:disabled)').forEach(b=>b.onclick=()=>void buyShopItemClient(b.dataset.buy));
 }
 async function buyShopItemClient(itemId){
