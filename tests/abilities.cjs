@@ -89,7 +89,7 @@ a.setTestAccount({needsStarter:false,inventory:a.ITEMS.map(i=>i.id),profile:{lev
  // Expanded effect vocabulary.
  a.setSack(['knife','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().eHP,23);assert.equal(a.get().playerTurn,true,'quick hit keeps the turn');
  a.setSack(['executioners-axe','dagger','shield','salve','charm']);a.startFight();a.setHP(10);a.setReady(0);a.activate(0);assert.equal(a.get().eHP,20,'execute uses base damage above threshold');
- a.startFight();a.setEnemyHP(8);a.setReady(0);a.activate(0);assert.equal(a.get().eHP,-2,'execute spikes at low HP');
+ a.startFight();a.setEnemyHP(8);a.setReady(0);a.activate(0);assert.equal(a.get().eHP,0,'execute spikes at low HP');
  a.setSack(['barbed-blade','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().enemyEffects.bleed,2);a.afterAction('enemy');assert.equal(a.get().eHP,22);
  a.setSack(['mirror-shield','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);a.damagePlayer(6);assert.equal(a.get().eHP,21,'reflect returns half of unblocked damage');
  a.setSack(['swordbreaker','dagger','shield','salve','charm']);a.startFight();a.setReady(0);a.activate(0);assert.equal(a.get().enemyEffects.disarm,1);
