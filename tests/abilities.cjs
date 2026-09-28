@@ -145,7 +145,7 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
   await a.finish();console.log('PASS '+item.item+' / '+item.name);
   if(['heal','shelter','leech','renew'].includes(item.kind)){a.startFight();a.setReady(0);const max=a.playerMaxHP();a.setHP(max-1);a.activate(0);assert.equal(a.get().pHP,max,item.id+' healing cap');await a.finish()}
  }
- a.setSack(['dagger','spear','longbow','rapier','hand-crossbow']);a.startFight();assert.equal(a.matchPower('red'),5);a.applyColor('red',5,'player');assert.equal(a.get().charges.red,5);assert.equal(a.reservoirCap('red'),31);assert.equal(a.get().eHP,-1,'five ATK 1 Red gems deal 25 damage from five broken Red gems');await a.finish();
+ a.setSack(['dagger','spear','longbow','rapier','hand-crossbow']);a.startFight();a.setEnemyHP(50);assert.equal(a.matchPower('red'),5);a.applyColor('red',5,'player');assert.equal(a.get().charges.red,5);assert.equal(a.reservoirCap('red'),31);assert.equal(a.get().eHP,25,'five ATK 1 Red gems deal 25 damage from five broken Red gems');await a.finish();
  a.setReady(2);a.activate(2);assert.equal(a.get().charges.red,0);await a.finish();
  a.setSack(['warhammer','dagger','shield',null,null]);a.startFight();assert.equal(a.matchPower('red'),3);assert.equal(a.matchPower('blue'),2);a.applyColor('red',2,'player');assert.equal(a.get().eHP,18,'Red damage multiplies broken gems by total equipped ATK');a.applyColor('blue',2,'player');assert.equal(a.get().pGuard,4,'Blue Guard multiplies broken gems by total equipped DEF');await a.finish();
  a.setSack(['charm','seal','dagger','shield','boots']);a.startFight();a.setReady(0);a.activate(0);a.setReady(0);a.activate(0);assert.equal(a.get().charges.purple,10,'Overdrive cannot be re-activated while primed');
