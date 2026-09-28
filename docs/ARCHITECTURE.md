@@ -5,10 +5,15 @@
 ```text
 Player browser
   index.html
-    ├─ UI / responsive layout
-    ├─ isometric world renderer
-    ├─ local match-3 combat engine
-    └─ authenticated API client
+    └─ semantic UI shell
+  assets/
+    ├─ content.js       expandable world/catalog/gear content
+    ├─ styles.css      responsive dungeon visual system
+    └─ app.js
+        ├─ UI behavior
+        ├─ isometric world renderer
+        ├─ local match-3 combat engine
+        └─ authenticated API client
           ↓
 Render Node service
   server/server.cjs
@@ -127,8 +132,8 @@ The client retries transient victory-settlement failures and exposes a manual **
 
 ## Data/catalog duplication
 
-Some live presentation/combat definitions remain in `index.html`, while persistent validation definitions live in `server/catalog.cjs`.
+Expandable client definitions now live in `assets/content.js`; runtime behavior lives in `assets/app.js`. Persistent validation definitions still live in `server/catalog.cjs`, and deterministic combat definitions still exist server-side in `server/combat.cjs`.
 
-If a persistent rule exists on both sides, treat server values as authoritative and update both in the same PR.
+If a persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks client/server gem parity.
 
-Longer term, extracting shared data generation is desirable, but do not weaken server validation just to remove duplication.
+Longer term, a generated shared catalog is desirable, but do not weaken server validation or introduce runtime network dependency just to remove duplication.
