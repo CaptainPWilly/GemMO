@@ -34,6 +34,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 | `index.html` | Thin live browser shell and semantic UI markup |
 | `assets/content.js` | Client world, shops, gem catalog, gear, and other expandable content |
 | `shared/encounters.js` | Shared browser/server encounter contract: HP, rewards, match rules, enemy reservoirs, abilities, AI weights |
+| `shared/story.js` | Shared cutscene, NPC, dialogue-tree, and quest definitions |
 | `assets/combat-core.js` | Pure deterministic browser combat primitives: seeded RNG, matching, swaps, legal-move discovery |
 | `assets/app.js` | Live runtime, UI behavior, combat orchestration, world renderer, authenticated API client |
 | `assets/styles.css` | Canonical responsive dungeon visual system |
@@ -59,6 +60,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 - Early equipment can modify HP, opening Guard, and color reservoir capacity.
 - Overworld movement is server-validated. Tapping a reachable distant node follows the shortest unlocked route and animates every segment.
 - Rat is the first encounter; clearing it unlocks the Bandit path.
+- Story now supports account-persistent cutscenes, dialogue NPCs, and server-authoritative quests. Warden Vale at Ember Camp offers the first quest, **Trouble on the Road**.
 - Combat Gold/XP are settled to the account on victory through match tickets. Every match receives a server-issued loot budget.
 - Rat and Bandit victories are **server replay-verified** from a server seed plus a player-intent transcript; combat rewards come from the replay, not from the browser's claimed result.
 - The browser still runs the live fight for responsiveness; the server independently reconstructs completed fights before accepting victory/progression. See the architecture document.
