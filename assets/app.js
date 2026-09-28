@@ -554,7 +554,7 @@ async function travelWorld(nodeId){
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
-function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.name,desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
+function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
@@ -643,7 +643,7 @@ function drawSack(){
  const visible=ownedGems.filter(v=>(filter==='all'||v.color===filter)&&[v.item,v.name,v.desc].join(' ').toLowerCase().includes(query));
  $('collection').innerHTML=visible.map(v=>{
   const other=sack.findIndex((id,i)=>i!==chosenSlot&&id===v.id),locked=other>=0,equipped=sack[chosenSlot]===v.id;
-  return '<button class="itemCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'EQUIPPED':locked?'IN SLOT '+(other+1):'TAP TO EQUIP')+'</em></button>'
+  return '<button class="itemCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'EQUIPPED':locked?'IN SLOT '+(other+1):'TAP TO EQUIP')+'</em></button>'
  }).join('');
  document.querySelectorAll('.itemCard:not(:disabled)').forEach(b=>b.onclick=()=>{
   const id=b.dataset.item;if(sack.some((equipped,i)=>i!==chosenSlot&&equipped===id))return;
@@ -670,7 +670,7 @@ function openCombatGemology(){
 }
 function closeCombatGemology(){$('combatGemologyPanel').hidden=true;resumeCombatView()}
 function drawCombatEquip(){
- const sackHtml=sack.map((id,i)=>{const v=itemById(id);return '<div class="combatEquipItem"><small>SACK '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color.toUpperCase()+' · '+v.name:'')+'</span></div>'}).join('');
+ const sackHtml=sack.map((id,i)=>{const v=itemById(id);return '<div class="combatEquipItem"><small>SACK '+(i+1)+'</small><b>'+(v?v.item:'Empty')+'</b><span>'+(v?v.color.toUpperCase()+' · '+v.effectLabel+' · '+v.name:'')+'</span></div>'}).join('');
  const gearHtml=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<div class="combatEquipItem"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><span>'+(g?gearBonusText(g):'')+'</span></div>'}).join('');
  $('combatEquipContent').innerHTML='<div class="combatEquipGrid">'+sackHtml+gearHtml+'</div>';
 }
