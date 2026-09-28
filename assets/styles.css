@@ -424,3 +424,72 @@ html,body{background:#060705;color:var(--text)}
 }
 .historyEntry{border-color:#302d26;color:#afa48f}
 .historyEntry.ability{background:#211d15;color:#d7c08d;border-left-color:#9e7d48}
+
+/* World HUD — persistent player controls without obscuring the map. */
+.worldHud{grid-template-columns:auto 1fr auto auto}
+.worldGold{
+  display:flex;align-items:center;gap:5px;min-width:64px;justify-content:center;
+  padding:8px 9px;border:1px solid #65563d;border-radius:4px;
+  background:linear-gradient(180deg,#24231d,#161712);box-shadow:inset 0 1px rgba(255,255,255,.025),0 2px 8px #0005;
+  color:#d8bd78;font-size:10px;letter-spacing:.4px
+}
+.worldGold span{font-size:9px;color:var(--gold)}
+.worldGold b{font-size:11px;color:#ead8aa}
+.worldQuickbar{
+  position:absolute;z-index:5;left:10px;right:10px;bottom:calc(144px + env(safe-area-inset-bottom));
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px
+}
+.worldQuickButton{
+  position:relative;min-height:48px;padding:7px 5px 6px;border:1px solid #514938;border-radius:5px;
+  background:linear-gradient(180deg,rgba(35,36,30,.97),rgba(18,19,15,.98));
+  color:#cfc2a8;box-shadow:inset 0 1px rgba(255,255,255,.025),0 5px 14px #0006;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:8px;font-weight:800;letter-spacing:.8px
+}
+.worldQuickButton:active{transform:translateY(1px);filter:brightness(.94)}
+.worldQuickIcon{font-size:17px;line-height:1;color:#b69a67}
+.worldPip{
+  position:absolute;right:7px;top:7px;width:8px;height:8px;border-radius:50%;
+  background:#ca5748;border:1px solid #f0aa83;box-shadow:0 0 0 2px #141510,0 0 10px #ca574888
+}
+.worldEffectsPanel{
+  position:absolute;z-index:7;left:10px;right:10px;bottom:calc(204px + env(safe-area-inset-bottom));
+  max-height:min(46vh,360px);overflow:auto;padding:12px;
+  border:1px solid #66583f;border-radius:7px;
+  background:linear-gradient(180deg,rgba(28,29,24,.98),rgba(12,13,10,.99));
+  box-shadow:0 16px 40px #000b,inset 0 1px rgba(255,255,255,.025);backdrop-filter:blur(8px)
+}
+.worldEffectsHead{display:flex;align-items:start;justify-content:space-between;gap:12px;padding-bottom:9px;border-bottom:1px solid #373329}
+.worldEffectsHead small{display:block;color:#8e816b;font-size:7px;letter-spacing:1.5px}
+.worldEffectsHead h3{margin:2px 0 0;color:#dfcfac;font:18px Georgia,serif}
+.worldEffectsHead button{width:32px;height:32px;padding:0;border:1px solid #4e4739;background:#171814;color:#bbae98;border-radius:4px;font-size:17px}
+.worldEffectsList{display:grid;gap:7px;padding-top:10px}
+.worldEffect{
+  display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:center;padding:9px 10px;
+  border:1px solid #3f3a30;border-radius:5px;background:#141510;color:#c9bea9
+}
+.worldEffectIcon{
+  width:28px;height:28px;border:1px solid #514836;border-radius:50%;display:grid;place-items:center;
+  color:#c4a66e;background:#1d1c17;font-size:12px
+}
+.worldEffect b{display:block;color:#dbc9a7;font-size:10px;letter-spacing:.3px}
+.worldEffect span{display:block;margin-top:2px;color:#8f8677;font-size:8px;line-height:1.35}
+.worldEffect.empty{grid-template-columns:1fr;text-align:center;color:#81796d;padding:14px}
+.worldViewport{inset:0 0 202px}
+
+@media (min-width:700px){
+  .worldGold{min-width:82px;padding:10px 12px}.worldGold b{font-size:13px}
+  .worldQuickbar{left:50%;right:auto;transform:translateX(-50%);width:min(520px,calc(100% - 44px));bottom:calc(174px + env(safe-area-inset-bottom));gap:9px}
+  .worldQuickButton{min-height:56px;font-size:9px}.worldQuickIcon{font-size:20px}
+  .worldEffectsPanel{left:auto;right:22px;width:340px;bottom:calc(244px + env(safe-area-inset-bottom));max-height:420px}
+  .worldViewport{inset:0 0 236px}
+}
+
+@media (max-width:390px){
+  .worldHud{gap:5px;padding-left:7px;padding-right:7px}
+  .worldHud>button{padding-left:7px;padding-right:7px}
+  .worldGold{min-width:54px;padding:8px 6px}
+  .worldTitle b{font-size:16px}.worldTitle small{letter-spacing:1.3px}
+  .worldQuickButton{font-size:7px;letter-spacing:.55px}
+}
+
