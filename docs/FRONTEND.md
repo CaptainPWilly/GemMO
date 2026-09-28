@@ -8,7 +8,8 @@ The live browser client is intentionally build-free so GitHub Pages can publish 
 | --- | --- |
 | `index.html` | Semantic page/overlay markup and asset loading only |
 | `assets/content.js` | Expandable client content: world graph, shops, gems, equipment definitions, board type metadata |
-| `assets/app.js` | Runtime state, UI behavior, world renderer, combat engine, API/session client |
+| `assets/combat-core.js` | Pure deterministic combat primitives: seeded RNG, swap, match detection, legal-move discovery |
+| `assets/app.js` | Runtime state, UI behavior, world renderer, combat orchestration/presentation, API/session client |
 | `assets/styles.css` | Canonical responsive visual system and dungeon theme |
 | `tests/abilities.cjs` | Production-client regression harness; executes the real content/runtime files |
 
@@ -17,10 +18,11 @@ The shell loads assets in this order:
 ```text
 assets/styles.css
 assets/content.js
+assets/combat-core.js
 assets/app.js
 ```
 
-`content.js` must load before `app.js`.
+`content.js` must load before `combat-core.js`, and `combat-core.js` must load before `app.js`.
 
 ## Expansion rules
 
@@ -74,6 +76,8 @@ Avoid:
 
 The current stylesheet still contains historical component declarations beneath the canonical theme. Future visual work should simplify those sections instead of stacking another theme layer on top.
 
+The same rule now applies to runtime structure: deterministic board/RNG primitives belong in `combat-core.js`; encounter orchestration, animation, UI, and network behavior stay in `app.js`. Continue extracting coherent pure seams instead of introducing a framework rewrite.
+
 ## Test philosophy
 
 `tests/abilities.cjs` does not test a copied combat implementation. It loads the actual production `assets/content.js` and `assets/app.js` into a controlled VM and tests that code directly.
@@ -90,4 +94,4 @@ Structural assertions also ensure:
 
 The browser is responsible for presentation, input, and responsive local simulation. The server/database remain authoritative for accounts, inventory, Sack ownership, equipment, world progress, purchases, match identity, and persistent rewards.
 
-Rat victories are replay-verified. Bandit remains the current major combat-authority gap and should be the next trust-system expansion target.
+Rat and Bandit victories are replay-verified from server-issued seeds and server-owned loadout snapshots. The remaining trust upgrade is architectural rather than encounter-specific: replay is after-the-fact verification, not live server-owned intent processing.
