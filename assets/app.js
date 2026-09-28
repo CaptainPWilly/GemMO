@@ -54,6 +54,10 @@ function gearBonusText(g){
  for(const color of ['red','blue','green','yellow','purple'])if(g.caps?.[color])parts.push('+'+g.caps[color]+' '+color.toUpperCase()+' CAP');
  if(g.allCap)parts.push('+'+g.allCap+' ALL CAPS');return parts.join(' · ')||'No bonus';
 }
+const GEAR_SLOT_ICON={head:'◒',chest:'▣',hands:'✦',legs:'Ⅱ',feet:'⌁',necklace:'◇',ring:'○'};
+function gearSlotIcon(type){return GEAR_SLOT_ICON[type]||'▣'}
+function openLoadoutScreen(next,origin=screen){loadoutReturnScreen=origin==='world'?'world':'menu';showScreen(next)}
+function leaveMenuPage(){if(['sack','inventory'].includes(screen)&&loadoutReturnScreen==='world'){enterWorld();return}showScreen(account?'menu':'splash')}
 function playerMaxHP(){return 18+gearStats().hp}
 function canEquipGear(slot,id){
  const def=gearSlotById(slot),g=gearById(id);if(!def||!g||!inventory.includes(id)||def.type!==g.slot)return false;
@@ -62,7 +66,7 @@ function canEquipGear(slot,id){
 function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slot]=id;return true}
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger',null,null,null,null];
-let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,enemyTimer=0,motionOff=false;
+let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false;
 let actionNumber=1,targetMode=null,targetKeepsTurn=false,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0;
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
@@ -554,11 +558,11 @@ async function travelWorld(nodeId){
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
-function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LEVEL '+gear.level+' · '+gear.slot.toUpperCase(),desc:gear.desc,color:null};return null}
+function shopItemData(id){const gem=itemById(id);if(gem)return {id,name:gem.item,sub:gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function shopCard(entry,owned){
  const v=shopItemData(entry.id),has=owned.has(entry.id);if(!v)return '';
- const icon=v.color?'<span class="shopGemIcon itemGem '+v.color+'"></span>':'<span class="shopGearIcon">▣</span>';
+ const icon=v.color?'<span class="shopGemIcon itemGem '+v.color+'"></span>':'<span class="shopGearIcon">'+(v.icon||'▣')+'</span>';
  return '<button class="shopItem '+(v.color?'gemShopItem':'gearShopItem')+'" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'>'+icon+'<span class="shopItemCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><p>'+v.desc+'</p></span><span class="shopPrice">'+(has?'OWNED':entry.price+' ◆')+'</span></button>';
 }
 function drawShop(){
@@ -570,7 +574,10 @@ function drawShop(){
    const entries=stock.filter(entry=>itemById(entry.id)?.color===color);if(!entries.length)return '';
    return '<section class="shopColorSection '+color+'"><div class="shopColorHead"><span class="shopColorDot"></span><b>'+labels[color]+'</b><small>'+entries.length+'</small></div><div class="shopColorGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>';
   }).join('')+'</div>';
- }else $('shopGrid').innerHTML=stock.map(entry=>shopCard(entry,owned)).join('');
+ }else{
+  const groups=[['head','HEAD'],['chest','CHEST'],['hands','HANDS'],['legs','LEGS'],['feet','FEET'],['necklace','NECKLACE'],['ring','RINGS']];
+  $('shopGrid').innerHTML='<div class="shopGearCatalog">'+groups.map(([slot,label])=>{const entries=stock.filter(entry=>gearById(entry.id)?.slot===slot);if(!entries.length)return '';return '<section class="shopGearSection"><div class="shopGearHead"><span>'+gearSlotIcon(slot)+'</span><b>'+label+'</b><small>'+entries.length+'</small></div><div class="shopGearGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>'}).join('')+'</div>';
+ }
  document.querySelectorAll('.shopItem:not(:disabled)').forEach(b=>b.onclick=()=>void buyShopItemClient(b.dataset.buy));
 }
 async function buyShopItemClient(itemId){
@@ -663,11 +670,14 @@ function drawSack(){
  $('equipHint').textContent=account?'Slot '+(chosenSlot+1)+' selected · '+sack.filter(Boolean).length+'/5 equipped':'Slot '+(chosenSlot+1)+' selected';
 }
 function drawInventory(){
- const stats=gearStats(),caps=Object.entries(stats.caps).filter(([,v])=>v).map(([k,v])=>'<b>+'+v+' '+k.toUpperCase()+' CAP</b>').join('');$('equipmentStats').innerHTML='<b>LEVEL 1</b><b>'+playerMaxHP()+' MAX HP</b><b>'+stats.guard+' STARTING GUARD</b>'+caps;$('inventoryCount').textContent=inventory.length+' physical items owned.';
- $('equipmentGrid').innerHTML=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<button class="gearSlot '+(def.id===chosenGearSlot?'chosen':'')+'" data-gear-slot="'+def.id+'"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><span>'+(g?(g.hp?'+'+g.hp+' HP ':'')+(g.guard?'+'+g.guard+' GUARD':''):'Choose gear')+'</span></button>'}).join('');
+ const stats=gearStats(),caps=Object.entries(stats.caps).filter(([,v])=>v).map(([k,v])=>'<b><small>'+k.toUpperCase()+'</small>+'+v+' CAP</b>').join('');
+ $('equipmentStats').innerHTML='<b><small>HP</small>'+playerMaxHP()+'</b><b><small>GUARD</small>'+stats.guard+'</b>'+caps;
+ $('inventoryCount').textContent=inventory.filter(id=>gearById(id)).length+' OWNED';
+ const selectedDef=gearSlotById(chosenGearSlot);$('equipmentSelection').textContent=selectedDef?'SELECTED · '+selectedDef.label.toUpperCase():'SELECT A SLOT';
+ $('equipmentGrid').innerHTML=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<button class="gearSlot '+(def.id===chosenGearSlot?'chosen':'')+'" data-gear-slot="'+def.id+'"><span class="gearSlotIcon">'+gearSlotIcon(def.type)+'</span><span class="gearSlotCopy"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><em>'+(g?gearBonusText(g):'Choose gear')+'</em></span></button>'}).join('');
  document.querySelectorAll('.gearSlot').forEach(b=>b.onclick=()=>{chosenGearSlot=b.dataset.gearSlot;drawInventory()});
- const def=gearSlotById(chosenGearSlot);
- $('inventoryGrid').innerHTML=inventory.map(id=>gearById(id)).filter(Boolean).map(g=>{const elsewhere=Object.entries(equipment).find(([slot,id])=>slot!==chosenGearSlot&&id===g.id);const compatible=def&&def.type===g.slot&&!elsewhere;const current=equipment[chosenGearSlot]===g.id;return '<button class="gearCard" data-gear="'+g.id+'" '+(!compatible&&!current?'disabled aria-disabled="true"':'')+'><small>LV '+g.level+' · '+g.slot.toUpperCase()+'</small><b>'+g.name+'</b><strong>'+(g.hp?'+'+g.hp+' MAX HP ':'')+(g.guard?'+'+g.guard+' START GUARD':'')+'</strong><p>'+g.desc+'</p><small>'+(current?'EQUIPPED HERE':elsewhere?'EQUIPPED · '+gearSlotById(elsewhere[0]).label:compatible?'EQUIP TO '+def.label:'SELECT A '+g.slot.toUpperCase()+' SLOT')+'</small></button>'}).join('');
+ const def=gearSlotById(chosenGearSlot),ownedGear=inventory.map(id=>gearById(id)).filter(Boolean).sort((a,b)=>a.slot.localeCompare(b.slot)||a.name.localeCompare(b.name));
+ $('inventoryGrid').innerHTML=ownedGear.length?ownedGear.map(g=>{const elsewhere=Object.entries(equipment).find(([slot,id])=>slot!==chosenGearSlot&&id===g.id),compatible=def&&def.type===g.slot&&!elsewhere,current=equipment[chosenGearSlot]===g.id;return '<button class="gearCard '+(current?'equipped':'')+'" data-gear="'+g.id+'" '+(!compatible&&!current?'disabled aria-disabled="true"':'')+'><span class="gearCardIcon">'+gearSlotIcon(g.slot)+'</span><span class="gearCardCopy"><small>LV '+g.level+' · '+g.slot.toUpperCase()+'</small><b>'+g.name+'</b><strong>'+gearBonusText(g)+'</strong></span><span class="gearCardAction">'+(current?'EQUIPPED':elsewhere?'IN '+gearSlotById(elsewhere[0]).label.toUpperCase():compatible?'EQUIP':'—')+'</span></button>'}).join(''):'<div class="gearEmpty">No equipment owned yet.</div>';
  document.querySelectorAll('.gearCard:not(:disabled)').forEach(b=>b.onclick=()=>{if(equipGear(chosenGearSlot,b.dataset.gear)){save();drawInventory()}});
 }
 function pauseCombatView(){combatPaused=true;clearTimeout(enemyTimer);clearTimeout(hintTimer)}
@@ -704,9 +714,9 @@ function startFight(){
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('historyPanel').hidden=true;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('equipDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
-$('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>showScreen('sack');$('openInventory').onclick=()=>showScreen('inventory');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
-document.querySelectorAll('.menuBack').forEach(b=>b.onclick=()=>showScreen(account?'menu':'splash'));$('shopBack').onclick=()=>enterWorld();
-$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>showScreen('sack');$('worldInventoryBtn').onclick=()=>showScreen('inventory');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;
+$('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>{if(account?.needsStarter){showScreen('starter');return}enterWorld()};$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
+document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();
+$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;
 $('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
 function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
