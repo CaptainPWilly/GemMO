@@ -50,13 +50,13 @@ const gearSlotById=id=>EQUIPMENT_SLOTS.find(s=>s.id===id);
 function gearStats(loadout=equipment){
  return Object.values(loadout).reduce((out,id)=>{
   const g=gearById(id);if(!g)return out;out.hp+=g.hp||0;out.guard+=g.guard||0;
-  for(const color of ['red','blue','green','yellow','purple'])out.caps[color]+=(g.caps?.[color]||0)+(g.allCap||0);
+  for(const color of ['red','blue','green','yellow','purple']){out.caps[color]+=(g.caps?.[color]||0)+(g.allCap||0);out.chargeGain[color]+=g.chargeGain?.[color]||0}
   return out;
- },{hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0}})
+ },{hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0},chargeGain:{red:0,blue:0,green:0,yellow:0,purple:0}})
 }
 function gearBonusText(g){
  if(!g)return 'No bonus';const parts=[];if(g.hp)parts.push('+'+g.hp+' MAX HP');if(g.guard)parts.push('+'+g.guard+' START GUARD');
- for(const color of ['red','blue','green','yellow','purple'])if(g.caps?.[color])parts.push('+'+g.caps[color]+' '+color.toUpperCase()+' CAP');
+ for(const color of ['red','blue','green','yellow','purple']){if(g.caps?.[color])parts.push('+'+g.caps[color]+' '+color.toUpperCase()+' CAP');if(g.chargeGain?.[color])parts.push('✦ +'+g.chargeGain[color]+' '+color.toUpperCase()+' / MATCH')}
  if(g.allCap)parts.push('+'+g.allCap+' ALL CAPS');return parts.join(' · ')||'No bonus';
 }
 const GEAR_SLOT_ICON={head:'◒',chest:'▣',hands:'✦',legs:'Ⅱ',feet:'⌁',necklace:'◇',ring:'○'};
@@ -114,7 +114,7 @@ function lowestReservoir(exclude){
 }
 function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(actor==='player'){
  const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&overdrive&&colored?2:1;
- if(colored){const cap=reservoirCap(type),before=charges[type];charges[type]=Math.min(cap,charges[type]+n*mult);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+' ('+charges[type]+'/'+cap+')')}
+ if(colored){const cap=reservoirCap(type),before=charges[type],gearGain=gearStats().chargeGain[type]||0,skillGain=currentSkillEffects().chargeGain[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;charges[type]=Math.min(cap,charges[type]+n*mult+matchGain);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+(matchGain?' · resonance +'+matchGain:'')+' ('+charges[type]+'/'+cap+')')}
  if(type==='red'){const attack=matchPower('red'),value=n*mult*attack;damageEnemy(value);notes.push('Strike '+value+' · ATK '+attack);if(!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}}
  if(type==='blue'){const defense=matchPower('blue'),value=n*mult*defense;pGuard+=value;guardTurns=2;notes.push('Guard +'+value+' · DEF '+defense);if(!comboBonus&&buffs.holdfast){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
  if(type==='green'&&!comboBonus&&buffs.aftergrowth){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
@@ -520,6 +520,7 @@ function currentWorldEffects(){
  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'};
  for(const [color,value] of Object.entries(stats.caps)){const total=value+skills.allCap+skills.caps[color];if(total)effects.push({icon:'◇',name:labels[color]+' CAPACITY',detail:'+'+total+' reservoir capacity'})}
  for(const [color,value] of Object.entries(skills.startCharge))if(value)effects.push({icon:'✦',name:labels[color]+' OPENING CHARGE',detail:'Start combat with '+value});
+ for(const color of Object.keys(labels)){const total=(stats.chargeGain[color]||0)+(skills.chargeGain[color]||0);if(total)effects.push({icon:'✦',name:labels[color]+' CHARGE EFFICIENCY',detail:'+'+total+' charge whenever a '+labels[color]+' match resolves'})}
  return effects;
 }
 function renderWorldEffects(){

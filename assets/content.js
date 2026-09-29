@@ -16,7 +16,7 @@ const SHOP_STOCK={
   {id:'hex-staff',price:22},{id:'chaos-orb',price:22},{id:'crystal-wand',price:18},{id:'sling',price:18}
  ],
  'item-shop':[
-  {id:'frayed-hood',price:12},{id:'padded-tunic',price:20},{id:'cloth-wraps',price:12},{id:'linen-trousers',price:12},{id:'scuffed-boots',price:12},{id:'copper-pendant',price:15},{id:'tin-ring',price:15},{id:'iron-band',price:15},
+  {id:'frayed-hood',price:12},{id:'leather-cap',price:18},{id:'padded-tunic',price:20},{id:'cloth-wraps',price:12},{id:'leather-gloves',price:18},{id:'linen-trousers',price:12},{id:'hide-leggings',price:18},{id:'scuffed-boots',price:12},{id:'leather-boots',price:18},{id:'copper-pendant',price:15},{id:'bone-talisman',price:18},{id:'tin-ring',price:15},{id:'iron-band',price:15},
   {id:'minor-healing-draught',price:8},{id:'ironbark-tonic',price:8},{id:'prism-dust',price:10},{id:'cherry-bomb',price:8}
  ]
 };
@@ -54,17 +54,17 @@ const EQUIPMENT_SLOTS=[
 ];
 const GEAR=[
  {id:'frayed-hood',slot:'head',name:'Frayed Hood',level:1,hp:0,guard:0,caps:{purple:2},desc:'+2 Purple max charge.'},
- {id:'leather-cap',slot:'head',name:'Leather Cap',level:1,hp:0,guard:0,caps:{blue:2},desc:'+2 Blue max charge.'},
+ {id:'leather-cap',slot:'head',name:'Leather Cap',level:1,hp:0,guard:0,chargeGain:{blue:1},desc:'+1 Blue charge whenever a Blue match resolves.'},
  {id:'padded-tunic',slot:'chest',name:'Padded Tunic',level:1,hp:2,guard:0,desc:'+2 Max HP.'},
  {id:'hide-vest',slot:'chest',name:'Hide Vest',level:1,hp:0,guard:3,desc:'+3 Starting Guard.'},
  {id:'cloth-wraps',slot:'hands',name:'Cloth Wraps',level:1,hp:0,guard:0,caps:{red:2},desc:'+2 Red max charge.'},
- {id:'leather-gloves',slot:'hands',name:'Leather Gloves',level:1,hp:0,guard:0,caps:{yellow:2},desc:'+2 Yellow max charge.'},
+ {id:'leather-gloves',slot:'hands',name:'Leather Gloves',level:1,hp:0,guard:0,chargeGain:{yellow:1},desc:'+1 Yellow charge whenever a Yellow match resolves.'},
  {id:'linen-trousers',slot:'legs',name:'Linen Trousers',level:1,hp:0,guard:0,caps:{green:2},desc:'+2 Green max charge.'},
- {id:'hide-leggings',slot:'legs',name:'Hide Leggings',level:1,hp:0,guard:0,caps:{purple:2},desc:'+2 Purple max charge.'},
+ {id:'hide-leggings',slot:'legs',name:'Hide Leggings',level:1,hp:0,guard:0,chargeGain:{purple:1},desc:'+1 Purple charge whenever a Purple match resolves.'},
  {id:'scuffed-boots',slot:'feet',name:'Scuffed Boots',level:1,hp:0,guard:0,caps:{yellow:2},desc:'+2 Yellow max charge.'},
- {id:'leather-boots',slot:'feet',name:'Leather Boots',level:1,hp:0,guard:0,caps:{green:2},desc:'+2 Green max charge.'},
+ {id:'leather-boots',slot:'feet',name:'Leather Boots',level:1,hp:0,guard:0,chargeGain:{green:1},desc:'+1 Green charge whenever a Green match resolves.'},
  {id:'copper-pendant',slot:'necklace',name:'Copper Pendant',level:1,hp:0,guard:0,caps:{blue:2},desc:'+2 Blue max charge.'},
- {id:'bone-talisman',slot:'necklace',name:'Bone Talisman',level:1,hp:0,guard:0,caps:{red:2},desc:'+2 Red max charge.'},
+ {id:'bone-talisman',slot:'necklace',name:'Bone Talisman',level:1,hp:0,guard:0,chargeGain:{red:1},desc:'+1 Red charge whenever a Red match resolves.'},
  {id:'tin-ring',slot:'ring',name:'Tin Ring',level:1,hp:0,guard:0,allCap:1,desc:'+1 max charge to every color.'},
  {id:'iron-band',slot:'ring',name:'Iron Band',level:1,hp:0,guard:2,desc:'+2 Starting Guard.'},
  {id:'twine-ring',slot:'ring',name:'Twine Ring',level:1,hp:1,guard:0,caps:{yellow:1},desc:'+1 Max HP · +1 Yellow max charge.'},

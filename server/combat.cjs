@@ -675,8 +675,8 @@ const GEM=Object.freeze({
 function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3],turnCost:v[4]??1,attack:v[5]||0,defense:v[6]||0}:null}
 function makeRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
 function gearStats(equipment={}){
- const out={hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0}};
- for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps))out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0)}
+ const out={hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0},chargeGain:{red:0,blue:0,green:0,yellow:0,purple:0}};
+ for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps)){out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0);out.chargeGain[c]+=g.chargeGain?.[c]||0}}
  return out;
 }
 function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consumables={},rewardBudget={gold:0,xp:0}}){
@@ -726,7 +726,7 @@ function lowestReservoir(s,exclude){let best=null,ratio=Infinity;for(const c of 
 function applyColor(s,type,n,actor,comboBonus=false){
  if(actor==='player'){
   const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
-  if(colored){const cap=reservoirCap(s,type);s.charges[type]=Math.min(cap,s.charges[type]+n*mult)}
+  if(colored){const cap=reservoirCap(s,type),gearGain=gearStats(s.equipment).chargeGain[type]||0,skillGain=s.skill?.chargeGain?.[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;s.charges[type]=Math.min(cap,s.charges[type]+n*mult+matchGain)}
   if(type==='red'){damageEnemy(s,n*mult*matchPower(s,'red'));if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
   if(type==='blue'){s.pGuard+=n*mult*matchPower(s,'blue');s.guardTurns=2;if(!comboBonus&&s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
   if(type==='green'&&!comboBonus&&s.buffs.aftergrowth)s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
@@ -926,4 +926,4 @@ function suggestCombatAction(s){
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge};
+module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge,applyColor};

@@ -86,12 +86,12 @@ const CONSUMABLES=Object.freeze({
 const CONSUMABLE_SET=new Set(Object.keys(CONSUMABLES));
 const EQUIPMENT_SLOTS=Object.freeze({head:'head',chest:'chest',hands:'hands',legs:'legs',feet:'feet',necklace:'necklace',ring1:'ring',ring2:'ring'});
 const GEAR=Object.freeze({
-  'frayed-hood':{slot:'head',caps:{purple:2}},'leather-cap':{slot:'head',caps:{blue:2}},
+  'frayed-hood':{slot:'head',caps:{purple:2}},'leather-cap':{slot:'head',chargeGain:{blue:1}},
   'padded-tunic':{slot:'chest',hp:2},'hide-vest':{slot:'chest',guard:3},
-  'cloth-wraps':{slot:'hands',caps:{red:2}},'leather-gloves':{slot:'hands',caps:{yellow:2}},
-  'linen-trousers':{slot:'legs',caps:{green:2}},'hide-leggings':{slot:'legs',caps:{purple:2}},
-  'scuffed-boots':{slot:'feet',caps:{yellow:2}},'leather-boots':{slot:'feet',caps:{green:2}},
-  'copper-pendant':{slot:'necklace',caps:{blue:2}},'bone-talisman':{slot:'necklace',caps:{red:2}},
+  'cloth-wraps':{slot:'hands',caps:{red:2}},'leather-gloves':{slot:'hands',chargeGain:{yellow:1}},
+  'linen-trousers':{slot:'legs',caps:{green:2}},'hide-leggings':{slot:'legs',chargeGain:{purple:1}},
+  'scuffed-boots':{slot:'feet',caps:{yellow:2}},'leather-boots':{slot:'feet',chargeGain:{green:1}},
+  'copper-pendant':{slot:'necklace',caps:{blue:2}},'bone-talisman':{slot:'necklace',chargeGain:{red:1}},
   'tin-ring':{slot:'ring',allCap:1},'iron-band':{slot:'ring',guard:2},
   'twine-ring':{slot:'ring',hp:1,caps:{yellow:1}},'copper-band':{slot:'ring',caps:{red:1,blue:1}}
 });
@@ -113,7 +113,7 @@ const SHOP_CATALOG=Object.freeze({
     'hex-staff':22,'chaos-orb':22,'crystal-wand':18,'sling':18
   }),
   'item-shop':Object.freeze({
-    'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15,
+    'frayed-hood':12,'leather-cap':18,'padded-tunic':20,'cloth-wraps':12,'leather-gloves':18,'linen-trousers':12,'hide-leggings':18,'scuffed-boots':12,'leather-boots':18,'copper-pendant':15,'bone-talisman':18,'tin-ring':15,'iron-band':15,
     'minor-healing-draught':8,'ironbark-tonic':8,'prism-dust':10,'cherry-bomb':8
   })
 });
