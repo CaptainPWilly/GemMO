@@ -119,6 +119,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');
     r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,410,'starter selection endpoint is retired');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,200);
+    r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','knife',null,null,null]}});assert.equal(r.status,400);assert.equal(r.data.error,'weapon_gem_limit');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','shield',null,null,null]}});assert.equal(r.status,403,'cannot equip gems not owned');
     r=await call('/v1/story/cutscene',{method:'POST',token,body:{cutsceneId:'not-real'}});assert.equal(r.status,400,'unknown cutscenes are rejected');
     r=await call('/v1/story/cutscene',{method:'POST',token,body:{cutsceneId:'brackenreach-arrival'}});assert.equal(r.status,200);assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'seen cutscenes persist on the account');
@@ -215,6 +216,17 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
     const reloginToken=r.data.token;
+    // New weapon rule removes only excess equipment, preserving ownership and regular gems.
+    const weaponUser=await db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get();
+    await db.prepare("INSERT OR IGNORE INTO inventory(user_id,item_id,kind,qty) VALUES(?,'knife','gem',1)").run(weaponUser.id);
+    await db.prepare("INSERT OR IGNORE INTO inventory(user_id,item_id,kind,qty) VALUES(?,'shield','gem',1)").run(weaponUser.id);
+    await db.prepare("INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,1,'knife')").run(weaponUser.id);
+    await db.prepare("INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,2,'shield')").run(weaponUser.id);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-09-29-one-weapon-gem-v1'").run();
+    // Run the weapon migration independently before the reset test.
+    assert.equal(await applyDataMigrations(db),true);
+    r=await call('/v1/account',{token:reloginToken});assert.deepEqual(r.data.account.sack,['dagger',null,'shield',null,null]);assert(r.data.account.inventory.includes('knife'));
+    assert.equal(await applyDataMigrations(db),false,'weapon migration cannot run twice');
     await db.prepare('DELETE FROM app_migrations WHERE key=?').run(DATA_RESET_KEY);
     assert.equal(await applyDataMigrations(db),true,'fresh-sacks reset applies once');
     r=await call('/v1/account',{token:reloginToken});assert.equal(r.status,200,'reset preserves login sessions and account credentials');

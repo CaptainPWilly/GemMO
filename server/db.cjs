@@ -1,4 +1,5 @@
 'use strict';
+const {WEAPON_GEM_IDS,validWeaponGems}=require('../shared/weapon-gems.js');
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
@@ -7,7 +8,7 @@ const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 const {verifyCombatTranscript}=require('./combat.cjs');
 const {QUESTS,CUTSCENES,NPCS}=require('../shared/story.js');
-const {levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased,rankMap}=require('../shared/progression.js');
+const {skillEffects,levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased,rankMap}=require('../shared/progression.js');
 
 const SCHEMA=[
   'CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username_norm TEXT NOT NULL UNIQUE,username_display TEXT NOT NULL,password_hash TEXT NOT NULL,created_at INTEGER NOT NULL,failed_logins INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0) STRICT;',
@@ -155,6 +156,16 @@ async function applyDataMigrations(db){
       await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(INVENTORY_KIND_MIGRATION_KEY,Date.now());
     });changed=true;
   }
+  const key='2026-09-29-one-weapon-gem-v1';
+  if(!(await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(key))){
+    await transaction(db,async tx=>{
+      if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(key))return;
+      const placeholders=WEAPON_GEM_IDS.map(()=>'?').join(',');
+      // Keep the first weapon equipped; all ownership and active combat proofs survive.
+      await tx.prepare('DELETE FROM sack_slots WHERE gem_id IN ('+placeholders+') AND slot > (SELECT MIN(s.slot) FROM sack_slots s WHERE s.user_id=sack_slots.user_id AND s.gem_id IN ('+placeholders+'))').run(...WEAPON_GEM_IDS,...WEAPON_GEM_IDS);
+      await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(key,Date.now());
+    });changed=true;
+  }
   return changed;
 }
 async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
@@ -194,6 +205,9 @@ async function updateSack(db,userId,sack){
   if(!Array.isArray(sack)||sack.length!==5)throw Object.assign(new Error('invalid_sack'),{status:400});
   const equipped=sack.filter(Boolean);
   if(equipped.length<1||new Set(equipped).size!==equipped.length||!equipped.every(id=>GEM_SET.has(id)))throw Object.assign(new Error('invalid_sack'),{status:400});
+  const current=await accountSnapshot(db,userId);
+  const effects=[skillEffects(current.skills.purchased),...Object.values(current.equipment).map(id=>GEAR[id]).filter(Boolean)];
+  if(!validWeaponGems(sack,effects))throw Object.assign(new Error('weapon_gem_limit'),{status:400});
   if(!(await Promise.all(equipped.map(id=>owns(db,userId,id)))).every(Boolean))throw Object.assign(new Error('unowned_item'),{status:403});
   await transaction(db,async tx=>{
     await tx.prepare('DELETE FROM sack_slots WHERE user_id=?').run(userId);

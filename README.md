@@ -91,3 +91,5 @@ A healthy persistent production deployment reports the tested release plus:
 ```
 
 Do **not** commit production tokens, deploy hooks, Turnstile secrets, or Turso auth tokens.
+
+Weapon gems are explicitly marked ⚔ in the Sack and span all five colors. Equip one weapon gem by default alongside regular gems. Choosing another weapon replaces it without consuming regular gem slots. Additional slots require an explicit `weaponGemSlots` effect, shared by client and server. Existing multi-weapon Sacks keep their first weapon; other weapons remain owned.
