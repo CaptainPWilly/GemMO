@@ -53,7 +53,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 ## Current gameplay snapshot
 
 - Account = save file. Durable player state lives in Turso.
-- Login is remembered on the device until logout or server-session expiry.
+- Login is remembered on the device until logout or server-session expiry. A valid remembered session opens the map after account refresh; fresh login and registration do the same.
 - New and reset accounts start with an Iron Dagger in the Sack. Other colors and gear are earned or bought.
 - The Sack supports 1–5 unique owned gems and uses a compact deck/card collection UI.
 - Physical gear is separate from Sack gems.
