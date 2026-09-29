@@ -20,12 +20,12 @@ function worldPath(from,to){
  return null;
 }
 
-const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
+const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,CONSUMABLES,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
 const {comboChargeTypes,comboChargeBonus}=COMBAT_RULES;
 const {BRANCHES:SKILL_BRANCHES,SKILL_BY_ID,xpProgress,skillEffects,skillRank,requirementMet,pointsSpent}=PROGRESSION;
 const {CUTSCENES,QUESTS,NPCS,DIALOGUES}=STORY;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
-let equipment={...DEFAULT_EQUIPMENT},inventory=[],chosenGearSlot='chest';
+let equipment={...DEFAULT_EQUIPMENT},inventory=[],inventoryItems=[],combatConsumables={},chosenGearSlot='chest';
 let account=null,accountToken=null,accountSyncTimer=0,lastAccountSync='';let captchaConfig=null,captchaWidgetId=null,captchaToken='',captchaConfigPromise=null,authBusy=false;
 let activeStory=null,storyBusy=false;
 function loadAccountToken(){
@@ -45,6 +45,7 @@ function rememberAccountToken(token){
 accountToken=loadAccountToken();
 let storedApiBase='';try{storedApiBase=localStorage.getItem('gemmo.apiBase')||''}catch{}const deprecatedApiBases=new Set(['https://gemmo-captainpwilly-api-20260925.onrender.com']);if(deprecatedApiBases.has(storedApiBase)){try{localStorage.removeItem('gemmo.apiBase')}catch{}storedApiBase=''}const localDevHost=['localhost','127.0.0.1'].includes(location.hostname),defaultApiBase=localDevHost?'http://127.0.0.1:8787':'https://gemmo.onrender.com';let apiBase=String(window.GEMMO_API||storedApiBase||defaultApiBase).replace(/\/+$/,'');
 const gearById=id=>GEAR.find(g=>g.id===id);
+const consumableById=id=>CONSUMABLES.find(v=>v.id===id);
 const gearSlotById=id=>EQUIPMENT_SLOTS.find(s=>s.id===id);
 function gearStats(loadout=equipment){
  return Object.values(loadout).reduce((out,id)=>{
@@ -378,7 +379,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;
  try{
   if(!await ensureMatchTicket())return;
-  await accountRequest('/v1/matches/settle',{method:'POST',body:{matchId:activeMatchId,won:false,gold:0,xp:0}});
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(activeAuthority?.mode==='replay-v1')body.transcript=combatTranscript;await accountRequest('/v1/matches/settle',{method:'POST',body});
  }catch{}
 }
 function checkEnd(){if(pHP<=0||eHP<=0)clearTimeout(hintTimer);if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);const won=eHP<=0;$('resultTitle').textContent=won?'VICTORY':'DEFEAT';$('resultText').textContent=won?'SAVING…':'';$('result').classList.add('show');if(won)void settleVictory();else void settleDefeat();render()}}
@@ -473,7 +474,7 @@ async function renderCaptcha(){
 }
 function worldItemGroups(snapshot=account){
  const ids=Array.isArray(snapshot?.inventory)?snapshot.inventory:[];
- return {sack:ids.filter(id=>itemById(id)),inventory:ids.filter(id=>gearById(id))};
+ return {sack:ids.filter(id=>itemById(id)),inventory:ids.slice()};
 }
 function worldSeenKey(kind,userId){return 'gemmo.seen.'+userId+'.'+kind}
 function worldSeenSet(kind,snapshot=account){
@@ -588,7 +589,7 @@ function applyAccount(next){
  if(!next)return;worldSeenSet('sack',next);worldSeenSet('inventory',next);account=next;
  if(Array.isArray(next.sack)&&next.sack.length===5)sack=next.sack.map(id=>id&&itemById(id)?id:null);
  if(next.equipment&&typeof next.equipment==='object'){const clean={...DEFAULT_EQUIPMENT};for(const def of EQUIPMENT_SLOTS){const id=next.equipment[def.id];if(id&&gearById(id)?.slot===def.type)clean[def.id]=id}equipment=clean}
- if(Array.isArray(next.inventory))inventory=next.inventory.filter(id=>gearById(id));
+ if(Array.isArray(next.inventory))inventory=next.inventory.filter(id=>gearById(id));inventoryItems=Array.isArray(next.inventoryItems)?next.inventoryItems.map(v=>({id:v.id,kind:v.kind,qty:Number(v.qty)||0})):Array.isArray(next.inventory)?next.inventory.map(id=>({id,kind:itemById(id)?'gem':gearById(id)?'gear':'unknown',qty:1})):[];
  if(next.world&&WORLD_NODES[next.world.currentNode]){worldState={region:next.world.region||'brackenreach',currentNode:next.world.currentNode,clearedEncounters:Array.isArray(next.world.clearedEncounters)?next.world.clearedEncounters:[]};selectedWorldNode=worldState.currentNode}
  lastAccountSync=JSON.stringify({sack,equipment});
  drawAccount();refreshWorldHud();
@@ -701,12 +702,12 @@ function drawSkills(){
 }
 function openSkills(){if(!account||worldState.currentNode!=='shrine')return;$('skillStatus').textContent='';showScreen('skills');drawSkills()}
 async function buySkillClient(skillId){if(!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}}
-function shopItemData(id){const gem=itemById(id);if(gem){const stat=gemMatchStatText(gem);return {id,name:gem.item,sub:(stat?stat+' · ':'')+gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};}const gear=gearById(id);if(gear)return {id,name:gear.name,sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};return null}
+function shopItemData(id){const gem=itemById(id);if(gem){const stat=gemMatchStatText(gem);return {id,name:gem.item,kind:'gem',sub:(stat?stat+' · ':'')+gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};}const gear=gearById(id);if(gear)return {id,name:gear.name,kind:'gear',sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};const c=consumableById(id);if(c)return {id,name:c.name,kind:'consumable',sub:'ONE-SHOT · COMBAT ITEM',desc:c.desc,color:null,icon:c.icon};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function shopCard(entry,owned){
- const v=shopItemData(entry.id),has=owned.has(entry.id);if(!v)return '';
+ const v=shopItemData(entry.id),record=inventoryItems.find(x=>x.id===entry.id),has=owned.has(entry.id)&&v?.kind!=='consumable';if(!v)return '';
  const icon=v.color?'<span class="shopGemIcon itemGem '+v.color+'"></span>':'<span class="shopGearIcon">'+(v.icon||'▣')+'</span>';
- return '<button class="shopItem '+(v.color?'gemShopItem':'gearShopItem')+'" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'>'+icon+'<span class="shopItemCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><p>'+v.desc+'</p></span><span class="shopPrice">'+(has?'OWNED':entry.price+' ◆')+'</span></button>';
+ return '<button class="shopItem '+(v.color?'gemShopItem':v.kind==='consumable'?'consumableShopItem':'gearShopItem')+'" data-buy="'+entry.id+'" style="'+(v.color?'--c:var(--'+v.color[0]+')':'')+'" '+(has?'disabled':'')+'>'+icon+'<span class="shopItemCopy"><small>'+v.sub+(v.kind==='consumable'&&record?.qty?' · OWNED '+record.qty:'')+'</small><b>'+v.name+'</b><p>'+v.desc+'</p></span><span class="shopPrice">'+(has?'OWNED':entry.price+' ◆')+'</span></button>';
 }
 function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
@@ -718,8 +719,8 @@ function drawShop(){
    return '<section class="shopColorSection '+color+'"><div class="shopColorHead"><span class="shopColorDot"></span><b>'+labels[color]+'</b><small>'+entries.length+'</small></div><div class="shopColorGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>';
   }).join('')+'</div>';
  }else{
-  const groups=[['head','HEAD'],['chest','CHEST'],['hands','HANDS'],['legs','LEGS'],['feet','FEET'],['necklace','NECKLACE'],['ring','RINGS']];
-  $('shopGrid').innerHTML='<div class="shopGearCatalog">'+groups.map(([slot,label])=>{const entries=stock.filter(entry=>gearById(entry.id)?.slot===slot);if(!entries.length)return '';return '<section class="shopGearSection"><div class="shopGearHead"><span>'+gearSlotIcon(slot)+'</span><b>'+label+'</b><small>'+entries.length+'</small></div><div class="shopGearGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>'}).join('')+'</div>';
+  const groups=[['head','HEAD'],['chest','CHEST'],['hands','HANDS'],['legs','LEGS'],['feet','FEET'],['necklace','NECKLACE'],['ring','RINGS']],consumables=stock.filter(entry=>consumableById(entry.id));
+  $('shopGrid').innerHTML='<div class="shopGearCatalog">'+groups.map(([slot,label])=>{const entries=stock.filter(entry=>gearById(entry.id)?.slot===slot);if(!entries.length)return '';return '<section class="shopGearSection"><div class="shopGearHead"><span>'+gearSlotIcon(slot)+'</span><b>'+label+'</b><small>'+entries.length+'</small></div><div class="shopGearGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>'}).join('')+(consumables.length?'<section class="shopGearSection consumableSection"><div class="shopGearHead"><span>✚</span><b>CONSUMABLES</b><small>STACKABLE</small></div><div class="shopGearGrid">'+consumables.map(entry=>shopCard(entry,owned)).join('')+'</div></section>':'')+'</div>';
  }
  document.querySelectorAll('.shopItem:not(:disabled)').forEach(b=>b.onclick=()=>void buyShopItemClient(b.dataset.buy));
 }
@@ -729,7 +730,7 @@ async function buyShopItemClient(itemId){
  catch(error){$('shopStatus').textContent=error.message.replaceAll('_',' ')}
 }
 function clearAccountSession(){
- account=null;accountToken=null;lastAccountSync='';sack=Array(5).fill(null);equipment={...DEFAULT_EQUIPMENT};inventory=[];worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]};selectedWorldNode='camp';currentShop=null;
+ account=null;accountToken=null;lastAccountSync='';sack=Array(5).fill(null);equipment={...DEFAULT_EQUIPMENT};inventory=[];inventoryItems=[];combatConsumables={};worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]};selectedWorldNode='camp';currentShop=null;
  rememberAccountToken(null);drawAccount()
 }
 async function refreshAccount(){
@@ -812,19 +813,32 @@ function drawSack(){
  });
  $('equipHint').textContent=account?'Slot '+(chosenSlot+1)+' selected · '+sack.filter(Boolean).length+'/5 equipped':'Slot '+(chosenSlot+1)+' selected';
 }
+function inventoryEntry(record){
+ const gem=itemById(record.id);if(gem)return {id:record.id,kind:'gem',name:gem.item,color:gem.color,qty:record.qty,sub:gem.color.toUpperCase()+' · '+(gemMatchStatText(gem)||gem.effectLabel),desc:gem.name+' · '+gem.desc};
+ const gear=gearById(record.id);if(gear)return {id:record.id,kind:'gear',name:gear.name,color:'',qty:record.qty,sub:'EQUIPMENT · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),icon:gearSlotIcon(gear.slot),gear};
+ const c=consumableById(record.id);if(c)return {id:record.id,kind:'consumable',name:c.name,color:'',qty:record.qty,sub:'CONSUMABLE · ONE-SHOT',desc:c.desc,icon:c.icon};return null;
+}
 function drawInventory(){
- const stats=gearStats(),caps=Object.entries(stats.caps).filter(([,v])=>v).map(([k,v])=>'<b><small>'+k.toUpperCase()+'</small>+'+v+' CAP</b>').join('');
- $('equipmentStats').innerHTML='<b><small>HP</small>'+playerMaxHP()+'</b><b><small>GUARD</small>'+stats.guard+'</b>'+caps;
- $('inventoryCount').textContent=inventory.filter(id=>gearById(id)).length+' OWNED';
+ const stats=gearStats(),caps=Object.entries(stats.caps).filter(([,v])=>v).map(([k,v])=>'<b><small>'+k.toUpperCase()+'</small>+'+v+' CAP</b>').join('');$('equipmentStats').innerHTML='<b><small>HP</small>'+playerMaxHP()+'</b><b><small>GUARD</small>'+stats.guard+'</b>'+caps;
  const selectedDef=gearSlotById(chosenGearSlot);$('equipmentSelection').textContent=selectedDef?'SELECTED · '+selectedDef.label.toUpperCase():'SELECT A SLOT';
- $('equipmentGrid').innerHTML=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<button class="gearSlot '+(def.id===chosenGearSlot?'chosen':'')+'" data-gear-slot="'+def.id+'"><span class="gearSlotIcon">'+gearSlotIcon(def.type)+'</span><span class="gearSlotCopy"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><em>'+(g?gearBonusText(g):'Choose gear')+'</em></span></button>'}).join('');
- document.querySelectorAll('.gearSlot').forEach(b=>b.onclick=()=>{chosenGearSlot=b.dataset.gearSlot;drawInventory()});
- const def=gearSlotById(chosenGearSlot),ownedGear=inventory.map(id=>gearById(id)).filter(Boolean).sort((a,b)=>a.slot.localeCompare(b.slot)||a.name.localeCompare(b.name));
- $('inventoryGrid').innerHTML=ownedGear.length?ownedGear.map(g=>{const elsewhere=Object.entries(equipment).find(([slot,id])=>slot!==chosenGearSlot&&id===g.id),compatible=def&&def.type===g.slot&&!elsewhere,current=equipment[chosenGearSlot]===g.id;return '<button class="gearCard '+(current?'equipped':'')+'" data-gear="'+g.id+'" '+(!compatible&&!current?'disabled aria-disabled="true"':'')+'><span class="gearCardIcon">'+gearSlotIcon(g.slot)+'</span><span class="gearCardCopy"><small>LV '+g.level+' · '+g.slot.toUpperCase()+'</small><b>'+g.name+'</b><strong>'+gearBonusText(g)+'</strong></span><span class="gearCardAction">'+(current?'EQUIPPED':elsewhere?'IN '+gearSlotById(elsewhere[0]).label.toUpperCase():compatible?'EQUIP':'—')+'</span></button>'}).join(''):'<div class="gearEmpty">No equipment owned yet.</div>';
- document.querySelectorAll('.gearCard:not(:disabled)').forEach(b=>b.onclick=()=>{if(equipGear(chosenGearSlot,b.dataset.gear)){save();drawInventory()}});
+ $('equipmentGrid').innerHTML=EQUIPMENT_SLOTS.map(def=>{const g=gearById(equipment[def.id]);return '<button class="gearSlot '+(def.id===chosenGearSlot?'chosen':'')+'" data-gear-slot="'+def.id+'"><span class="gearSlotIcon">'+gearSlotIcon(def.type)+'</span><span class="gearSlotCopy"><small>'+def.label.toUpperCase()+'</small><b>'+(g?g.name:'Empty')+'</b><em>'+(g?gearBonusText(g):'Choose gear')+'</em></span></button>'}).join('');document.querySelectorAll('.gearSlot').forEach(b=>b.onclick=()=>{chosenGearSlot=b.dataset.gearSlot;drawInventory()});
+ const filter=$('inventoryFilter')?.value||'all',sort=$('inventorySort')?.value||'type',def=gearSlotById(chosenGearSlot),typeOrder={gem:0,gear:1,consumable:2};let entries=inventoryItems.map(inventoryEntry).filter(Boolean).filter(v=>filter==='all'||v.kind===filter);
+ entries.sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='color'?(a.color||'zz').localeCompare(b.color||'zz')||a.name.localeCompare(b.name):sort==='qty'?b.qty-a.qty||a.name.localeCompare(b.name):(typeOrder[a.kind]-typeOrder[b.kind]||a.name.localeCompare(b.name)));
+ $('inventoryCount').textContent=inventoryItems.length+' TYPES · '+inventoryItems.reduce((n,v)=>n+(Number(v.qty)||0),0)+' ITEMS';
+ $('inventoryGrid').innerHTML=entries.length?entries.map(v=>{if(v.kind==='gear'){const g=v.gear,elsewhere=Object.entries(equipment).find(([slot,id])=>slot!==chosenGearSlot&&id===g.id),compatible=def&&def.type===g.slot&&!elsewhere,current=equipment[chosenGearSlot]===g.id;return '<button class="gearCard inventoryItem '+(current?'equipped':'')+'" data-gear="'+g.id+'" '+(!compatible&&!current?'disabled aria-disabled="true"':'')+'><span class="gearCardIcon">'+v.icon+'</span><span class="gearCardCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><strong>'+v.desc+'</strong></span><span class="gearCardAction">'+(current?'EQUIPPED':elsewhere?'IN '+gearSlotById(elsewhere[0]).label.toUpperCase():compatible?'EQUIP':'GEAR')+'</span></button>'}if(v.kind==='gem'){return '<article class="gearCard inventoryItem gemInventory" style="--c:var(--'+v.color[0]+')"><span class="inventoryGem itemGem '+v.color+'"></span><span class="gearCardCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><strong>'+v.desc+'</strong></span><span class="gearCardAction">'+(sack.includes(v.id)?'IN SACK':'GEM')+'</span></article>'}return '<article class="gearCard inventoryItem consumableInventory"><span class="gearCardIcon">'+v.icon+'</span><span class="gearCardCopy"><small>'+v.sub+'</small><b>'+v.name+'</b><strong>'+v.desc+'</strong></span><span class="inventoryQty">×'+v.qty+'</span></article>'}).join(''):'<div class="gearEmpty">No items match this filter.</div>';
+ document.querySelectorAll('.gearCard[data-gear]:not(:disabled)').forEach(b=>b.onclick=()=>{if(equipGear(chosenGearSlot,b.dataset.gear)){save();drawInventory()}});
 }
 function pauseCombatView(){combatPaused=true;clearTimeout(enemyTimer);clearTimeout(hintTimer)}
 function resumeCombatView(){combatPaused=false;if(screen==='fight'&&!playerTurn&&!busy&&pHP>0&&eHP>0)enemyTimer=setTimeout(()=>void enemyMove(),300);else touchActivity()}
+function combatConsumableCount(id){return Math.max(0,Number(combatConsumables[id])||0)}
+function drawCombatItems(){$('combatItemsList').innerHTML=CONSUMABLES.map(item=>{const qty=combatConsumableCount(item.id);return '<button class="combatConsumable" data-consume="'+item.id+'" '+(!qty?'disabled':'')+'><span>'+item.icon+'</span><div><small>×'+qty+' · ONE-SHOT</small><b>'+item.name+'</b><p>'+item.desc+'</p></div><em>'+(qty?'USE':'EMPTY')+'</em></button>'}).join('');document.querySelectorAll('.combatConsumable:not(:disabled)').forEach(b=>b.onclick=()=>void useCombatConsumable(b.dataset.consume))}
+function openCombatItems(){if(screen!=='fight')return;pauseCombatView();$('combatMenuPanel').hidden=true;$('combatItemsStatus').textContent='';drawCombatItems();$('combatItemsPanel').hidden=false}
+function closeCombatItems(){$('combatItemsPanel').hidden=true;$('combatMenuPanel').hidden=false}
+async function useCombatConsumable(itemId){
+ const item=consumableById(itemId);if(!item||!combatConsumableCount(itemId)||!playerTurn||busy||targetMode||freeSwap||!activeMatchId)return;busy=true;$('combatItemsStatus').textContent='Using…';
+ try{const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+item.power);if(item.kind==='guard'){pGuard+=item.power;guardTurns=2}if(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
+ catch(error){busy=false;$('combatItemsStatus').textContent=error.message.replaceAll('_',' ');drawCombatItems()}
+}
 function openCombatMenu(){if(screen!=='fight')return;pauseCombatView();$('combatMenuStatus').textContent='';$('combatMenuPanel').hidden=false}
 function closeCombatMenu(){if($('combatMenuPanel').hidden)return;$('combatMenuPanel').hidden=true;resumeCombatView()}
 function openCombatGemology(){
@@ -874,15 +888,15 @@ function startFight(){
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
- clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;
+ clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;combatConsumables=Object.fromEntries(inventoryItems.filter(v=>v.kind==='consumable'&&v.qty>0).map(v=>[v.id,v.qty]));
  const gear=gearStats(),skills=currentSkillEffects();pHP=playerMaxHP();eHP=enemyMaxHP();pGuard=gear.guard+skills.startGuard;eGuard=gold=xp=0;guardTurns=pGuard?2:0;charges={red:0,blue:0,green:0,yellow:0,purple:0};for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(color),skills.startCharge[color]||0);ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=pHP;shownHP.e=eHP;pendingHP.p=pendingHP.e=0;damageAnimations=[];effectOrigin=null;
- encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
+ encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
   void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}board=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
-function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
+function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
@@ -927,13 +941,13 @@ function endWorldPointer(e,cancel=false){
 }
 $('worldViewport').addEventListener('pointerup',e=>endWorldPointer(e));$('worldViewport').addEventListener('pointercancel',e=>endWorldPointer(e,true));
 window.addEventListener?.('resize',()=>{if(screen==='world')drawWorld()});
-$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
+$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('inventoryFilter').onchange=drawInventory;$('inventorySort').onchange=drawInventory;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
 $('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').value;applyTextSize();saveDeviceSettings()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
 $('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
-$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
+$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatItemsBtn').onclick=openCombatItems;$('closeCombatItems').onclick=closeCombatItems;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
 
 function renderStatuses(){
  updateTurnCue();

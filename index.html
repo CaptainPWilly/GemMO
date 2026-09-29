@@ -103,15 +103,16 @@
 <p class="accountStatus" id="accountStatus" role="status"></p>
 </section>
 <section class="page inventoryPage" id="inventoryPage" hidden>
-<header><button class="menuBack">← BACK</button><span class="eyebrow">LOADOUT · EQUIPMENT</span></header>
+<header><button class="menuBack">← BACK</button><span class="eyebrow">INVENTORY · EQUIPMENT</span></header>
 <div class="equipmentHero">
-  <div><small>YOUR LOADOUT</small><h1>Equipment</h1><p>Build around health, opening Guard, and color capacity.</p></div>
+  <div><small>YOUR COLLECTION</small><h1>Inventory</h1><p>Everything you own — gems, equipment, and one-shot consumables.</p></div>
   <div class="equipmentStats" id="equipmentStats"></div>
 </div>
 <div class="equipmentSectionHead"><div><small>8 SLOTS</small><h2>Equipped</h2></div><span id="equipmentSelection">SELECT A SLOT</span></div>
 <div class="equipmentGrid" id="equipmentGrid"></div>
 <button class="unequipGear" id="unequipGear">UNEQUIP SELECTED SLOT</button>
-<div class="equipmentSectionHead ownedHead"><div><small>COLLECTION</small><h2>Owned Gear</h2></div><span id="inventoryCount"></span></div>
+<div class="equipmentSectionHead ownedHead"><div><small>COLLECTION</small><h2>All Items</h2></div><span id="inventoryCount"></span></div>
+<div class="inventoryToolbar"><select id="inventoryFilter" aria-label="Inventory type"><option value="all">All Items</option><option value="gem">Gems</option><option value="gear">Equipment</option><option value="consumable">Consumables</option></select><select id="inventorySort" aria-label="Inventory sorting"><option value="type">Sort: Type</option><option value="name">Sort: Name</option><option value="color">Sort: Color</option><option value="qty">Sort: Quantity</option></select></div>
 <div class="inventoryGrid" id="inventoryGrid"></div>
 </section>
 <section class="page gemologyPage" id="gemologyPage" hidden>
@@ -203,7 +204,8 @@
   <div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
   <button id="effectsBtn" class="effectsBtn">CURRENT EFFECTS</button><div class="foot">SWIPE OR TAP 2 GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
 </div>
-<section id="combatMenuPanel" class="combatOverlay" hidden><header><h2>Combat Menu</h2><button id="closeCombatMenu">BACK</button></header><div class="combatMenuActions"><button id="combatGemologyBtn">GEMOLOGY</button><button id="surrenderBtn" class="danger">SURRENDER</button></div><p id="combatMenuStatus"></p></section>
+<section id="combatMenuPanel" class="combatOverlay" hidden><header><h2>Combat Menu</h2><button id="closeCombatMenu">BACK</button></header><div class="combatMenuActions"><button id="combatItemsBtn">CONSUMABLES</button><button id="combatGemologyBtn">GEMOLOGY</button><button id="surrenderBtn" class="danger">SURRENDER</button></div><p id="combatMenuStatus"></p></section>
+<section id="combatItemsPanel" class="combatOverlay" hidden><header><h2>Consumables</h2><button id="closeCombatItems">BACK</button></header><p class="combatItemsHint">One-shot items use your action and are consumed immediately.</p><div id="combatItemsList" class="combatItemsList"></div><p id="combatItemsStatus" class="shopStatus" role="status"></p></section>
 <section id="combatGemologyPanel" class="combatOverlay" hidden><header><h2>Gemology</h2><button id="closeCombatGemology">BACK TO FIGHT</button></header><div id="combatGemologyContent" class="combatGemologyScroll"></div></section>
 <section id="effectsDrawer" class="effectsDrawer" hidden><header><div><small>LIVE COMBAT STATE</small><h2>Current Effects</h2></div><button id="closeEffectsDrawer">CLOSE</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard"><h2>Combat Sacks</h2><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Sack ATK × broken</div><div class="line" style="--c:var(--b)"><b></b>Blue — Sack DEF × broken</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>ENEMY</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">BACK TO FIGHT</button></div></div>

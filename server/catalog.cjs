@@ -77,6 +77,12 @@ const GEM_IDS=Object.freeze([
   "chaos-orb",
   "void-flask"
 ]);
+const CONSUMABLES=Object.freeze({
+  'minor-healing-draught':Object.freeze({name:'Minor Healing Draught',kind:'heal',power:5}),
+  'ironbark-tonic':Object.freeze({name:'Ironbark Tonic',kind:'guard',power:5}),
+  'prism-dust':Object.freeze({name:'Prism Dust',kind:'charge',power:3})
+});
+const CONSUMABLE_SET=new Set(Object.keys(CONSUMABLES));
 const EQUIPMENT_SLOTS=Object.freeze({head:'head',chest:'chest',hands:'hands',legs:'legs',feet:'feet',necklace:'necklace',ring1:'ring',ring2:'ring'});
 const GEAR=Object.freeze({
   'frayed-hood':{slot:'head',caps:{purple:2}},'leather-cap':{slot:'head',caps:{blue:2}},
@@ -106,7 +112,8 @@ const SHOP_CATALOG=Object.freeze({
     'hex-staff':22,'chaos-orb':22,'crystal-wand':18,'sling':18
   }),
   'item-shop':Object.freeze({
-    'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15
+    'frayed-hood':12,'padded-tunic':20,'cloth-wraps':12,'linen-trousers':12,'scuffed-boots':12,'copper-pendant':15,'tin-ring':15,'iron-band':15,
+    'minor-healing-draught':8,'ironbark-tonic':8,'prism-dust':10
   })
 });
-module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,EQUIPMENT_SLOTS,DEFAULT_SACK,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS};
+module.exports={GEM_IDS,GEM_SET:new Set(GEM_IDS),GEAR,CONSUMABLES,CONSUMABLE_SET,EQUIPMENT_SLOTS,DEFAULT_SACK,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS};

@@ -3,7 +3,7 @@
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
-const {DEFAULT_STARTER_GEM,ENCOUNTERS}=require('./catalog.cjs');
+const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,skillRank,canPurchase,BRANCHES}=require('../shared/progression.js');
@@ -11,7 +11,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
-  assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');
+  assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');assert.equal(Object.keys(CONSUMABLES).length,3,'three one-shot consumables exist');
   assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
@@ -46,8 +46,8 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   }
   {
     const equipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
-    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18}});
-    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);
+    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,consumables:{'minor-healing-draught':1},rewardBudget:{gold:24,xp:18}});
+    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);state.pHP=10;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'minor-healing-draught'}),true);assert.equal(state.pHP,15);assert.equal(state.usedConsumables['minor-healing-draught'],1);
     const replay=verifyBanditTranscript({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18},transcript:[]});
     assert.equal(replay.won,false,'empty Bandit transcript cannot claim victory');
   }
@@ -168,6 +168,9 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('hand-crossbow'));assert.equal(r.data.account.profile.gold,82);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'cannot buy an owned unique item');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'item-shop'}});assert.equal(r.status,200);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,2,'consumables stack on repeat purchase');
 
     r=await call('/v1/account/profile',{method:'PUT',token,body:{gold:999999,xp:999999,level:99}});assert.equal(r.status,403);
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:'fake-match-id-123456',won:true,gold:999999,xp:999999}});assert.equal(r.status,404,'invented match ids cannot award rewards');

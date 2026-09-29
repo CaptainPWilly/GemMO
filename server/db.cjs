@@ -2,7 +2,7 @@
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
-const {GEM_SET,GEAR,EQUIPMENT_SLOTS,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS}=require('./catalog.cjs');
+const {GEM_SET,GEAR,CONSUMABLE_SET,EQUIPMENT_SLOTS,DEFAULT_STARTER_GEM,WORLD_NODES,SHOP_CATALOG,ENCOUNTERS}=require('./catalog.cjs');
 const {randomUUID,randomInt}=require('node:crypto');
 const {hashToken}=require('./security.cjs');
 const {verifyCombatTranscript}=require('./combat.cjs');
@@ -12,7 +12,7 @@ const {levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased
 const SCHEMA=[
   'CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username_norm TEXT NOT NULL UNIQUE,username_display TEXT NOT NULL,password_hash TEXT NOT NULL,created_at INTEGER NOT NULL,failed_logins INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0) STRICT;',
   'CREATE TABLE IF NOT EXISTS profiles(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,level INTEGER NOT NULL DEFAULT 1 CHECK(level>=1),xp INTEGER NOT NULL DEFAULT 0 CHECK(xp>=0),gold INTEGER NOT NULL DEFAULT 0 CHECK(gold>=0),created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;',
-  "CREATE TABLE IF NOT EXISTS inventory(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,item_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('gem','gear')),qty INTEGER NOT NULL DEFAULT 1 CHECK(qty>=0),PRIMARY KEY(user_id,item_id)) STRICT;",
+  "CREATE TABLE IF NOT EXISTS inventory(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,item_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('gem','gear','consumable')),qty INTEGER NOT NULL DEFAULT 1 CHECK(qty>=0),PRIMARY KEY(user_id,item_id)) STRICT;",
   'CREATE TABLE IF NOT EXISTS sack_slots(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,slot INTEGER NOT NULL CHECK(slot BETWEEN 0 AND 4),gem_id TEXT NOT NULL,PRIMARY KEY(user_id,slot),UNIQUE(user_id,gem_id)) STRICT;',
   'CREATE TABLE IF NOT EXISTS equipment_slots(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,slot TEXT NOT NULL,item_id TEXT,PRIMARY KEY(user_id,slot)) STRICT;',
   'CREATE TABLE IF NOT EXISTS starter_choices(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,gem_id TEXT NOT NULL,chosen_at INTEGER NOT NULL) STRICT;',
@@ -26,6 +26,8 @@ const SCHEMA=[
   "CREATE TABLE IF NOT EXISTS match_reward_budgets(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,gold_cap INTEGER NOT NULL CHECK(gold_cap>=0),xp_cap INTEGER NOT NULL CHECK(xp_cap>=0)) STRICT;",
   "CREATE TABLE IF NOT EXISTS match_combat_proofs(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,version TEXT NOT NULL,seed INTEGER NOT NULL,sack_json TEXT NOT NULL,equipment_json TEXT NOT NULL) STRICT;",
   "CREATE TABLE IF NOT EXISTS match_skill_proofs(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,skills_json TEXT NOT NULL) STRICT;",
+  "CREATE TABLE IF NOT EXISTS match_consumable_proofs(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,consumables_json TEXT NOT NULL) STRICT;",
+  "CREATE TABLE IF NOT EXISTS match_consumable_uses(match_id TEXT NOT NULL REFERENCES matches(id) ON DELETE CASCADE,item_id TEXT NOT NULL,qty INTEGER NOT NULL DEFAULT 0 CHECK(qty>=0),PRIMARY KEY(match_id,item_id)) STRICT;",
   'CREATE TABLE IF NOT EXISTS sessions(token_hash TEXT PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,created_at INTEGER NOT NULL,expires_at INTEGER NOT NULL,last_seen_at INTEGER NOT NULL,revoked_at INTEGER) STRICT;',
   'CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);',
   'CREATE INDEX IF NOT EXISTS idx_sessions_expiry ON sessions(expires_at);',
@@ -132,31 +134,28 @@ async function createDb(options={}){
 const DATA_RESET_KEY='2026-09-28-iron-dagger-start-v3';
 async function transaction(db,fn){return db.transaction(fn)}
 async function audit(db,userId,type,detail=''){await db.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(?,?,?,?)').run(userId??null,type,String(detail).slice(0,500),Date.now())}
+const INVENTORY_KIND_MIGRATION_KEY='2026-09-28-consumables-v1';
 async function applyDataMigrations(db){
-  const already=await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY);
-  if(already)return false;
-  const now=Date.now();
-  await transaction(db,async tx=>{
-    if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))return;
-    // Iron-Dagger reset: preserve credentials and active sessions, wipe gameplay state,
-    // then reseed every account at the same Level 1 / ATK 1 starting line.
-    await tx.prepare('DELETE FROM matches').run();
-    await tx.prepare('DELETE FROM sack_slots').run();
-    await tx.prepare('DELETE FROM starter_choices').run();
-    await tx.prepare('DELETE FROM inventory').run();
-    await tx.prepare('DELETE FROM world_flags').run();
-    await tx.prepare('DELETE FROM story_flags').run();
-    await tx.prepare('DELETE FROM quest_progress').run();
-    await tx.prepare('DELETE FROM skill_unlocks').run();
-    await tx.prepare('UPDATE equipment_slots SET item_id=NULL').run();
-    await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=?").run(now);
-    await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=?').run(now);
-    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) SELECT id,?,'gem',1 FROM users").run(DEFAULT_STARTER_GEM);
-    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) SELECT id,0,? FROM users').run(DEFAULT_STARTER_GEM);
-    await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(DATA_RESET_KEY,now);
-    await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','iron-dagger-start-v3',now);
-  });
-  return true;
+  let changed=false;const now=Date.now();
+  if(!(await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))){
+    await transaction(db,async tx=>{
+      if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(DATA_RESET_KEY))return;
+      await tx.prepare('DELETE FROM matches').run();await tx.prepare('DELETE FROM sack_slots').run();await tx.prepare('DELETE FROM starter_choices').run();await tx.prepare('DELETE FROM inventory').run();await tx.prepare('DELETE FROM world_flags').run();await tx.prepare('DELETE FROM story_flags').run();await tx.prepare('DELETE FROM quest_progress').run();await tx.prepare('DELETE FROM skill_unlocks').run();await tx.prepare('UPDATE equipment_slots SET item_id=NULL').run();
+      await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=?").run(now);await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=?').run(now);
+      await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) SELECT id,?,'gem',1 FROM users").run(DEFAULT_STARTER_GEM);await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) SELECT id,0,? FROM users').run(DEFAULT_STARTER_GEM);
+      await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(DATA_RESET_KEY,now);await tx.prepare('INSERT INTO audit_events(user_id,type,detail,created_at) VALUES(NULL,?,?,?)').run('global_progress_reset','iron-dagger-start-v3',now);
+    });changed=true;
+  }
+  if(!(await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(INVENTORY_KIND_MIGRATION_KEY))){
+    await transaction(db,async tx=>{
+      if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(INVENTORY_KIND_MIGRATION_KEY))return;
+      await tx.prepare('DROP TABLE IF EXISTS inventory_v2').run();
+      await tx.prepare("CREATE TABLE inventory_v2(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,item_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('gem','gear','consumable')),qty INTEGER NOT NULL DEFAULT 1 CHECK(qty>=0),PRIMARY KEY(user_id,item_id)) STRICT").run();
+      await tx.prepare('INSERT INTO inventory_v2(user_id,item_id,kind,qty) SELECT user_id,item_id,kind,qty FROM inventory').run();await tx.prepare('DROP TABLE inventory').run();await tx.prepare('ALTER TABLE inventory_v2 RENAME TO inventory').run();
+      await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(INVENTORY_KIND_MIGRATION_KEY,Date.now());
+    });changed=true;
+  }
+  return changed;
 }
 async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
   return transaction(db,async tx=>{
@@ -175,7 +174,7 @@ async function accountSnapshot(db,userId){
   const user=await db.prepare('SELECT id,username_display,created_at FROM users WHERE id=?').get(userId);if(!user)return null;
   const [profile,inventoryRows,equipmentRows,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
     db.prepare('SELECT level,xp,gold,created_at,updated_at FROM profiles WHERE user_id=?').get(userId),
-    db.prepare('SELECT item_id FROM inventory WHERE user_id=? AND qty>0 ORDER BY item_id').all(userId),
+    db.prepare('SELECT item_id,kind,qty FROM inventory WHERE user_id=? AND qty>0 ORDER BY kind,item_id').all(userId),
     db.prepare('SELECT slot,item_id FROM equipment_slots WHERE user_id=? ORDER BY slot').all(userId),
     db.prepare('SELECT region,current_node,updated_at FROM world_state WHERE user_id=?').get(userId),
     db.prepare("SELECT flag FROM world_flags WHERE user_id=? AND flag LIKE 'encounter:%' ORDER BY flag").all(userId),
@@ -185,10 +184,10 @@ async function accountSnapshot(db,userId){
     db.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY purchased_at,skill_id').all(userId)
   ]);
   const xp=Number(profile.xp),level=levelForXp(xp);if(Number(profile.level)!==level)await db.prepare('UPDATE profiles SET level=?,updated_at=? WHERE user_id=?').run(level,Date.now(),userId);
-  const inventory=inventoryRows.map(r=>r.item_id),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
+  const inventory=inventoryRows.map(r=>r.item_id),inventoryItems=inventoryRows.map(r=>({id:r.item_id,kind:r.kind,qty:Number(r.qty)})),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -269,12 +268,25 @@ async function startMatch(db,userId,encounterId){
       for(const row of await tx.prepare('SELECT slot,gem_id FROM sack_slots WHERE user_id=? ORDER BY slot').all(userId))sack[Number(row.slot)]=row.gem_id;
       for(const row of await tx.prepare('SELECT slot,item_id FROM equipment_slots WHERE user_id=? ORDER BY slot').all(userId))equipment[row.slot]=row.item_id;
       const skills=normalizePurchased((await tx.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY purchased_at,skill_id').all(userId)).map(r=>r.skill_id));
+      const consumables=Object.fromEntries((await tx.prepare("SELECT item_id,qty FROM inventory WHERE user_id=? AND kind='consumable' AND qty>0").all(userId)).map(r=>[r.item_id,Number(r.qty)]));
       await tx.prepare('INSERT INTO match_combat_proofs(match_id,version,seed,sack_json,equipment_json) VALUES(?,?,?,?,?)').run(id,authority.mode,authority.seed,JSON.stringify(sack),JSON.stringify(equipment));
       await tx.prepare('INSERT INTO match_skill_proofs(match_id,skills_json) VALUES(?,?)').run(id,JSON.stringify(skills));
+      await tx.prepare('INSERT INTO match_consumable_proofs(match_id,consumables_json) VALUES(?,?)').run(id,JSON.stringify(consumables));
     }
     await audit(tx,userId,'match_started',encounterId+':'+id+':budget'+rewardBudget.gold+'/'+rewardBudget.xp+(authority?':'+authority.mode:''));
   });
   return {matchId:id,encounterId,rewardBudget,authority};
+}
+async function consumeMatchItem(db,userId,matchId,itemId){
+  if(typeof matchId!=='string'||!CONSUMABLE_SET.has(itemId))throw Object.assign(new Error('invalid_consumable'),{status:400});
+  return transaction(db,async tx=>{
+    const match=await tx.prepare('SELECT settled_at FROM matches WHERE id=? AND user_id=?').get(matchId,userId);if(!match)throw Object.assign(new Error('match_not_found'),{status:404});if(match.settled_at!=null)throw Object.assign(new Error('match_already_settled'),{status:409});
+    const proof=await tx.prepare('SELECT consumables_json FROM match_consumable_proofs WHERE match_id=?').get(matchId),available=proof?JSON.parse(proof.consumables_json):{},limit=Number(available[itemId]||0),usedRow=await tx.prepare('SELECT qty FROM match_consumable_uses WHERE match_id=? AND item_id=?').get(matchId,itemId),used=Number(usedRow?.qty||0);
+    if(used>=limit)throw Object.assign(new Error('consumable_not_in_match'),{status:409});
+    const row=await tx.prepare("SELECT qty FROM inventory WHERE user_id=? AND item_id=? AND kind='consumable'").get(userId,itemId);if(!row||Number(row.qty)<1)throw Object.assign(new Error('consumable_unavailable'),{status:409});
+    await tx.prepare('UPDATE inventory SET qty=qty-1 WHERE user_id=? AND item_id=? AND qty>0').run(userId,itemId);await tx.prepare('DELETE FROM inventory WHERE user_id=? AND item_id=? AND qty<=0').run(userId,itemId);
+    await tx.prepare('INSERT INTO match_consumable_uses(match_id,item_id,qty) VALUES(?,?,1) ON CONFLICT(match_id,item_id) DO UPDATE SET qty=qty+1').run(matchId,itemId);await audit(tx,userId,'consumable_used',matchId+':'+itemId);
+  });
 }
 async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
   if(typeof matchId!=='string'||matchId.length<16||matchId.length>80||typeof won!=='boolean'||!Number.isInteger(gold)||!Number.isInteger(xp)||gold<0||xp<0||(!won&&(gold!==0||xp!==0)))throw Object.assign(new Error('invalid_match_result'),{status:400});
@@ -282,7 +294,13 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     const match=await tx.prepare('SELECT * FROM matches WHERE id=? AND user_id=?').get(matchId,userId);
     if(!match)throw Object.assign(new Error('match_not_found'),{status:404});
     if(match.settled_at!==null&&match.settled_at!==undefined)return {alreadySettled:true,won:Boolean(match.won),gold:Number(match.gold),xp:Number(match.xp),encounterId:match.encounter_id};
-    const now=Date.now();
+    const now=Date.now(),proof=await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId),useRows=await tx.prepare('SELECT item_id,qty FROM match_consumable_uses WHERE match_id=?').all(matchId),recordedUses=Object.fromEntries(useRows.map(r=>[r.item_id,Number(r.qty)]));let replay=null;
+    if(proof?.version==='replay-v1'&&(won||useRows.length)){
+      const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]),consumableProof=await tx.prepare('SELECT consumables_json FROM match_consumable_proofs WHERE match_id=?').get(matchId),consumables=consumableProof?JSON.parse(consumableProof.consumables_json):{},stored=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId),policy0=ENCOUNTERS[match.encounter_id]?.reward,budget0=stored?{gold:Number(stored.gold_cap),xp:Number(stored.xp_cap)}:{gold:policy0?.gold?.[1]||0,xp:policy0?.xp?.[1]||0};
+      if(!Array.isArray(transcript))throw Object.assign(new Error('invalid_combat_proof'),{status:400});
+      replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,consumables,rewardBudget:budget0,transcript});
+      const replayUses=replay.usedConsumables||{},ids=new Set([...Object.keys(recordedUses),...Object.keys(replayUses)]);for(const id of ids)if(Number(recordedUses[id]||0)!==Number(replayUses[id]||0))throw Object.assign(new Error('consumable_proof_failed'),{status:409});
+    }
     if(!won){
       const changed=await tx.prepare('UPDATE matches SET settled_at=?,won=0,gold=0,xp=0 WHERE id=? AND user_id=? AND settled_at IS NULL').run(now,matchId,userId);
       if(!changed.changes){
@@ -298,10 +316,8 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     const storedBudget=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId);
     const rewardBudget=storedBudget?{gold:Number(storedBudget.gold_cap),xp:Number(storedBudget.xp_cap)}:{gold:policy.gold[1],xp:policy.xp[1]};
     let awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp),authority='legacy-budget';
-    const proof=await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId);
     if(proof?.version==='replay-v1'){
-      const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]);
-      const replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,rewardBudget,transcript});
+      if(!replay){const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]),consumableProof=await tx.prepare('SELECT consumables_json FROM match_consumable_proofs WHERE match_id=?').get(matchId),consumables=consumableProof?JSON.parse(consumableProof.consumables_json):{};replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,consumables,rewardBudget,transcript})}
       if(!replay.won)throw Object.assign(new Error('combat_proof_failed'),{status:409});
       awardGold=replay.gold;awardXp=replay.xp;authority='replay-v1';
       if(gold!==awardGold||xp!==awardXp)await audit(tx,userId,'match_result_mismatch',match.encounter_id+':'+matchId+':client'+gold+'/'+xp+':server'+awardGold+'/'+awardXp);
@@ -334,15 +350,15 @@ async function buySkill(db,userId,skillId){
 async function buyShopItem(db,userId,shopId,itemId){
   const catalog=SHOP_CATALOG[shopId],price=catalog?.[itemId];
   if(!catalog||!Number.isInteger(price))throw Object.assign(new Error('item_not_sold_here'),{status:400});
-  const kind=GEAR[itemId]?'gear':GEM_SET.has(itemId)?'gem':null;if(!kind)throw Object.assign(new Error('invalid_shop_item'),{status:400});
+  const kind=GEAR[itemId]?'gear':GEM_SET.has(itemId)?'gem':CONSUMABLE_SET.has(itemId)?'consumable':null;if(!kind)throw Object.assign(new Error('invalid_shop_item'),{status:400});
   await transaction(db,async tx=>{
     const world=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId);
     if(world?.current_node!==shopId)throw Object.assign(new Error('not_at_shop'),{status:409});
-    if(await owns(tx,userId,itemId))throw Object.assign(new Error('already_owned'),{status:409});
+    if(kind!=='consumable'&&await owns(tx,userId,itemId))throw Object.assign(new Error('already_owned'),{status:409});
     const profile=await tx.prepare('SELECT gold FROM profiles WHERE user_id=?').get(userId);
     if(!profile||Number(profile.gold)<price)throw Object.assign(new Error('insufficient_gold'),{status:409});
     await tx.prepare('UPDATE profiles SET gold=gold-?,updated_at=? WHERE user_id=?').run(price,Date.now(),userId);
-    await tx.prepare('INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,?,1)').run(userId,itemId,kind);
+    if(kind==='consumable')await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,'consumable',1) ON CONFLICT(user_id,item_id) DO UPDATE SET qty=qty+1").run(userId,itemId);else await tx.prepare('INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,?,1)').run(userId,itemId,kind);
     await audit(tx,userId,'shop_purchase',shopId+':'+itemId+':'+price);
   });
 }
@@ -371,4 +387,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,consumeMatchItem,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};

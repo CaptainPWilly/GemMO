@@ -1,5 +1,5 @@
 'use strict';
-const {GEAR,ENCOUNTERS}=require('./catalog.cjs');
+const {GEAR,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
 const {skillEffects}=require('../shared/progression.js');
 
@@ -679,12 +679,12 @@ function gearStats(equipment={}){
  for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps))out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0)}
  return out;
 }
-function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],rewardBudget={gold:0,xp:0}}){
+function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consumables={},rewardBudget={gold:0,xp:0}}){
  const encounter=ENCOUNTERS[encounterId];
  if(!encounter||!Number.isInteger(seed)||seed<0||!Array.isArray(sack)||sack.length!==5)throw new Error('invalid_combat_seed');
  const gems=sack.map(id=>id?spec(id):null);if(gems.some((v,i)=>sack[i]&&!v))throw new Error('invalid_combat_sack');
  const gear=gearStats(equipment),skill=skillEffects(skills),charges={red:0,blue:0,green:0,yellow:0,purple:0},s={
-  encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
+  encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,consumables:Object.fromEntries(Object.keys(CONSUMABLES).map(id=>[id,Math.max(0,Math.floor(Number(consumables?.[id])||0))])),usedConsumables:{},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
   board:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
   charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
   playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
@@ -886,8 +886,17 @@ function target(s,x,y){
  const m=findMatches(s);if(m)resolve(s,m,'player',{x,y},comboRoots!==null?1:0,keepTurn,comboRoots);else afterAction(s,'player',keepTurn);return true;
 }
 
+function useConsumable(s,itemId){
+ const item=CONSUMABLES[itemId];if(!item||!s.consumables?.[itemId])return false;
+ s.consumables[itemId]--;s.usedConsumables[itemId]=(s.usedConsumables[itemId]||0)+1;
+ if(item.kind==='heal')s.pHP=Math.min(playerMaxHP(s),s.pHP+item.power);
+ if(item.kind==='guard'){s.pGuard+=item.power;s.guardTurns=2}
+ if(item.kind==='charge'){const color=lowestReservoir(s,null);if(color)s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+item.power)}
+ afterAction(s,'player',false);return true;
+}
 function applyCombatAction(s,action){
  if(!action||typeof action!=='object'||s.pHP<=0||s.eHP<=0||!s.playerTurn)return false;
+ if(action.t==='consume')return useConsumable(s,action.itemId);
  if(action.t==='ability')return activate(s,action.slot);
  if(action.t==='target')return target(s,action.x,action.y);
  if(action.t==='swap'){
@@ -897,11 +906,11 @@ function applyCombatAction(s,action){
  }
  return false;
 }
-function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],rewardBudget,transcript}){
+function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],consumables={},rewardBudget,transcript}){
  if(!ENCOUNTERS[encounterId]||!Array.isArray(transcript)||transcript.length>256)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
- const s=createCombat({encounterId,seed,sack,equipment,skills,rewardBudget});
+ const s=createCombat({encounterId,seed,sack,equipment,skills,consumables,rewardBudget});
  for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyCombatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
- return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP};
+ return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP,usedConsumables:{...s.usedConsumables}};
 }
 function applyRatAction(s,action){return applyCombatAction(s,action)}
 function verifyRatTranscript(args){return verifyCombatTranscript({...args,encounterId:'rat'})}
