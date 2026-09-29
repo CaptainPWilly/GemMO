@@ -81,7 +81,8 @@ let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,after
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const itemById=id=>ITEMS.find(i=>i.id===id);
-function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
+function weaponGemEffects(){return [currentSkillEffects(),...Object.values(equipment).map(gearById).filter(Boolean)]}
+function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return GEMMO_WEAPON_GEMS.validWeaponGems(list,weaponGemEffects())&&equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
 function encounterSpec(id=activeEncounter){return ENCOUNTERS[id]||ENCOUNTERS.bandit}
 function enemyReservoir(type){return encounterSpec().reservoirs[type]}
 function enemyLabel(){return encounterSpec().name}
@@ -864,20 +865,20 @@ function drawSack(){
  $('loadout').innerHTML=sack.map((id,i)=>{
   const v=itemById(id),chosen=i===chosenSlot;
   if(!v)return '<button class="equip sackSlot empty '+(chosen?'chosen':'')+'" data-index="'+i+'"><span class="sackSlotNumber">'+(i+1)+'</span><span class="sackPlus">+</span><b>Empty</b></button>';
-  return '<button class="equip sackSlot '+(chosen?'chosen':'')+'" data-index="'+i+'" style="--c:var(--'+v.color[0]+')"><span class="sackSlotNumber">'+(i+1)+'</span><span class="cardCost">'+v.cap+'</span><span class="sackGem itemGem '+v.color+'"></span><b>'+v.item+'</b><span>'+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+'</span></button>'
+  return '<button class="equip sackSlot '+(chosen?'chosen':'')+'" data-index="'+i+'" style="--c:var(--'+v.color[0]+')"><span class="sackSlotNumber">'+(i+1)+'</span><span class="cardCost">'+v.cap+'</span><span class="sackGem itemGem '+v.color+'"></span><b>'+v.item+'</b><span>'+(v.gemType==='weapon'?'⚔ WEAPON · ':'')+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+'</span></button>'
  }).join('');
  document.querySelectorAll('.equip').forEach(b=>b.onclick=()=>{chosenSlot=Number(b.dataset.index);drawSack()});
  const query=$('itemSearch').value.trim().toLowerCase(),filter=$('colorFilter').value;
  const visible=ownedGems.filter(v=>(filter==='all'||v.color===filter)&&[v.item,v.name,v.desc].join(' ').toLowerCase().includes(query));
  $('collection').innerHTML=visible.map(v=>{
   const other=sack.findIndex((id,i)=>i!==chosenSlot&&id===v.id),locked=other>=0,equipped=sack[chosenSlot]===v.id;
-  return '<button class="itemCard uiCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'✓':locked?'#'+(other+1):'+')+'</em></button>'
+  return '<button class="itemCard uiCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+(v.gemType==='weapon'?'⚔ WEAPON · ':'')+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'✓':locked?'#'+(other+1):'+')+'</em></button>'
  }).join('');
  document.querySelectorAll('.itemCard:not(:disabled)').forEach(b=>b.onclick=()=>{
   const id=b.dataset.item;if(sack.some((equipped,i)=>i!==chosenSlot&&equipped===id))return;
-  sack[chosenSlot]=id;chosenSlot=(chosenSlot+1)%5;save();drawSack()
+  sack=GEMMO_WEAPON_GEMS.equipGem(sack,chosenSlot,id,weaponGemEffects());chosenSlot=(chosenSlot+1)%5;save();drawSack()
  });
- $('equipHint').textContent=account?'Slot '+(chosenSlot+1)+' selected · '+sack.filter(Boolean).length+'/5 equipped':'Slot '+(chosenSlot+1)+' selected';
+ $('equipHint').textContent='⚔ '+sack.filter(GEMMO_WEAPON_GEMS.isWeaponGem).length+'/'+GEMMO_WEAPON_GEMS.weaponGemLimit(weaponGemEffects())+' weapons · choosing a weapon replaces the current one · '+(account?'Slot '+(chosenSlot+1)+' selected · '+sack.filter(Boolean).length+'/5 equipped':'Slot '+(chosenSlot+1)+' selected');
 }
 function inventoryEntry(record){
  const gear=gearById(record.id);if(gear)return {id:record.id,kind:'gear',name:gear.name,color:'',qty:record.qty,sub:'EQUIPMENT · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),icon:gearSlotIcon(gear.slot),gear};

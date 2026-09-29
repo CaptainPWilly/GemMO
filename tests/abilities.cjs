@@ -5,6 +5,7 @@ const root=path.join(__dirname,'..');
 const serverCombat=require(path.join(root,'server','combat.cjs'));
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const styles=fs.readFileSync(path.join(root,'assets','styles.css'),'utf8');
+const weaponRules=fs.readFileSync(path.join(root,'shared','weapon-gems.js'),'utf8');
 const content=fs.readFileSync(path.join(root,'assets','content.js'),'utf8');
 const encounterDefs=fs.readFileSync(path.join(root,'shared','encounters.js'),'utf8');
 const combatRules=fs.readFileSync(path.join(root,'shared','combat-rules.js'),'utf8');
@@ -137,7 +138,7 @@ src=src.replace("showScreen('splash');",`globalThis.api={setHintDelay:v=>hintDel
 src=src.replace('setEnemyReady:color=>','setEncounter:id=>activeEncounter=id,enemyIntent,setEnemyReady:color=>');
 src=src.replace('setEnemyReady:color=>','drawInventory,worldItemGroups,setInventoryItems:v=>inventoryItems=v.slice(),setEnemyReady:color=>');
 const scheduled=new Map();let nextTimer=1;
-const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(content,c);vm.runInNewContext(encounterDefs,c);vm.runInNewContext(combatRules,c);vm.runInNewContext(progressionDefs,c);vm.runInNewContext(storyDefs,c);vm.runInNewContext(combatCore,c);
+const c={document,window:{matchMedia:()=>({matches:true}),GEMMO_API:null},location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:()=>null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},fetch:async()=>{throw new Error('fetch not expected in combat tests')},setTimeout:(fn,ms)=>{const id=nextTimer++;scheduled.set(id,{fn,ms});return id},clearTimeout:id=>scheduled.delete(id),console};vm.runInNewContext(weaponRules,c);vm.runInNewContext(content,c);vm.runInNewContext(encounterDefs,c);vm.runInNewContext(combatRules,c);vm.runInNewContext(progressionDefs,c);vm.runInNewContext(storyDefs,c);vm.runInNewContext(combatCore,c);
 assert.deepEqual(Array.from(c.GEMMO_CONTENT.TYPES),['red','blue','green','yellow','purple','gold','xp'],'generated board has five colors, Gold and XP only; Wild remains forged');
 const progressionCatalog=c.GEMMO_PROGRESSION;assert.deepEqual([progressionCatalog.xpForLevel(2),progressionCatalog.xpForLevel(3),progressionCatalog.xpForLevel(4),progressionCatalog.xpForLevel(5)],[20,45,75,110]);assert.equal(progressionCatalog.BRANCHES.length,6);assert.equal(progressionCatalog.SKILLS.length,23);assert.equal(progressionCatalog.BRANCHES.flatMap(b=>b.nodes).reduce((n,s)=>n+s.maxRank,0),42,'visible tree supports 42 total point investments including charge Resonance');assert.equal(progressionCatalog.skillRank('red-cap-1',['red-cap-1','red-cap-1@2']),2);assert.equal(progressionCatalog.canPurchase('red-start',['red-cap-1'],3).reason,'skill_prerequisite');assert.equal(progressionCatalog.canPurchase('red-start',['red-cap-1','red-cap-1@2'],3).ok,true);const progressionEffects=progressionCatalog.skillEffects(['neutral-vitality','neutral-vitality@2','red-cap-1','red-cap-1@2','red-start']);assert.equal(progressionEffects.maxHP,4);assert.equal(progressionEffects.caps.red,2);assert.equal(progressionEffects.startCharge.red,1);
 const storyCatalog=c.GEMMO_STORY;assert.equal(storyCatalog.NPCS['warden-vale'].node,'camp');assert.equal(storyCatalog.QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(storyCatalog.CUTSCENES['brackenreach-arrival'].slides.length,3);
@@ -173,10 +174,20 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  assert.equal(a.sackIsValid(['dagger',null,null,null,null]),true,'a level-1 one-gem Sack is legal');
  assert.equal(a.sackIsValid([null,null,null,null,null]),false,'zero-gem Sack cannot fight');
  a.setSack(['dagger',null,null,null,null]);a.startFight();assert.equal(a.get().sack.filter(Boolean).length,1,'one starter gem can enter combat');
- assert.equal(a.sackIsValid(['dagger','spear','longbow','rapier','hand-crossbow']),true,'different gems of one color are legal');
+ assert.equal(a.sackIsValid(['dagger','spear','longbow','rapier','hand-crossbow']),false,'multiple weapons require an explicit slot effect');
+ const wr=c.GEMMO_WEAPON_GEMS;
+ for(const color of ['red','blue','green','yellow','purple'])assert(a.ITEMS.some(v=>v.color===color&&v.gemType==='weapon'),'each color has weapons');
+ assert.equal(wr.weaponGemLimit(),1);assert.equal(wr.weaponGemLimit([{weaponGemSlots:1}]),2);
+ assert.equal(wr.validWeaponGems(['dagger','knife'],[{weaponGemSlots:1}]),true);
+ assert.equal(wr.validWeaponGems(['dagger','knife']),false);
+ assert.equal(a.sackIsValid(['dagger','bloodstone-whet','shield','salve','charm']),true,'regular gems remain independent of weapon limit');
+ assert.deepEqual(Array.from(wr.equipGem(['dagger','shield','salve',null,null],1,'knife')),['knife','shield','salve',null,null],'weapon switch preserves regular gems even when their slot is selected');
+ assert.deepEqual(Array.from(wr.equipGem(['dagger','shield',null,null,null],2,'knife',[{weaponGemSlots:1}])),['dagger','shield','knife',null,null],'explicit effect allows second weapon');
  const smoothRoute=a.worldPath('item-shop','shrine'),smoothStart=a.worldRoutePoint(smoothRoute,0),smoothMid=a.worldRoutePoint(smoothRoute,.5),smoothEnd=a.worldRoutePoint(smoothRoute,1);
  assert(Math.abs(smoothStart.x-a.WORLD_NODES['item-shop'].x)<1e-9&&Math.abs(smoothStart.y-a.WORLD_NODES['item-shop'].y)<1e-9,'route starts exactly at origin');assert(Math.abs(smoothEnd.x-a.WORLD_NODES.shrine.x)<1e-9&&Math.abs(smoothEnd.y-a.WORLD_NODES.shrine.y)<1e-9,'route ends exactly at destination');assert(smoothMid.travelled>0&&smoothMid.travelled<smoothMid.total,'full-route interpolation advances continuously between endpoints');
  assert.equal(a.worldCanTravel('camp','crossroads'),true);assert.equal(a.worldCanTravel('camp','gem-shop'),true);assert.equal(a.worldCanTravel('camp','item-shop'),true);assert.equal(a.worldCanTravel('camp','bandit-pass'),false);assert.equal(a.worldCanTravel('crossroads','rat'),true);assert.equal(a.worldCanTravel('crossroads','bandit-pass'),false);assert.equal(a.worldCanTravel('rat','bandit-pass'),false);assert.equal(JSON.stringify(a.worldPath('item-shop','shrine')),JSON.stringify(['item-shop','camp','crossroads','shrine']));assert.equal(JSON.stringify(a.worldPath('camp','rat')),JSON.stringify(['camp','crossroads','rat']));assert.equal(a.worldPath('camp','bandit-pass'),null);assert.equal(a.WORLD_NODES.rat.encounter,'rat');assert.equal(a.WORLD_NODES['bandit-pass'].encounter,'bandit');a.setWorldClears(['rat']);assert.equal(a.worldCanTravel('rat','bandit-pass'),true);assert.equal(JSON.stringify(a.worldPath('item-shop','bandit-pass')),JSON.stringify(['item-shop','camp','crossroads','rat','bandit-pass']));a.setWorldClears([]);
+ // Legacy ability fixtures intentionally combine weapons; grant their explicit test effect.
+ a.GEAR.push({id:'test-dual-ring',slot:'ring',weaponGemSlots:4});a.setInventory(['test-dual-ring']);a.equipGear('ring1','test-dual-ring');
  const uniqueSackFor=id=>[id,...['dagger','shield','salve','boots','charm','axe','buckler','poultice','cloak','seal'].filter(x=>x!==id).slice(0,4)];
  for(const item of a.ITEMS.filter(i=>cases[i.id])){
   a.setSack(uniqueSackFor(item.id));a.startFight();
@@ -265,6 +276,7 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  equip('gamblers-thread');assert.equal(a.get().buffs.momentum,3);a.applyColor('yellow',3,'player',0);assert.equal(a.get().charges.red,2);a.applyColor('yellow',3,'player',1);assert.equal(a.get().charges.blue,2);
 
  // Level-1 inventory and physical equipment stay separate from the Sack.
+ a.GEAR.splice(a.GEAR.findIndex(g=>g.id==='test-dual-ring'),1);a.resetEquipment();
  a.setInventory(a.GEAR.map(g=>g.id));
  assert.equal(a.EQUIPMENT_SLOTS.length,8);assert.equal(a.GEAR.length,16);assert.equal(new Set(a.GEAR.map(g=>g.id)).size,16);
  a.resetEquipment();assert.equal(a.playerMaxHP(),18);{const s=a.gearStats();assert.deepEqual([s.hp,s.guard],[0,0]);assert.equal(s.caps.yellow,0)};
@@ -289,7 +301,7 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  const restoredElements=new Map(),restoredDocument={getElementById(id){if(!restoredElements.has(id))restoredElements.set(id,new El());return restoredElements.get(id)},createElement:()=>new El(),querySelectorAll:()=>[],querySelector:()=>new El()};
  const savedAccount={user:{id:7,username:'Returning'},profile:{level:1,xp:0,gold:0},skills:{purchased:[],availablePoints:1},sack:['dagger',null,null,null,null],equipment:{},inventory:['dagger'],inventoryItems:[{id:'dagger',kind:'gem',qty:1}],world:{region:'brackenreach',currentNode:'camp',clearedEncounters:[]},quests:[],story:{seenCutscenes:[]}};
  const restored={document:restoredDocument,window:{matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>fn()},requestAnimationFrame:fn=>fn(),location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:key=>key==='gemmo.session'?'saved-session':null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,removeItem(){}},fetch:async(url)=>{assert(url.endsWith('/v1/account'));return {ok:true,json:async()=>({account:savedAccount})}},setTimeout:()=>1,clearTimeout(){},console};
- for(const file of [content,encounterDefs,combatRules,progressionDefs,storyDefs,combatCore])vm.runInNewContext(file,restored);
+ for(const file of [weaponRules,content,encounterDefs,combatRules,progressionDefs,storyDefs,combatCore])vm.runInNewContext(file,restored);
  vm.runInNewContext(src.replace('setHintDelay:v=>hintDelay=v,','getScreen:()=>screen,setHintDelay:v=>hintDelay=v,'),restored);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(restored.api.getScreen(),'world','remembered login enters the map after account refresh');
  console.log('PASS: 74 organized gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
