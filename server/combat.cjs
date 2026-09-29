@@ -688,7 +688,7 @@ function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consum
   board:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
   charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
   playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
-  buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0,laststand:0,ironbark:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
+  buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
  };
  for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(s,color),skill.startCharge[color]||0);
  buildBoard(s);return s;
@@ -717,7 +717,7 @@ function findMatches(s){
 function legalMoves(s){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){const b={x:x+dx,y:y+dy};if(b.x>=W||b.y>=H)continue;swap(s,a,b);if(findMatches(s))out.push([a,b]);swap(s,a,b)}}return out}
 function buildBoard(s){for(let attempt=0;attempt<100;attempt++){s.board=[];for(let y=0;y<H;y++){const row=[];for(let x=0;x<W;x++){let t=roll(s),tries=0;while(tries++<30&&((x>=2&&row[x-1]===t&&row[x-2]===t)||(y>=2&&s.board[y-1][x]===t&&s.board[y-2][x]===t)))t=roll(s);row.push(t)}s.board.push(row)}if(legalMoves(s).length)return}throw new Error('rat_board_generation_failed')}
 function damageEnemy(s,n){if(s.enemyEffects.mark&&n>0){n+=3;s.enemyEffects.mark=0}const blocked=Math.min(s.eGuard,n);s.eGuard-=blocked;s.eHP-=n-blocked}
-function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);if(s.buffs.ironbark&&n>0){n=Math.max(0,n-s.buffs.ironbark);s.buffs.ironbark=0}const blocked=Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.pHP<=0&&dealt>0&&s.buffs.laststand){s.buffs.laststand=0;s.pHP=1}if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
+function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
 function encounterSpec(s){return ENCOUNTERS[s.encounterId]}
 function enemyReservoir(s,type){return encounterSpec(s).reservoirs[type]}
 function scaledEnemyValue(value,scale,min=0){return Math.max(min,Math.ceil(value*scale))}
@@ -889,8 +889,8 @@ function target(s,x,y){
 function useConsumable(s,itemId){
  const item=CONSUMABLES[itemId];if(!item||!s.consumables?.[itemId])return false;
  s.consumables[itemId]--;s.usedConsumables[itemId]=(s.usedConsumables[itemId]||0)+1;
- if(item.kind==='last_stand')s.buffs.laststand=1;
- if(item.kind==='ironbark')s.buffs.ironbark=item.power
+ if(item.kind==='heal')s.pHP=Math.min(playerMaxHP(s),s.pHP+item.power);
+ if(item.kind==='guard'){s.pGuard+=item.power;s.guardTurns=2}
  if(item.kind==='charge'){const color=lowestReservoir(s,null);if(color)s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+item.power)}
  afterAction(s,'player',false);return true;
 }

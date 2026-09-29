@@ -78,8 +78,8 @@ const GEM_IDS=Object.freeze([
   "void-flask"
 ]);
 const CONSUMABLES=Object.freeze({
-  'minor-healing-draught':Object.freeze({name:'Last-Breath Draught',kind:'last_stand',power:1}),
-  'ironbark-tonic':Object.freeze({name:'Ironbark Tonic',kind:'ironbark',power:4}),
+  'minor-healing-draught':Object.freeze({name:'Minor Healing Draught',kind:'heal',power:5}),
+  'ironbark-tonic':Object.freeze({name:'Ironbark Tonic',kind:'guard',power:5}),
   'prism-dust':Object.freeze({name:'Prism Dust',kind:'charge',power:3})
 });
 const CONSUMABLE_SET=new Set(Object.keys(CONSUMABLES));
