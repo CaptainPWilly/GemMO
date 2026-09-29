@@ -68,8 +68,10 @@ assert(html.includes('id="worldSackPip"')&&html.includes('id="worldInventoryPip"
 assert(html.includes('id="worldEffectsPanel"')&&html.includes('id="worldEffectsList"'),'world map includes the current-effects drawer');
 assert(html.includes('id="worldStatusBtn"')&&html.includes('id="worldObjectiveBtn"')&&html.includes('id="worldSkillsBtn"'),'world map exposes persistent status, objective, and progression controls');
 assert(html.includes('id="combatSacksBtn"')&&src.includes('function openCombatSacks()'),'combat Sack inspection is available from the combat menu when the mobile header is compacted');
-assert(styles.includes('Mobile combat composition: board-first')&&styles.includes('.game .reservoirs{display:none}')&&styles.includes('.game .moveHistoryItem.latest')&&styles.includes('scroll-snap-type:x proximity'),'phone combat layout removes duplicate live rows and uses a readable horizontal ability rail');
-assert(styles.includes('.app.text-xl .game .slot{flex-basis:108px')&&styles.includes('.app.text-xl .game .boardShell'),'Largest Text has a dedicated phone combat layout instead of inheriting squeezed card geometry');
+assert(styles.includes('Mobile combat composition: board-first')&&styles.includes('.game .reservoirs{display:none}')&&styles.includes('.game .moveHistoryItem.latest'),'phone combat layout removes duplicate live rows and preserves only essential live history');
+assert(src.includes('compactGemCard')&&src.includes('slotChargeMeter')&&styles.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'all five equipped gem cards remain visible at once on phone');
+assert(styles.includes('Five-up mobile gem dock')&&styles.includes('-webkit-line-clamp:2')&&styles.includes('--charge-fill'),'mobile gem cards use a compact name, charge meter, and simple state treatment');
+assert(styles.includes('.app.text-xl .game .slot.compactGemCard')&&styles.includes('.app.text-xl .game .boardShell'),'Largest Text keeps the five-up gem dock while using dedicated phone sizing');
 assert(src.includes('function worldObjectiveData()')&&src.includes("$('worldPlayerStats').textContent")&&src.includes("matchPower('red')"),'world hub derives live objective and combat-build summary');
 assert(src.includes('async function openWorldSkills()')&&src.includes("await travelWorld('shrine')"),'map Skills control remains spatial by traveling to the Shrine before opening Attunement');
 assert(styles.includes('.worldHubOverlay')&&styles.includes('.worldPlayerStrip')&&styles.includes('.worldObjectiveBar'),'world hub has responsive overlay styling');

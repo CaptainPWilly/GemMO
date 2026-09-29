@@ -1065,3 +1065,142 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   .game .slot .effect{display:none}
   .game .effectsBtn{grid-area:equip}
 }
+
+/* Five-up mobile gem dock: every equipped ability stays visible. */
+@media (max-width:699px){
+  .game .slots{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:4px;
+    overflow:visible;
+    min-height:70px;
+    height:70px;
+    padding:0;
+    scroll-snap-type:none;
+  }
+  .game .slot.compactGemCard{
+    width:100%;
+    min-width:0;
+    height:70px;
+    padding:5px 3px 4px;
+    display:grid;
+    grid-template-rows:18px minmax(20px,1fr) 4px 13px;
+    align-items:center;
+    justify-items:center;
+    gap:2px;
+    border-radius:8px;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 50% 13px,color-mix(in srgb,var(--c) 18%,transparent),transparent 27px),
+      linear-gradient(180deg,#2a271f,#151611);
+    border-color:color-mix(in srgb,var(--c) 42%,#554a38);
+    box-shadow:inset 0 1px #ffffff0b,inset 0 0 0 1px #0a0b09,0 3px 8px #0006;
+  }
+  .game .slot.compactGemCard:before{
+    height:2px;
+    background:var(--c);
+    opacity:.9;
+  }
+  .game .slotGemMark{
+    width:18px;height:18px;
+    display:grid;place-items:center;
+  }
+  .game .slot.compactGemCard .orb{
+    width:11px;height:11px;
+    margin:0;
+    border-radius:3px;
+    transform:rotate(45deg);
+    border:1px solid #fff7d255;
+    box-shadow:0 0 9px color-mix(in srgb,var(--c) 62%,transparent);
+  }
+  .game .slot.compactGemCard .slotName{
+    width:100%;
+    min-height:0;
+    padding:0 1px;
+    color:#eadfc6;
+    font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+    font-size:calc(6.5px + var(--text-bump));
+    font-weight:900;
+    line-height:1.02;
+    letter-spacing:0;
+    white-space:normal;
+    overflow:hidden;
+    display:-webkit-box;
+    -webkit-box-orient:vertical;
+    -webkit-line-clamp:2;
+    text-wrap:balance;
+  }
+  .game .slot.compactGemCard .effect{display:none!important}
+  .game .slotChargeMeter{
+    width:calc(100% - 6px);
+    height:4px;
+    border-radius:99px;
+    background:#090a08;
+    border:1px solid #3c382f;
+    overflow:hidden;
+  }
+  .game .slotChargeMeter i{
+    display:block;
+    width:var(--charge-fill);
+    height:100%;
+    background:var(--c);
+    box-shadow:0 0 5px var(--c);
+    transition:width 160ms ease;
+  }
+  .game .slot.compactGemCard .charge{
+    width:100%;
+    margin:0;
+    font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+    font-size:calc(6px + var(--text-bump));
+    line-height:1;
+    font-weight:950;
+    letter-spacing:.2px;
+    color:#bdb29d;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:clip;
+  }
+  .game .slot.compactGemCard.ready{
+    background:
+      radial-gradient(circle at 50% 13px,color-mix(in srgb,var(--c) 30%,transparent),transparent 31px),
+      linear-gradient(180deg,#39301f,#1a1812);
+    border-color:color-mix(in srgb,var(--c) 76%,#f4dfae);
+    box-shadow:inset 0 1px #ffffff12,inset 0 0 0 1px #15130e,0 0 12px color-mix(in srgb,var(--c) 22%,transparent);
+  }
+  .game .slot.compactGemCard.ready .charge{color:#fff1ca}
+  .game .slot.compactGemCard.armed{
+    border-color:#fff1be;
+    box-shadow:inset 0 0 0 1px #fff1be44,0 0 13px color-mix(in srgb,var(--c) 35%,transparent);
+  }
+  .game .slot.compactGemCard.armed .charge{color:#fff0bc}
+
+  /* XL stays five-up; typography grows modestly while names may use two lines. */
+  .app.text-xl .game .slots{height:76px;min-height:76px;gap:3px}
+  .app.text-xl .game .slot.compactGemCard{
+    height:76px;
+    grid-template-rows:18px minmax(24px,1fr) 4px 14px;
+    padding-left:2px;padding-right:2px;
+  }
+  .app.text-xl .game .slot.compactGemCard .slotName{font-size:10px}
+  .app.text-xl .game .slot.compactGemCard .charge{font-size:9px}
+}
+
+@media (max-width:370px){
+  .game .slots{gap:3px}
+  .game .slot.compactGemCard{padding-left:2px;padding-right:2px}
+  .game .slot.compactGemCard .slotName{font-size:calc(6px + var(--text-bump))}
+  .game .slot.compactGemCard .charge{font-size:calc(5.5px + var(--text-bump))}
+}
+
+@media (max-width:699px) and (max-height:730px){
+  .game .slots{height:64px;min-height:64px}
+  .game .slot.compactGemCard{
+    height:64px;
+    grid-template-rows:15px minmax(18px,1fr) 4px 11px;
+    padding-top:4px;
+  }
+  .game .slotGemMark{width:15px;height:15px}
+  .game .slot.compactGemCard .orb{width:9px;height:9px}
+  .app.text-xl .game .slots{height:70px;min-height:70px}
+  .app.text-xl .game .slot.compactGemCard{height:70px}
+}
