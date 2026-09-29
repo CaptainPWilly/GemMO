@@ -54,16 +54,17 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 
 - Account = save file. Durable player state lives in Turso.
 - Login is remembered on the device until logout or server-session expiry.
-- New and reset accounts choose one permanent damage starter: Red Dagger, Yellow Sling, or Blue Crystal Wand.
+- New and reset accounts start with an Iron Dagger in the Sack. Other colors and gear are earned or bought.
 - The Sack supports 1–5 unique owned gems and uses a compact deck/card collection UI.
 - Physical gear is separate from Sack gems.
 - Base player HP is **18** plus equipment bonuses.
 - Early equipment can modify HP, opening Guard, and color reservoir capacity.
 - Overworld movement is server-validated. Tapping a reachable distant node follows the shortest unlocked route and animates every segment.
-- Rat is the first encounter; clearing it unlocks the Bandit path.
+- Rat is the first encounter; clearing it unlocks Bandit, whose defeat opens the Road Sentinel.
 - Story now supports account-persistent cutscenes, dialogue NPCs, and server-authoritative quests. Warden Vale at Ember Camp offers the first quest, **Trouble on the Road**.
 - Combat Gold/XP are settled to the account on victory through match tickets. Every match receives a server-issued loot budget.
-- Rat and Bandit victories are **server replay-verified** from a server seed plus a player-intent transcript; combat rewards come from the replay, not from the browser's claimed result.
+- Rat, Bandit, and Road Sentinel victories are **server replay-verified** from a server seed plus a player-intent transcript; combat rewards come from the replay, not from the browser's claimed result.
+- Combat shows the enemy's current ability threat or the ability nearest to full charge. The Sentinel can drain charge from your fullest reservoir; the same rule runs in the server replay.
 - The browser still runs the live fight for responsiveness; the server independently reconstructs completed fights before accepting victory/progression. See the architecture document.
 - Combat has an always-available menu for Gemology/Surrender, a live **Current Effects** drawer, and a compact visual move history that shows actual gem value. Combo 1's colored gems become cascade anchors—including colored gems destroyed directly by gem-breaking abilities: Combo 2 adds +1 value, Combo 3 +2, and so on, with the anchored crystals visibly charging in the history rail.
 - The UI uses one responsive dungeon layout system across splash/menu, world, loadouts, shops, account/settings, story, and combat; layouts adapt across phone, tablet portrait, and tablet landscape.

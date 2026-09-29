@@ -7,7 +7,8 @@ const WORLD_NODES={
  crossroads:{id:'crossroads',name:'Crossroads',kind:'road',x:3,y:5,desc:'',neighbors:['camp','shrine','rat']},
  shrine:{id:'shrine',name:'Shrine',kind:'landmark',x:1,y:3,desc:'',neighbors:['crossroads']},
  rat:{id:'rat',name:'Rat',kind:'encounter',x:4,y:4,desc:'',encounter:'rat',neighbors:['crossroads','bandit-pass']},
- 'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',x:6,y:2,desc:'',encounter:'bandit',requires:'rat',neighbors:['rat']}
+ 'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',x:6,y:2,desc:'',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate']},
+ 'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',x:7,y:0,desc:'',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']}
 };
 const SHOP_STOCK={
  'gem-shop':[
@@ -31,7 +32,7 @@ const WORLD_HEIGHT=[
  [0,0,0,0,1,0,0,0,0],
  [0,0,0,0,0,0,0,0,0]
 ];
-const WORLD_ROAD=new Set(['1,7','2,6','3,5','4,4','2,5','2,4','1,3']);const WORLD_ROAD_BANDIT=new Set(['5,3','6,2']);
+const WORLD_ROAD=new Set(['1,7','2,6','3,5','4,4','2,5','2,4','1,3']);const WORLD_ROAD_BANDIT=new Set(['5,3','6,2']);const WORLD_ROAD_SENTINEL=new Set(['7,1','7,0']);
 const WORLD_TREES=[[0,6],[0,5],[1,5],[2,7],[3,7],[4,6],[5,6],[7,4],[7,3],[6,4],[4,2],[3,2],[2,2],[0,2],[8,2],[8,3],[7,1]];
 const WORLD_ROCKS=[[2,8],[4,7],[5,5],[6,5],[7,2],[3,1],[1,1]];
 
@@ -72,7 +73,7 @@ const GEAR=[
 ];
 
 globalThis.GEMMO_CONTENT=Object.freeze({
- WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_TREES,WORLD_ROCKS,
+ WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_ROAD_SENTINEL,WORLD_TREES,WORLD_ROCKS,
  TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,CONSUMABLES,EQUIPMENT_SLOTS,GEAR
 });
 })();

@@ -1,6 +1,6 @@
 'use strict';
 const {GEAR,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
-const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
+const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
 const {skillEffects}=require('../shared/progression.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
@@ -814,6 +814,7 @@ function enemyUseActive(s){
  else if(ability.kind==='heal')s.eHP=Math.min(encounterSpec(s).maxHP,s.eHP+ability.power);
  else if(ability.kind==='guard'){s.eGuard+=ability.power;s.evadeTurns=2}
  else if(ability.kind==='reload')s.enemyReload=true;
+ else if(ability.kind==='drain'){const color=fullestChargeColor(s.charges);if(color)s.charges[color]-=Math.min(ability.power,s.charges[color])}
  else return false;
  afterAction(s,'enemy');return true;
 }
@@ -926,4 +927,4 @@ function suggestCombatAction(s){
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge,applyColor};
+module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,enemyMove,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge,applyColor};

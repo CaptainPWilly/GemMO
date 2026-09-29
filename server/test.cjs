@@ -5,17 +5,32 @@ const {createGemmoServer,defaultDbPath}=require('./server.cjs');
 const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
 const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
-const {comboChargeTypes,comboChargeBonus}=require('../shared/combat-rules.js');
+const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
 const {xpForLevel,levelForXp,availableSkillPoints,skillEffects,skillRank,canPurchase,BRANCHES}=require('../shared/progression.js');
-const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,matchPower,applyCascadeCharge,applyColor}=require('./combat.cjs');
+const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRatAction,applyCombatAction,suggestCombatAction,verifyBanditTranscript,verifyCombatTranscript,enemyMove,matchPower,applyCascadeCharge,applyColor}=require('./combat.cjs');
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
   assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');assert.equal(Object.keys(CONSUMABLES).length,4,'four one-shot consumables exist');
-  assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
+  assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit','sentinel'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
-  assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);
+  assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);assert.equal(fullestChargeColor({red:4,blue:4,purple:2}),'red');assert.equal(fullestChargeColor({red:0,blue:0}),null);
+  {
+    const s=createCombat({encounterId:'sentinel',seed:12,sack:['dagger','shield',null,null,null],rewardBudget:{gold:32,xp:25}});
+    assert.equal(s.eHP,30);s.charges.red=5;s.charges.blue=4;s.ec.purple=6;s.playerTurn=false;enemyMove(s);
+    assert.equal(s.charges.red,2,'Siphon drains the fullest reservoir');assert.equal(s.charges.blue,4,'Siphon preserves other charge');assert.equal(s.ec.purple,0);
+    assert.equal(verifyCombatTranscript({encounterId:'sentinel',seed:12,sack:['dagger','shield',null,null,null],rewardBudget:{gold:32,xp:25},transcript:[]}).won,false,'empty Sentinel proof cannot win');
+    let victory=null;
+    for(let seed=1;seed<=20&&!victory;seed++){
+      const fight=createCombat({encounterId:'sentinel',seed,sack:['dagger','shield',null,null,null],rewardBudget:{gold:32,xp:25}}),transcript=[];
+      for(let turn=0;turn<200&&fight.eHP>0&&fight.pHP>0;turn++){const action=suggestCombatAction(fight);if(!action)break;transcript.push(action);if(!applyCombatAction(fight,action))break}
+      if(fight.eHP<=0&&transcript.length<=256)victory={seed,fight,transcript};
+    }
+    assert(victory,'Sentinel is winnable with a modest two-gem Sack');
+    const replay=verifyCombatTranscript({encounterId:'sentinel',seed:victory.seed,sack:['dagger','shield',null,null,null],rewardBudget:{gold:32,xp:25},transcript:victory.transcript});
+    assert.equal(replay.won,true);assert.equal(replay.gold,victory.fight.gold);assert.equal(replay.xp,victory.fight.xp);
+  }
   assert.deepEqual([xpForLevel(1),xpForLevel(2),xpForLevel(3),xpForLevel(4),xpForLevel(5)],[0,20,45,75,110]);assert.equal(levelForXp(44),2);assert.equal(levelForXp(45),3);assert.equal(availableSkillPoints(3,['red-cap-1']),2);assert.equal(availableSkillPoints(3,['red-cap-1','red-cap-1@2']),1);assert.equal(BRANCHES.length,6);assert.equal(BRANCHES.flatMap(b=>b.nodes).reduce((n,s)=>n+s.maxRank,0),42);assert.equal(skillRank('red-cap-1',['red-cap-1','red-cap-1@2']),2);assert.equal(canPurchase('red-start',['red-cap-1'],3).reason,'skill_prerequisite');assert.equal(canPurchase('red-start',['red-cap-1','red-cap-1@2'],3).ok,true);const skillTest=skillEffects(['neutral-vitality','neutral-vitality@2','neutral-bulwark','red-cap-1','red-cap-1@2','red-start']);assert.equal(skillTest.maxHP,4);assert.equal(skillTest.startGuard,1);assert.equal(skillTest.caps.red,2);assert.equal(skillTest.startCharge.red,1);const resonanceTest=skillEffects(['red-cap-1','red-cap-1@2','red-cap-1@3','red-start','red-cap-2','red-cap-2@2','red-resonance']);assert.equal(resonanceTest.chargeGain.red,1,'deep Red specialization grants +1 match charge');
   {
     const blank={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
@@ -156,6 +171,11 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(banditProof.seed,banditMatchId);
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:banditProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v1');assert.equal(r.data.settlement.gold,banditProof.state.gold,'Bandit Gold comes from server replay');assert.equal(r.data.settlement.xp,banditProof.state.xp,'Bandit XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('bandit'),'every verified encounter victory records a generic clear flag');
     assert(await db.prepare("SELECT 1 ok FROM audit_events WHERE type='match_result_mismatch' AND user_id=?").get(r.data.account.user.id),'replay result mismatches are audited');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'sentinel-gate'}});assert.equal(r.status,200,'verified Bandit clear unlocks the Sentinel');
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'sentinel'}});assert.equal(r.status,201);assert.equal(r.data.match.authority.mode,'replay-v1');const sentinelMatchId=r.data.match.matchId;
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:true,gold:999,xp:999,transcript:[]}});assert.equal(r.status,409,'unproved Sentinel win cannot award progression');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:false,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,409,'bandit does not teleport to camp');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);
