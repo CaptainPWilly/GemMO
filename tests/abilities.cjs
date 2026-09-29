@@ -60,7 +60,7 @@ assert(src.includes("recordCombatAction({t:'ability'"),'gem activations must ent
 assert(!src.includes('STARTER_CHOICES')&&!html.includes('id="starterPage"'),'starter selection UI is removed');
 assert(src.includes("const DEFAULT_SACK=['dagger',null,null,null,null]"),'client default Sack begins with the Iron Dagger');
 assert(html.includes('class="sackHero"')&&html.includes('class="sackToolbar"'),'Sack uses the modern deck-style layout');
-assert(html.includes('id="worldGold"')&&html.includes('id="worldSackBtn"')&&html.includes('id="worldInventoryBtn"')&&html.includes('id="worldEffectsBtn"'),'world map exposes Gold, Sack, Inventory, and Effects controls');
+assert(html.includes('id="worldGold"')&&html.includes('id="worldSackBtn"')&&html.includes('id="worldInventoryBtn"')&&html.includes('id="worldSkillsBtn"')&&html.includes('id="worldQuestsBtn"'),'world map exposes Gold plus Sack, Inventory, Skills, and Journal hub controls');assert(!html.includes('id="worldEffectsBtn"')&&html.includes('id="worldStatusBtn"'),'current effects moved from the dock into the persistent player-status strip');
 assert(!html.includes('id="worldZoomIn"')&&!html.includes('id="worldZoomOut"'),'world map does not expose zoom buttons');
 assert(src.includes("addEventListener('wheel'")&&src.includes("{passive:false}"),'desktop map zoom uses a non-passive mouse wheel handler');
 assert(src.includes("worldGesture={type:'pinch'"),'touch map zoom remains pinch-driven');
