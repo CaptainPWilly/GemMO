@@ -16,6 +16,8 @@ The live browser client is intentionally build-free so GitHub Pages can publish 
 | `assets/styles.css` | Canonical responsive visual system and dungeon theme |
 | `tests/abilities.cjs` | Production-client regression harness; executes the real content/runtime files |
 
+The Sack screen presents owned gems and equips the five-gem loadout. Inventory presents gear and consumables only; account inventory records still include gems for server ownership and Sack validation.
+
 The shell loads assets in this order:
 
 ```text
