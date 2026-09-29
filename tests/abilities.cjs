@@ -59,7 +59,7 @@ assert(src.includes("recordCombatAction({t:'swap'"),'player swaps must enter the
 assert(src.includes("recordCombatAction({t:'ability'"),'gem activations must enter the combat proof transcript');
 assert(!src.includes('STARTER_CHOICES')&&!html.includes('id="starterPage"'),'starter selection UI is removed');
 assert(src.includes("const DEFAULT_SACK=['dagger',null,null,null,null]"),'client default Sack begins with the Iron Dagger');
-assert(html.includes('class="sackHero"')&&html.includes('class="sackToolbar"'),'Sack uses the modern deck-style layout');
+assert(html.includes('class="sackHero uiHero"')&&html.includes('class="sackToolbar uiToolbar"'),'Sack uses the modern deck layout on universal hero/toolbar prefabs');
 assert(html.includes('id="worldGold"')&&html.includes('id="worldSackBtn"')&&html.includes('id="worldInventoryBtn"')&&html.includes('id="worldSkillsBtn"')&&html.includes('id="worldQuestsBtn"'),'world map exposes Gold plus Sack, Inventory, Skills, and Journal hub controls');assert(!html.includes('id="worldEffectsBtn"')&&html.includes('id="worldStatusBtn"'),'current effects moved from the dock into the persistent player-status strip');
 assert(!html.includes('id="worldZoomIn"')&&!html.includes('id="worldZoomOut"'),'world map does not expose zoom buttons');
 assert(src.includes("addEventListener('wheel'")&&src.includes("{passive:false}"),'desktop map zoom uses a non-passive mouse wheel handler');
@@ -102,7 +102,7 @@ assert(styles.includes('.shopColorGrid')&&styles.includes('.shopPrice')&&styles.
 assert(src.includes("function openLoadoutScreen(next,origin=screen)")&&src.includes("loadoutReturnScreen=origin==='world'?'world':'menu'"),'Sack and Equipment remember whether they were opened from the map');
 assert(src.includes("if(['sack','inventory'].includes(screen)&&loadoutReturnScreen==='world'){enterWorld();return}"),'Back returns map-origin loadout screens to the map');
 assert(src.includes("openLoadoutScreen('sack','world')")&&src.includes("openLoadoutScreen('inventory','world')"),'map loadout buttons register world as their return target');
-assert(html.includes('class="equipmentHero"')&&html.includes('id="equipmentSelection"'),'Equipment screen uses the polished loadout structure');
+assert(html.includes('class="equipmentHero uiHero"')&&html.includes('id="equipmentSelection"'),'Equipment screen uses the universal hero plus polished loadout structure');
 assert(html.includes('id="inventoryFilter"')&&html.includes('id="inventorySort"')&&src.includes('function inventoryEntry(record)'),'Inventory is a unified sortable collection');
 assert(content.includes("const CONSUMABLES=[")&&html.includes('id="combatItemsPanel"')&&src.includes("accountRequest('/v1/matches/consume'"),'one-shot combat consumables are exposed end-to-end');
 assert(content.includes("name:'Minor Healing Draught'")&&content.includes("kind:'heal'")&&content.includes("kind:'guard'"),'potions and tonics keep simple immediate effects');
