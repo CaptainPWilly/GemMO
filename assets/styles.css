@@ -26,7 +26,7 @@
 }
 .app.text-normal{--text-bump:0px}
 .app.text-large{--text-bump:1.5px}
-.app.text-xl{--text-bump:3px}
+.app.text-xl{--text-bump:5px}
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{margin:0;height:100%;background:#050a12;color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;overflow:hidden;touch-action:manipulation}button{font:inherit;color:inherit}.app{width:min(100vw,540px);height:100dvh;margin:auto;position:relative;background:radial-gradient(circle at 50% 0,#172743 0,#08111f 42%,#050a12 100%);overflow:hidden}.game{height:100%;display:flex;flex-direction:column;gap:7px;padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom))}.top{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;background:rgba(13,23,40,.9);border:1px solid var(--line);border-radius:15px;padding:8px 10px;min-height:61px}.name{font-size:calc(10px + var(--text-bump));letter-spacing:1.25px;color:var(--muted);font-weight:800}.stats{font-size:calc(13px + var(--text-bump));font-weight:850;margin-top:4px}.right{text-align:right}.turn{text-align:center;font-size:calc(10px + var(--text-bump));letter-spacing:1px;font-weight:900;color:var(--g)}.turn small{display:block;color:var(--muted);font-size:calc(8px + var(--text-bump));margin-top:4px;font-weight:650;letter-spacing:.8px}.sacksBtn{border:1px solid var(--line);background:var(--panel);border-radius:9px;font-size:calc(9px + var(--text-bump));padding:6px 8px;margin-top:5px;color:var(--muted)}
 .boardShell{width:100%;aspect-ratio:1;border:1px solid var(--line);border-radius:16px;padding:5px;background:#040910;box-shadow:0 18px 60px rgba(0,0,0,.3)}.board{height:100%;display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);gap:3px}.cell{border:0;border-radius:8px;background:#0c1627;display:grid;place-items:center;padding:0;position:relative;transition:transform .09s ease,filter .09s ease}.cell:active{transform:scale(.92)}.cell.sel{outline:2px solid white;outline-offset:-2px;transform:scale(.91)}.cell.freeTarget{outline:2px dashed var(--y);outline-offset:-3px}.gem{width:66%;aspect-ratio:1;transform:rotate(45deg);border-radius:22%;display:grid;place-items:center;box-shadow:inset 2px 2px 0 rgba(255,255,255,.22),inset -3px -3px 8px rgba(0,0,0,.2),0 3px 8px rgba(0,0,0,.28);position:relative}.gem:after{content:attr(data-i);position:absolute;inset:0;display:grid;place-items:center;transform:rotate(-45deg);font-size:clamp(11px,3.9vw,18px);font-weight:950;text-shadow:0 1px 2px rgba(0,0,0,.35)}.red{background:linear-gradient(135deg,#ff7b85,#ce3745)}.blue{background:linear-gradient(135deg,#7bbaff,#3476e8)}.green{background:linear-gradient(135deg,#76e7a3,#31b769)}.yellow{background:linear-gradient(135deg,#ffe27d,#d9a329)}.purple{background:linear-gradient(135deg,#c6a2ff,#7d50de)}.gold{width:60%;transform:none;border-radius:50%;background:linear-gradient(135deg,#ffe17a,#be801c)}.gold:after{transform:none}.xp{background:linear-gradient(135deg,#8df4ff,#30b9d5)}.wild{background:conic-gradient(from 30deg,var(--r),var(--y),var(--g),var(--b),var(--p),var(--r));animation:spin 2.2s linear infinite}.wild:after{content:"W"}@keyframes spin{to{filter:hue-rotate(360deg)}}
@@ -562,7 +562,17 @@ html,body{background:#060705;color:var(--text)}
 }
 @media(max-width:390px){
   .worldQuickbar{gap:4px;left:7px;right:7px}.worldQuickButton{padding-left:2px;padding-right:2px}
-  .storyCard{padding-left:14px;padding-right:14px;grid-template-columns:50px minmax(0,1fr);gap:10px}.storyPortrait{width:50px;height:60px;font-size:calc(27px + var(--text-bump))}.storyCopy h2{font-size:calc(25px + var(--text-bump))}.storyCopy p{font-size:calc(12px + var(--text-bump))!important}
+  .storyCard{padding-left:14px;padding-right:14px;grid-template-columns:50px minmax(0,1fr);gap:10px}.storyPortrait{width:50px;height:60px;font-size:calc(27px + var(--text-bump))}.storyCopy h2{font-size:calc(25px + var(--text-bump))}
+}
+@media(max-width:699px){
+  .app.text-xl .storyCard{max-height:82%;overflow-y:auto;overscroll-behavior:contain;grid-template-columns:1fr;gap:10px;padding:34px 18px calc(24px + env(safe-area-inset-bottom))}
+  .app.text-xl .storyPortrait{width:54px;height:64px;font-size:32px}
+  .app.text-xl .storyCopy{width:100%;max-width:none}
+  .app.text-xl .storyCopy small{font-size:13px;letter-spacing:1.4px}
+  .app.text-xl .storyCopy h2{font-size:34px;line-height:1.08;margin:3px 0 10px}
+  .app.text-xl .storyCopy p{font-size:18px!important;line-height:1.55!important;margin-bottom:20px!important}
+  .app.text-xl .storyChoices button,.app.text-xl .storyContinue{font-size:15px;padding:14px 15px;line-height:1.35}
+  .app.text-xl .storySkip{font-size:12px}
 }
 @media(prefers-reduced-motion:reduce){.storyBackdrop{transform:none}}
 
@@ -762,3 +772,29 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .skillNode.owned{border-color:color-mix(in srgb,var(--skill) 68%,#574b3a);background:color-mix(in srgb,var(--skill) 9%,#12130f);box-shadow:inset 3px 0 var(--skill)}.skillNode.invested{border-color:color-mix(in srgb,var(--skill) 48%,#4a4135);background:color-mix(in srgb,var(--skill) 5%,#12130f);box-shadow:inset 2px 0 color-mix(in srgb,var(--skill) 70%,transparent)}.skillNode.invested .skillCost{color:var(--skill)}.skillNode.owned .skillCost{color:#d9cfbd}.skillNode.locked{opacity:.48}.skillStatus{max-width:900px;margin:12px auto 0;min-height:22px;color:#b8aa95}
 @media(max-width:620px){.skillHero{align-items:start;flex-direction:column}.skillSummary{text-align:left}.skillTree{grid-template-columns:1fr}}
 @media(min-width:900px){.skillTree{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+
+/* Extra-large accessibility pass: shorthand/clamped typography must scale too. */
+.app.text-xl .page h1{font-size:47px}
+.app.text-xl .pageHero h1{font-size:47px}
+.app.text-xl .turnBadge{font-size:17px}
+.app.text-xl .combatOverlay h2,.app.text-xl .effectsDrawer h2{font-size:27px}
+.app.text-xl .gemologyCard h2{font-size:25px}
+.app.text-xl .rulebook h2{font-size:27px}
+.app.text-xl .equipmentSectionHead h2{font-size:25px}
+.app.text-xl .worldTitle b{font-size:23px}
+.app.text-xl .worldCard h2{font-size:27px}
+.app.text-xl #accountLoggedIn h2{font-size:37px}
+.app.text-xl .settingsCardHead h2{font-size:26px}
+.app.text-xl .skillHero h1{font-size:45px}
+.app.text-xl .skillBranchHead b{font-size:20px}
+.app.text-xl .combatEffectCard strong{font-size:18px}
+.app.text-xl .worldQuestHead b{font-size:21px}
+.app.text-xl .gearSlot b,.app.text-xl .gearCard b{font-size:17px}
+.app.text-xl .shopItem b{font-size:17px}
+.app.text-xl .sackPage .itemCard b{font-size:14px}
+.app.text-xl .sackSlot b{font-size:12px}
+.app.text-xl .enemyChargeGauge b{font-size:10px}
+.app.text-xl .moveHistoryMeta small{font-size:10px}
+.app.text-xl .moveHistoryMeta strong{font-size:12px}
+.app.text-xl .damageNumber{font-size:29px}

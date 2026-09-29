@@ -24,6 +24,8 @@ assert(html.includes('id="storyOverlay"')&&html.includes('id="storyChoices"')&&h
 assert(src.includes("accountRequest('/v1/story/quest'")&&src.includes("accountRequest('/v1/story/cutscene'"),'story progression is persisted through authenticated server APIs');
 assert(src.includes("function openDialogue(npcId)")&&src.includes("function startCutscene(id)")&&src.includes("function renderWorldQuests()"),'runtime contains reusable NPC, cutscene, and quest runners');
 assert(styles.includes('.storyOverlay')&&styles.includes('.storyChoices')&&styles.includes('.worldQuestPanel'),'story and quest surfaces have responsive styling');
+assert(styles.includes('.app.text-xl .storyCard{max-height:82%;overflow-y:auto')&&styles.includes('grid-template-columns:1fr'),'XL story layout reflows to a full-width readable column instead of squeezing copy beside the portrait');
+assert(styles.includes('.app.text-xl .storyCopy p{font-size:18px!important')&&styles.includes('.app.text-xl .storyChoices button,.app.text-xl .storyContinue{font-size:15px'),'XL cutscene/dialogue body and controls remain legible');
 assert(combatCore.includes('globalThis.GEMMO_COMBAT_CORE=Object.freeze'),'deterministic board primitives must live behind the combat-core boundary');
 assert(!src.includes("activeEncounter==='rat'")&&!src.includes("const ENCOUNTERS={rat:"),'runtime combat must not special-case encounter IDs');
 assert(src.includes('COMBAT_CORE.findMatches(board,TYPES)')&&src.includes('COMBAT_CORE.legalMoves(board,TYPES)'),'runtime must consume extracted combat primitives');
@@ -37,7 +39,7 @@ assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-
 assert(html.includes('class="splashSigil"')&&html.includes('class="menuNav"')&&html.includes('class="menuSnapshot"'),'splash and menu use the unified game-shell hierarchy');
 assert(html.includes('class="pageHero compact"')&&html.includes('class="settingsStack"')&&html.includes('class="shopHero"'),'utility and catalogue screens use shared page hierarchy');
 assert(html.includes('id="textSize"')&&html.includes('value="normal"')&&html.includes('value="large"')&&html.includes('value="xl"'),'settings expose normal, large and extra-large text sizes');
-assert(styles.includes('--text-bump:1.5px')&&styles.includes('.app.text-normal{--text-bump:0px}')&&styles.includes('.app.text-xl{--text-bump:3px}'),'large typography is the default with reversible text-size tokens');
+assert(styles.includes('--text-bump:1.5px')&&styles.includes('.app.text-normal{--text-bump:0px}')&&styles.includes('.app.text-xl{--text-bump:5px}'),'large typography is the default and XL has a materially stronger text scale');
 assert((styles.match(/font-size:calc\(/g)||[]).length>25,'fixed-size interface typography participates in the global text-size system');
 assert(styles.includes('/* Unified responsive layout system.')&&styles.includes('--content-max:900px')&&styles.includes('.pageHero{'),'canonical responsive layout system is present');
 assert(styles.includes('@media(hover:hover) and (pointer:fine)')&&styles.includes('button:focus-visible'),'layout system includes pointer polish and keyboard focus states');
