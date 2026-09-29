@@ -28,14 +28,14 @@
   </nav>
   <div class="menuSnapshot"><div><small>SACK</small><b id="sackSummary"></b></div><div><small>GEAR</small><b id="gearSummary"></b></div></div>
 </section>
-<section class="page sackPage" id="sackPage" hidden>
-  <header class="sackTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◇ SACK</span><span id="sackOwnedCount" class="sackOwnedCount">◇ 0</span></header>
-  <div class="sackHero"><div><small>BATTLE DECK</small><h1>Your Sack</h1><p>Pick a slot. Pick a gem. Build five.</p></div><div id="sackEquippedCount" class="sackEquippedCount">0/5</div></div>
-  <div class="sackSectionHead"><b>Equipped</b><span>Tap a slot to edit</span></div>
+<section class="page sackPage uiScreen" id="sackPage" hidden>
+  <header class="sackTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◇ SACK</span><span id="sackOwnedCount" class="sackOwnedCount">◇ 0</span></header>
+  <div class="sackHero uiHero"><div><small>BATTLE DECK</small><h1>Your Sack</h1><p>Pick a slot. Pick a gem. Build five.</p></div><div id="sackEquippedCount" class="sackEquippedCount">0/5</div></div>
+  <div class="sackSectionHead uiSectionHead"><b>Equipped</b><span>Tap a slot to edit</span></div>
   <div id="loadout" aria-label="Equipped Sack"></div>
   <div class="sackEditRow"><p id="equipHint" aria-live="polite"></p><button id="emptySlot" aria-label="Clear selected slot" title="Clear selected slot">× CLEAR</button></div>
-  <div class="sackSectionHead collectionHead"><b>Collection</b><span>Unique gems only</span></div>
-  <div class="sackToolbar">
+  <div class="sackSectionHead uiSectionHead collectionHead"><b>Collection</b><span>Unique gems only</span></div>
+  <div class="sackToolbar uiToolbar">
     <input id="itemSearch" type="search" placeholder="Search gems" autocomplete="off" aria-label="Search gems">
     <select id="colorFilter" aria-label="Filter gems by color"><option value="all">All</option><option value="red">Red</option><option value="blue">Blue</option><option value="green">Green</option><option value="yellow">Yellow</option><option value="purple">Purple</option></select>
   </div>
@@ -66,45 +66,45 @@
   <button class="worldQuickButton" id="worldSkillsBtn" aria-label="Skills" title="Skills"><span class="worldQuickIcon">✦</span><span class="worldQuickLabel">SKILLS</span><i class="worldPip" id="worldSkillPip" hidden></i></button>
   <button class="worldQuickButton" id="worldQuestsBtn" aria-label="Journal" title="Journal"><span class="worldQuickIcon">!</span><span class="worldQuickLabel">JOURNAL</span><i class="worldPip" id="worldQuestPip" hidden></i></button>
 </nav>
-<div class="worldEffectsPanel" id="worldEffectsPanel" hidden>
+<div class="worldEffectsPanel uiSheet id="worldEffectsPanel" hidden>
   <div class="worldEffectsHead"><div><small>ACTIVE LOADOUT</small><h3>Current Effects</h3></div><button id="worldEffectsClose" aria-label="Close effects">×</button></div>
   <div class="worldEffectsList" id="worldEffectsList"></div>
 </div>
-<div class="worldQuestPanel" id="worldQuestPanel" hidden>
+<div class="worldQuestPanel uiSheet id="worldQuestPanel" hidden>
   <div class="worldEffectsHead"><div><small>JOURNAL</small><h3>Quests</h3></div><button id="worldQuestsClose" aria-label="Close quests">×</button></div>
   <div class="worldQuestList" id="worldQuestList"></div>
 </div>
-<div class="worldCard">
+<div class="worldCard uiPanel">
   <div class="worldCardTop"><div><small id="worldKind">SAFE</small><h2 id="worldNodeName">Ember Camp</h2></div><button class="worldAction" id="worldAction">HERE</button></div>
   <p id="worldNodeDesc" hidden></p>
   <div class="worldLegend"><span>◆ YOU</span><span>● DESTINATION</span><span>⚔ ENCOUNTER</span></div>
 </div>
 </section>
-<section class="page shopPage" id="shopPage" hidden>
-<header class="pageTopbar"><button class="shopBack chromeIconButton" id="shopBack" aria-label="Back to world" title="World">←</button><span class="eyebrow" id="shopEyebrow">MERCHANT</span></header>
-<div class="shopHero">
+<section class="page shopPage uiScreen" id="shopPage" hidden>
+<header class="pageTopbar uiTopbar"><button class="shopBack chromeIconButton" id="shopBack" aria-label="Back to world" title="World">←</button><span class="eyebrow" id="shopEyebrow">MERCHANT</span></header>
+<div class="shopHero uiHero">
   <div><small>MARKET</small><h1 id="shopTitle">Shop</h1><p id="shopDesc" hidden></p></div>
   <div class="shopBar"><span>◆ PURSE</span><b id="shopGold">◆ 0</b></div>
 </div>
 <div class="shopGrid" id="shopGrid"></div>
 <p class="shopStatus" id="shopStatus" role="status"></p>
 </section>
-<section class="page skillsPage" id="skillsPage" hidden>
-<header class="pageTopbar"><button id="skillsBack" class="chromeIconButton" aria-label="Back to Shrine" title="Shrine">←</button><span class="eyebrow">ATTUNEMENT · SKILL TREE</span></header>
-<div class="skillHero"><div><small>✦ THE SHRINE</small><h1>Attunement</h1><p>One skill point per level. Invest freely across every branch.</p></div><div class="skillSummary"><b id="skillPoints">✦ 1</b><span id="skillLevel">LV 1</span><small id="skillXP">XP 0/20</small></div></div>
+<section class="page skillsPage uiScreen" id="skillsPage" hidden>
+<header class="pageTopbar uiTopbar"><button id="skillsBack" class="chromeIconButton" aria-label="Back to Shrine" title="Shrine">←</button><span class="eyebrow">ATTUNEMENT · SKILL TREE</span></header>
+<div class="skillHero uiHero"><div><small>✦ THE SHRINE</small><h1>Attunement</h1><p>One skill point per level. Invest freely across every branch.</p></div><div class="skillSummary"><b id="skillPoints">✦ 1</b><span id="skillLevel">LV 1</span><small id="skillXP">XP 0/20</small></div></div>
 <div id="skillTree" class="skillTree"></div><p id="skillStatus" class="skillStatus" role="status"></p>
 </section>
-<section class="page accountPage" id="accountPage" hidden>
-<header class="pageTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◎ PLAYER</span></header>
-<div class="pageHero compact"><small>ACCOUNT</small><h1>Your Save</h1><p>Your account carries your world, inventory, quests, and progression.</p></div>
+<section class="page accountPage uiScreen" id="accountPage" hidden>
+<header class="pageTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◎ PLAYER</span></header>
+<div class="pageHero compact uiHero"><small>ACCOUNT</small><h1>Your Save</h1><p>Your account carries your world, inventory, quests, and progression.</p></div>
 <p class="accountSecurity" hidden></p>
-<div id="accountLoggedOut" class="accountBox">
+<div id="accountLoggedOut" class="accountBox uiPanel">
   <label for="accountUsername">USERNAME</label><input id="accountUsername" autocomplete="username" maxlength="20">
   <label for="accountPassword">PASSWORD · 6+ CHARACTERS</label><input id="accountPassword" type="password" autocomplete="current-password" minlength="6" maxlength="128">
   <div class="captchaWrap" id="captchaWrap" hidden><div id="turnstileWidget"></div><small id="captchaHint">Human check</small></div>
   <div class="accountActions"><button id="loginBtn">LOG IN</button><button id="registerBtn">CREATE ACCOUNT</button></div><small class="loginMemory">You stay signed in on this device until you log out or the session expires.</small>
 </div>
-<div id="accountLoggedIn" class="accountBox" hidden>
+<div id="accountLoggedIn" class="accountBox uiPanel" hidden>
   <small>LOGGED IN AS</small><h2 id="accountName"></h2>
   <div class="accountStats"><b id="accountLevel"></b><b id="accountXP"></b><b id="accountGold"></b></div>
   <p hidden></p>
@@ -114,32 +114,32 @@
 <p class="accountDanger" hidden></p>
 <p class="accountStatus" id="accountStatus" role="status"></p>
 </section>
-<section class="page inventoryPage" id="inventoryPage" hidden>
-<header><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">▣ INVENTORY</span></header>
-<div class="equipmentHero">
+<section class="page inventoryPage uiScreen" id="inventoryPage" hidden>
+<header class="uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">▣ INVENTORY</span></header>
+<div class="equipmentHero uiHero">
   <div><small>YOUR COLLECTION</small><h1>Inventory</h1><p>Everything you own — gems, equipment, and one-shot consumables.</p></div>
   <div class="equipmentStats" id="equipmentStats"></div>
 </div>
-<div class="equipmentSectionHead"><div><small>▣ 8 SLOTS</small><h2>Equipped</h2></div><span id="equipmentSelection">—</span></div>
+<div class="equipmentSectionHead uiSectionHead"><div><small>▣ 8 SLOTS</small><h2>Equipped</h2></div><span id="equipmentSelection">—</span></div>
 <div class="equipmentGrid" id="equipmentGrid"></div>
 <button class="unequipGear" id="unequipGear">× UNEQUIP</button>
-<div class="equipmentSectionHead ownedHead"><div><small>COLLECTION</small><h2>All Items</h2></div><span id="inventoryCount"></span></div>
-<div class="inventoryToolbar"><select id="inventoryFilter" aria-label="Inventory type"><option value="all">All Items</option><option value="gem">Gems</option><option value="gear">Equipment</option><option value="consumable">Consumables</option></select><select id="inventorySort" aria-label="Inventory sorting"><option value="type">Sort: Type</option><option value="name">Sort: Name</option><option value="color">Sort: Color</option><option value="qty">Sort: Quantity</option></select></div>
+<div class="equipmentSectionHead uiSectionHead ownedHead"><div><small>COLLECTION</small><h2>All Items</h2></div><span id="inventoryCount"></span></div>
+<div class="inventoryToolbar uiToolbar"><select id="inventoryFilter" aria-label="Inventory type"><option value="all">All Items</option><option value="gem">Gems</option><option value="gear">Equipment</option><option value="consumable">Consumables</option></select><select id="inventorySort" aria-label="Inventory sorting"><option value="type">Sort: Type</option><option value="name">Sort: Name</option><option value="color">Sort: Color</option><option value="qty">Sort: Quantity</option></select></div>
 <div class="inventoryGrid" id="inventoryGrid"></div>
 </section>
-<section class="page gemologyPage" id="gemologyPage" hidden>
-<header class="pageTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">✦ FIELD NOTES</span></header>
-<div class="pageHero"><small>THE BOARD</small><h1>Gemology</h1><p>Equipped gems hold reusable spells, techniques, or focuses. Matches charge them; activating one uses its bound ability. A healing spell and a healing potion can coexist because they use different resources.</p></div>
+<section class="page gemologyPage uiScreen" id="gemologyPage" hidden>
+<header class="pageTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">✦ FIELD NOTES</span></header>
+<div class="pageHero uiHero"><small>THE BOARD</small><h1>Gemology</h1><p>Equipped gems hold reusable spells, techniques, or focuses. Matches charge them; activating one uses its bound ability. A healing spell and a healing potion can coexist because they use different resources.</p></div>
 <p class="gemologyIntro" hidden></p>
 <div class="gemologyGrid">
-  <article class="gemologyCard" style="--c:var(--r)"><strong>RED · ATTACK</strong><h2>Strike</h2><p>Equipped Red gems contribute ATK. Each Red board gem you break deals damage equal to your total Red ATK, while also charging the shared Red reservoir.</p></article>
-  <article class="gemologyCard" style="--c:var(--b)"><strong>BLUE · DEFENSE</strong><h2>Guard</h2><p>Equipped Blue gems contribute DEF. Each Blue board gem you break grants Guard equal to your total Blue DEF, while also charging the shared Blue reservoir.</p></article>
-  <article class="gemologyCard" style="--c:var(--g)"><strong>GREEN · SUPPORT</strong><h2>Spells</h2><p>Green matches charge reusable support magic: healing, cleansing, regeneration, and growth effects. The gem is the focus; the ability is the spell.</p></article>
-  <article class="gemologyCard" style="--c:var(--y)"><strong>YELLOW · UTILITY</strong><h2>Charge</h2><p>Yellow has no universal combat effect. It charges equipped Yellow gems built around tempo, tricks, and board utility.</p></article>
-  <article class="gemologyCard" style="--c:var(--p)"><strong>PURPLE · ARCANE</strong><h2>Charge</h2><p>Purple has no universal combat effect. It charges stranger effects: Wilds, Overdrive, siphoning, and other rule-benders.</p></article>
-  <article class="gemologyCard" style="--c:var(--gold)"><strong>GOLD · LOOT</strong><h2>Treasure</h2><p>Gold matches add to your fight's Gold tally. Gold is not an ability reservoir.</p></article>
-  <article class="gemologyCard" style="--c:var(--xp)"><strong>XP · PROGRESS</strong><h2>Experience</h2><p>XP matches add to your fight's XP tally. Encounter-specific environmental effects can attach to XP gems instead of adding another board type.</p></article>
-  <article class="gemologyCard wide" style="--c:#fff"><strong>WILD · SUBSTITUTE</strong><h2>Any Color</h2><p>A Wild can stand in for any normal tile inside a horizontal or vertical match. Wild-only lines do not count. A Wild is removed only when it participates in the matched line.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--r)"><strong>RED · ATTACK</strong><h2>Strike</h2><p>Equipped Red gems contribute ATK. Each Red board gem you break deals damage equal to your total Red ATK, while also charging the shared Red reservoir.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--b)"><strong>BLUE · DEFENSE</strong><h2>Guard</h2><p>Equipped Blue gems contribute DEF. Each Blue board gem you break grants Guard equal to your total Blue DEF, while also charging the shared Blue reservoir.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--g)"><strong>GREEN · SUPPORT</strong><h2>Spells</h2><p>Green matches charge reusable support magic: healing, cleansing, regeneration, and growth effects. The gem is the focus; the ability is the spell.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--y)"><strong>YELLOW · UTILITY</strong><h2>Charge</h2><p>Yellow has no universal combat effect. It charges equipped Yellow gems built around tempo, tricks, and board utility.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--p)"><strong>PURPLE · ARCANE</strong><h2>Charge</h2><p>Purple has no universal combat effect. It charges stranger effects: Wilds, Overdrive, siphoning, and other rule-benders.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--gold)"><strong>GOLD · LOOT</strong><h2>Treasure</h2><p>Gold matches add to your fight's Gold tally. Gold is not an ability reservoir.</p></article>
+  <article class="gemologyCard uiCard" style="--c:var(--xp)"><strong>XP · PROGRESS</strong><h2>Experience</h2><p>XP matches add to your fight's XP tally. Encounter-specific environmental effects can attach to XP gems instead of adding another board type.</p></article>
+  <article class="gemologyCard uiCard wide" style="--c:#fff"><strong>WILD · SUBSTITUTE</strong><h2>Any Color</h2><p>A Wild can stand in for any normal tile inside a horizontal or vertical match. Wild-only lines do not count. A Wild is removed only when it participates in the matched line.</p></article>
 </div>
 <div class="rulebook">
   <h2>Board law</h2>
@@ -167,22 +167,22 @@
   </ul>
 </div>
 </section>
-<section class="page settingsPage" id="settingsPage" hidden>
-  <header class="pageTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">⚙ SETTINGS</span></header>
-  <div class="pageHero compact"><small>SETTINGS</small><h1>Play Your Way</h1><p>Accessibility and board-assist preferences stay on this device.</p></div>
+<section class="page settingsPage uiScreen" id="settingsPage" hidden>
+  <header class="pageTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">⚙ SETTINGS</span></header>
+  <div class="pageHero compact uiHero"><small>SETTINGS</small><h1>Play Your Way</h1><p>Accessibility and board-assist preferences stay on this device.</p></div>
   <div class="settingsStack">
-    <section class="settingsCard">
-      <div class="settingsCardHead"><div><small>ACCESSIBILITY</small><h2>Text Size</h2></div><span class="settingsGlyph">Aa</span></div>
+    <section class="settingsCard uiPanel">
+      <div class="settingsCardHead uiSectionHead"><div><small>ACCESSIBILITY</small><h2>Text Size</h2></div><span class="settingsGlyph">Aa</span></div>
       <select id="textSize" aria-label="Text size"><option value="normal">Normal</option><option value="large">Large</option><option value="xl">Extra Large</option></select>
       <p>Scales labels, descriptions, combat readouts, menus, and other interface text across the game.</p>
     </section>
-    <section class="settingsCard">
-      <div class="settingsCardHead"><div><small>ACCESSIBILITY</small><h2>Motion</h2></div><span class="settingsGlyph">≈</span></div>
+    <section class="settingsCard uiPanel">
+      <div class="settingsCardHead uiSectionHead"><div><small>ACCESSIBILITY</small><h2>Motion</h2></div><span class="settingsGlyph">≈</span></div>
       <label class="setting"><span><b>Reduce animation</b><small>Use quieter transitions and effects.</small></span><input type="checkbox" id="motionToggle"></label>
       <p>Your device's reduced-motion preference is also respected.</p>
     </section>
-    <section class="settingsCard">
-      <div class="settingsCardHead"><div><small>BOARD ASSIST</small><h2>Automatic Hints</h2></div><span class="settingsGlyph">✦</span></div>
+    <section class="settingsCard uiPanel">
+      <div class="settingsCardHead uiSectionHead"><div><small>BOARD ASSIST</small><h2>Automatic Hints</h2></div><span class="settingsGlyph">✦</span></div>
       <select id="hintDelay" aria-label="Automatic hint delay"><option value="15000">After 15 seconds</option><option value="30000">After 30 seconds</option><option value="0">Off — no timer</option></select>
       <p>Highlight a legal move after this much idle time on your turn.</p>
     </section>
@@ -191,7 +191,7 @@
 </section>
 <section class="storyOverlay" id="storyOverlay" role="dialog" aria-modal="true" aria-labelledby="storyTitle" hidden>
   <div class="storyBackdrop" id="storyBackdrop"></div>
-  <div class="storyCard">
+  <div class="storyCard uiSheet">
     <button class="storySkip" id="storySkip">SKIP</button>
     <div class="storyPortrait" id="storyPortrait" hidden></div>
     <div class="storyCopy">
@@ -216,11 +216,11 @@
   <div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
   <button id="effectsBtn" class="effectsBtn" aria-label="Current effects"><span aria-hidden="true">✦</span><span class="effectsBtnLabel">EFFECTS</span></button><div class="foot">SWIPE OR TAP 2 GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
 </div>
-<section id="combatMenuPanel" class="combatOverlay" hidden><header><h2>Combat</h2><button id="closeCombatMenu" class="chromeIconButton" aria-label="Close combat menu">×</button></header><div class="combatMenuActions"><button id="combatSacksBtn">◇ SACKS</button><button id="combatItemsBtn">● ITEMS</button><button id="combatGemologyBtn">✦ RULES</button><button id="surrenderBtn" class="danger">⚑ SURRENDER</button></div><p id="combatMenuStatus"></p></section>
-<section id="combatItemsPanel" class="combatOverlay" hidden><header><h2>● Items</h2><button id="closeCombatItems" class="chromeIconButton" aria-label="Back">←</button></header><p class="combatItemsHint">One-shot physical resources. Potions and tonics act immediately, while gem abilities are reusable once recharged.</p><div id="combatItemsList" class="combatItemsList"></div><p id="combatItemsStatus" class="shopStatus" role="status"></p></section>
-<section id="combatGemologyPanel" class="combatOverlay" hidden><header><h2>✦ Gemology</h2><button id="closeCombatGemology" class="chromeIconButton" aria-label="Back to fight">←</button></header><div id="combatGemologyContent" class="combatGemologyScroll"></div></section>
-<section id="effectsDrawer" class="effectsDrawer" hidden><header><div><small>✦ LIVE STATE</small><h2>Effects</h2></div><button id="closeEffectsDrawer" class="chromeIconButton" aria-label="Close effects">×</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
-<div class="modal" id="modal"><div class="modalCard"><h2>Combat Sacks</h2><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Sack ATK × broken</div><div class="line" style="--c:var(--b)"><b></b>Blue — Sack DEF × broken</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>ENEMY</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">← FIGHT</button></div></div>
+<section id="combatMenuPanel" class="combatOverlay uiOverlay" hidden><header><h2>Combat</h2><button id="closeCombatMenu" class="chromeIconButton" aria-label="Close combat menu">×</button></header><div class="combatMenuActions"><button id="combatSacksBtn">◇ SACKS</button><button id="combatItemsBtn">● ITEMS</button><button id="combatGemologyBtn">✦ RULES</button><button id="surrenderBtn" class="danger">⚑ SURRENDER</button></div><p id="combatMenuStatus"></p></section>
+<section id="combatItemsPanel" class="combatOverlay uiOverlay" hidden><header><h2>● Items</h2><button id="closeCombatItems" class="chromeIconButton" aria-label="Back">←</button></header><p class="combatItemsHint">One-shot physical resources. Potions and tonics act immediately, while gem abilities are reusable once recharged.</p><div id="combatItemsList" class="combatItemsList"></div><p id="combatItemsStatus" class="shopStatus" role="status"></p></section>
+<section id="combatGemologyPanel" class="combatOverlay uiOverlay" hidden><header><h2>✦ Gemology</h2><button id="closeCombatGemology" class="chromeIconButton" aria-label="Back to fight">←</button></header><div id="combatGemologyContent" class="combatGemologyScroll"></div></section>
+<section id="effectsDrawer" class="effectsDrawer uiSheet" hidden><header><div><small>✦ LIVE STATE</small><h2>Effects</h2></div><button id="closeEffectsDrawer" class="chromeIconButton" aria-label="Close effects">×</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
+<div class="modal" id="modal"><div class="modalCard uiModal"><h2>Combat Sacks</h2><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Sack ATK × broken</div><div class="line" style="--c:var(--b)"><b></b>Blue — Sack DEF × broken</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>ENEMY</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">← FIGHT</button></div></div>
 <div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p id="resultText"></p><button class="close" id="resultRetry" hidden>↻ SAVE</button><button class="close" id="resultMenu">← WORLD</button></div></div>
 </div>
 <script src="assets/content.js"></script>

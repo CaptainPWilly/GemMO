@@ -1331,3 +1331,143 @@ button:disabled{cursor:default}
 .app.text-xl .chromeIconButton{font-size:21px!important}
 .app.text-xl .worldQuickButton .worldQuickIcon{font-size:27px}
 .app.text-xl .shopPrice,.app.text-xl .gearCardAction{font-size:13px}
+
+/* =========================================================
+   UI PREFABS — canonical geometry for every future screen.
+   Specialized screens may change color/art, not shell geometry.
+   ========================================================= */
+.app{
+  --ui-screen-max:760px;
+  --ui-pad-x:clamp(14px,4vw,24px);
+  --ui-pad-top:clamp(14px,3.2vw,24px);
+  --ui-pad-bottom:calc(24px + env(safe-area-inset-bottom));
+  --ui-gap-xs:5px;
+  --ui-gap-sm:8px;
+  --ui-gap-md:12px;
+  --ui-gap-lg:18px;
+  --ui-radius-sm:7px;
+  --ui-radius-md:10px;
+  --ui-radius-lg:14px;
+  --ui-control-h:40px;
+  --ui-surface:#151611;
+  --ui-surface-raised:#1c1d17;
+  --ui-surface-deep:#0f100d;
+  --ui-border:#454034;
+  --ui-border-strong:#67583d;
+  --ui-text:#e2d7c1;
+  --ui-muted:#8f8677;
+}
+
+/* Screen prefab: same safe areas, content width, and horizontal rhythm. */
+.uiScreen{
+  padding:
+    calc(var(--ui-pad-top) + env(safe-area-inset-top))
+    var(--ui-pad-x)
+    var(--ui-pad-bottom)!important;
+  scroll-padding-top:calc(var(--ui-pad-top) + env(safe-area-inset-top));
+}
+.uiScreen>*{width:min(100%,var(--ui-screen-max));margin-left:auto;margin-right:auto}
+
+/* Topbar prefab: one back/action row everywhere. */
+.uiTopbar{
+  min-height:46px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:var(--ui-gap-md)!important;
+  margin-bottom:var(--ui-gap-lg)!important;
+  padding:0 0 10px!important;
+  border-bottom:1px solid #2d2c25!important;
+}
+.uiTopbar>.eyebrow{margin-left:auto;text-align:right}
+
+/* Hero prefab: title area is predictable on every management screen. */
+.uiHero{
+  margin-top:0!important;
+  margin-bottom:var(--ui-gap-lg)!important;
+  min-height:82px;
+}
+.uiHero>div:first-child>small,.uiHero>small{
+  display:block;
+  font-size:calc(8px + var(--text-bump));
+  font-weight:900;
+  letter-spacing:1.7px;
+  color:var(--ui-muted);
+}
+.uiHero h1{margin-top:3px!important;margin-bottom:5px!important}
+.uiHero p{margin-top:0!important;margin-bottom:0!important}
+
+/* Repeated section title / toolbar geometry. */
+.uiSectionHead{
+  min-height:32px;
+  display:flex!important;
+  align-items:end!important;
+  justify-content:space-between!important;
+  gap:var(--ui-gap-sm)!important;
+  margin-bottom:var(--ui-gap-sm)!important;
+}
+.uiSectionHead b,.uiSectionHead h2{margin:0}
+.uiToolbar{
+  min-height:var(--ui-control-h);
+  display:grid;
+  align-items:stretch;
+  gap:var(--ui-gap-sm)!important;
+  margin-bottom:var(--ui-gap-sm)!important;
+}
+.uiToolbar input,.uiToolbar select{min-height:var(--ui-control-h)!important;margin:0!important}
+
+/* Card/panel prefab: same material behavior; specialized classes own their content layout. */
+.uiCard,.uiPanel{
+  border-radius:var(--ui-radius-md)!important;
+  box-shadow:inset 0 1px #ffffff08,0 5px 14px #0004;
+}
+.uiPanel{
+  border:1px solid var(--ui-border);
+  background:linear-gradient(180deg,var(--ui-surface-raised),var(--ui-surface-deep));
+}
+.uiCard:focus-visible{outline:2px solid #c4a56b;outline-offset:2px}
+
+/* Empty-state prefab reserves space instead of collapsing a screen. */
+.uiEmpty{
+  min-height:54px;
+  display:grid!important;
+  place-items:center!important;
+  padding:10px!important;
+  border:1px dashed #3e3a31!important;
+  border-radius:var(--ui-radius-md)!important;
+  color:#736c60!important;
+  background:#11120d!important;
+  text-align:center!important;
+}
+
+/* Sheet / overlay / modal prefabs share header controls and edge behavior. */
+.uiSheet,.uiOverlay,.uiModal{
+  --ui-sheet-border:#504737;
+  background:rgba(12,13,10,.98);
+  border-color:var(--ui-sheet-border)!important;
+  box-shadow:0 18px 44px #000b;
+}
+.uiSheet header,.uiOverlay header,.uiModal header{
+  min-height:42px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:var(--ui-gap-md);
+}
+.uiOverlay{padding:calc(14px + env(safe-area-inset-top)) var(--ui-pad-x) var(--ui-pad-bottom)!important}
+.uiModal{border-radius:var(--ui-radius-lg)!important}
+
+/* Device universality: same prefab rhythm on phones, tablets, landscape. */
+@media(max-width:390px){
+  .app{--ui-pad-x:12px;--ui-pad-top:12px;--ui-gap-lg:14px}
+  .uiTopbar{min-height:42px!important;margin-bottom:14px!important}
+  .uiHero{min-height:72px;margin-bottom:14px!important}
+  .uiSectionHead{min-height:28px}
+}
+@media(min-width:700px){
+  .app{--ui-screen-max:840px;--ui-pad-x:22px;--ui-pad-top:20px;--ui-gap-lg:22px}
+  .uiHero{min-height:96px}
+}
+@media(min-width:1000px){
+  .app{--ui-screen-max:920px}
+}
