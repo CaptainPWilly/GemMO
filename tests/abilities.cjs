@@ -66,6 +66,10 @@ assert(src.includes("addEventListener('wheel'")&&src.includes("{passive:false}")
 assert(src.includes("worldGesture={type:'pinch'"),'touch map zoom remains pinch-driven');
 assert(html.includes('id="worldSackPip"')&&html.includes('id="worldInventoryPip"'),'world map includes new-item notification pips');
 assert(html.includes('id="worldEffectsPanel"')&&html.includes('id="worldEffectsList"'),'world map includes the current-effects drawer');
+assert(html.includes('id="worldStatusBtn"')&&html.includes('id="worldObjectiveBtn"')&&html.includes('id="worldSkillsBtn"'),'world map exposes persistent status, objective, and progression controls');
+assert(src.includes('function worldObjectiveData()')&&src.includes("$('worldPlayerStats').textContent")&&src.includes("matchPower('red')"),'world hub derives live objective and combat-build summary');
+assert(src.includes('async function openWorldSkills()')&&src.includes("await travelWorld('shrine')"),'map Skills control remains spatial by traveling to the Shrine before opening Attunement');
+assert(styles.includes('.worldHubOverlay')&&styles.includes('.worldPlayerStrip')&&styles.includes('.worldObjectiveBar'),'world hub has responsive overlay styling');
 assert(html.includes('id="enemyChargeGauges"')&&src.includes('function renderEnemyChargeGauges()'),'enemy combat header exposes live enemy gem-charge gauges');
 assert(src.includes("renderEnemyChargeGauges();for(const [side,hp]")&&src.includes("value+'/'+cap"),'enemy charge gauges update from live enemy reservoir values');
 assert(styles.includes('.enemyChargeGauges')&&styles.includes('.enemyChargeTrack i'),'enemy charge gauges have compact fill-bar styling');

@@ -586,15 +586,33 @@ async function chooseDialogue(index){
  }
  if(choice.next){activeStory.nodeId=choice.next;renderDialogue()}else storyHide();
 }
+function worldObjectiveData(){
+ const quests=account?.quests||[],row=quests.find(q=>q.status==='ready')||quests.find(q=>q.status==='active');
+ if(row){
+  const quest=QUESTS[row.id];if(quest){
+   if(row.status==='ready'){const npc=NPCS[quest.returnTo];return {title:quest.title,text:'Return to '+(npc?.name||'the quest giver'),target:npc?.node||null,state:'ready'}}
+   const target=Object.values(WORLD_NODES).find(node=>node.encounter===quest.objective?.encounterId)?.id||null;
+   return {title:quest.title,text:quest.objective?.label||quest.summary,target,state:'active'};
+  }
+ }
+ const availableNpc=Object.values(NPCS).find(npc=>npcQuestMarker(npc)==='!');
+ if(availableNpc)return {title:'New quest available',text:'Talk to '+availableNpc.name,target:availableNpc.node,state:'available'};
+ const nextEncounter=Object.values(WORLD_NODES).find(node=>node.encounter&&worldNodeVisible(node)&&!worldCleared(node.encounter));
+ if(nextEncounter)return {title:'Explore Brackenreach',text:'Travel to '+nextEncounter.name,target:nextEncounter.id,state:'explore'};
+ return {title:'Brackenreach',text:'Explore the road, shops, and people you meet.',target:null,state:'explore'};
+}
 function refreshWorldHud(){
  if(!$('worldGold'))return;
+ const progress=xpProgress(account?.profile?.xp||0),skillPoints=account?.skills?.availablePoints??0,objective=worldObjectiveData(),xpPct=progress.required?Math.max(0,Math.min(100,progress.current/progress.required*100)):100;
  $('worldGold').textContent=String(account?.profile?.gold||0);
- const progress=xpProgress(account?.profile?.xp||0);$('worldLevel').textContent='LEVEL '+progress.level+' · '+progress.current+'/'+progress.required+' XP';
- $('worldSackPip').hidden=!worldHasUnread('sack');
- $('worldInventoryPip').hidden=!worldHasUnread('inventory');
+ $('worldLevel').textContent='LV '+progress.level+' · '+progress.current+'/'+progress.required+' XP';
+ $('worldPlayerName').textContent=(account?.user?.username||'ADVENTURER').toUpperCase();
+ $('worldPlayerStats').textContent=playerMaxHP()+' HP · '+matchPower('red')+' ATK · '+matchPower('blue')+' DEF';
+ $('worldXpFill').style.width=xpPct+'%';$('worldSkillPoints').textContent=skillPoints+' PT'+(skillPoints===1?'':'S');
+ $('worldObjectiveTitle').textContent=objective.title;$('worldObjectiveText').textContent=objective.text;$('worldObjectiveBtn').dataset.target=objective.target||'';$('worldObjectiveBtn').dataset.state=objective.state;
+ $('worldSackPip').hidden=!worldHasUnread('sack');$('worldInventoryPip').hidden=!worldHasUnread('inventory');$('worldSkillPip').hidden=skillPoints<1;
  $('worldQuestPip').hidden=!(account?.quests||[]).some(q=>q.status==='ready');
- if(!$('worldEffectsPanel').hidden)renderWorldEffects();
- if(!$('worldQuestPanel').hidden)renderWorldQuests();
+ if(!$('worldEffectsPanel').hidden)renderWorldEffects();if(!$('worldQuestPanel').hidden)renderWorldQuests();
 }
 
 function applyAccount(next){
@@ -663,15 +681,25 @@ function drawWorld(){
  ctx.fillStyle='#6d3e2c';ctx.fillRect(wp.x-5*ss,wp.y-16*ss,10*ss,12*ss);ctx.fillStyle='#e1b985';ctx.beginPath();ctx.arc(wp.x,wp.y-21*ss,5*ss,0,Math.PI*2);ctx.fill();ctx.fillStyle='#f7df9d';ctx.beginPath();ctx.moveTo(wp.x,wp.y-31*ss);ctx.lineTo(wp.x+5*ss,wp.y-25*ss);ctx.lineTo(wp.x,wp.y-22*ss);ctx.lineTo(wp.x-5*ss,wp.y-25*ss);ctx.closePath();ctx.fill();
  drawWorldCard();
 }
+function worldNodeSummary(node,current,npc){
+ if(worldTravelRoute)return 'Traveling through Brackenreach…';
+ if(npc)return npc.name+' · '+npc.title;
+ if(node.id!==current.id){const route=worldPath(current.id,node.id),steps=Math.max(0,(route?.length||1)-1);return steps+' ROAD STEP'+(steps===1?'':'S')+' AWAY';}
+ if(node.kind==='shop')return node.id==='gem-shop'?'Reusable gems, spells, and techniques.':'Equipment and one-shot supplies.';
+ if(node.id==='shrine')return 'Spend skill points and shape your build.';
+ if(node.encounter)return worldCleared(node.encounter)?'Road cleared.':'Hostile encounter.';
+ return 'Current location · select a destination on the map.';
+}
 function drawWorldCard(){
  const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode],npc=npcAtNode(node.id);
- $('worldKind').textContent=node.kind==='encounter'?'⚔ MOB':npc?'◆ '+npc.title.toUpperCase():node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=npc?npc.name+' · '+npc.title:'';$('worldNodeDesc').hidden=!npc;
+ $('worldKind').textContent=node.kind==='encounter'?'⚔ ENCOUNTER':npc?'◆ '+npc.title.toUpperCase():node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=worldNodeSummary(node,current,npc);$('worldNodeDesc').hidden=false;
  const btn=$('worldAction');btn.hidden=true;btn.disabled=false;btn.dataset.action='none';delete btn.dataset.npc;
- if(node.id===current.id&&!worldTravelRoute){
+ if(worldTravelRoute){btn.hidden=false;btn.disabled=true;btn.textContent='TRAVELING…';return}
+ if(node.id===current.id){
   if(node.encounter){btn.hidden=false;btn.textContent='FIGHT '+node.name.toUpperCase();btn.dataset.action='fight'}
   else if(node.shop){btn.hidden=false;btn.textContent=node.shop==='gem-shop'?'OPEN GEM SHOP':'OPEN ITEM SHOP';btn.dataset.action='shop'}
   else if(node.id==='shrine'){btn.hidden=false;btn.textContent='ATTUNE · SKILL TREE';btn.dataset.action='skills'}
-   else if(npc){btn.hidden=false;btn.textContent='TALK · '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
+  else if(npc){btn.hidden=false;btn.textContent='TALK · '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
  }
 }
 function worldRouteMetrics(route){
@@ -713,6 +741,7 @@ function drawSkills(){
  document.querySelectorAll('.skillNode.available,.skillNode.invested').forEach(btn=>{if(!btn.disabled)btn.onclick=()=>void buySkillClient(btn.dataset.skill)});
 }
 function openSkills(){if(!account||worldState.currentNode!=='shrine')return;$('skillStatus').textContent='';showScreen('skills');drawSkills()}
+async function openWorldSkills(){if(!account||worldTravelRoute)return;if(worldState.currentNode!=='shrine')await travelWorld('shrine');if(worldState.currentNode==='shrine')openSkills()}
 async function buySkillClient(skillId){if(!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}}
 function shopItemData(id){const gem=itemById(id);if(gem){const stat=gemMatchStatText(gem);return {id,name:gem.item,kind:'gem',sub:(stat?stat+' · ':'')+gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};}const gear=gearById(id);if(gear)return {id,name:gear.name,kind:'gear',sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};const c=consumableById(id);if(c)return {id,name:c.name,kind:'consumable',sub:'ONE-SHOT · COMBAT ITEM',desc:c.desc,color:null,icon:c.icon};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
@@ -915,7 +944,7 @@ function startFight(){
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
 $('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
-$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldEffectsBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
+$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
 $('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='skills')openSkills();if(action==='talk')openDialogue($('worldAction').dataset.npc)};
 $('storyContinue').onclick=()=>{if(activeStory?.type!=='cutscene')return;activeStory.index++;renderCutscene()};$('storySkip').onclick=()=>{if(activeStory?.type!=='cutscene')return;const id=activeStory.id;storyHide();void markCutsceneClient(id)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}

@@ -43,16 +43,28 @@
 </section>
 <section class="page worldPage" id="worldPage" hidden>
 <div class="worldHud">
-  <button id="worldCamp">☰ CAMP</button>
-  <div class="worldTitle"><small id="worldLevel">LEVEL 1</small><b>WORLD</b></div>
+  <button id="worldCamp">☰ MENU</button>
+  <div class="worldTitle"><small id="worldLevel">LEVEL 1</small><b>BRACKENREACH</b></div>
   <div class="worldGold" aria-label="Gold"><span>◆</span><b id="worldGold">0</b></div>
 </div>
+<div class="worldHubOverlay">
+  <button class="worldPlayerStrip" id="worldStatusBtn" aria-label="Open current effects">
+    <span class="worldPlayerIdentity"><small id="worldPlayerName">ADVENTURER</small><b id="worldPlayerStats">18 HP · 1 ATK · 0 DEF</b></span>
+    <span class="worldXpTrack" aria-hidden="true"><i id="worldXpFill"></i></span>
+    <span class="worldSkillBadge" id="worldSkillPoints">1 PT</span>
+  </button>
+  <button class="worldObjectiveBar" id="worldObjectiveBtn">
+    <span class="worldObjectiveMark">!</span>
+    <span class="worldObjectiveCopy"><small>CURRENT OBJECTIVE</small><b id="worldObjectiveTitle">Find your footing</b><em id="worldObjectiveText">Explore Brackenreach.</em></span>
+    <span class="worldObjectiveArrow">›</span>
+  </button>
+</div>
 <div class="worldViewport" id="worldViewport"><canvas id="worldCanvas" aria-label="Isometric world map"></canvas></div>
-<nav class="worldQuickbar" aria-label="World menu">
+<nav class="worldQuickbar" aria-label="World hub">
   <button class="worldQuickButton" id="worldSackBtn"><span class="worldQuickIcon">◇</span><span>SACK</span><i class="worldPip" id="worldSackPip" hidden></i></button>
   <button class="worldQuickButton" id="worldInventoryBtn"><span class="worldQuickIcon">▣</span><span>INVENTORY</span><i class="worldPip" id="worldInventoryPip" hidden></i></button>
-  <button class="worldQuickButton" id="worldEffectsBtn"><span class="worldQuickIcon">✦</span><span>EFFECTS</span></button>
-  <button class="worldQuickButton" id="worldQuestsBtn"><span class="worldQuickIcon">!</span><span>QUESTS</span><i class="worldPip" id="worldQuestPip" hidden></i></button>
+  <button class="worldQuickButton" id="worldSkillsBtn"><span class="worldQuickIcon">✦</span><span>SKILLS</span><i class="worldPip" id="worldSkillPip" hidden></i></button>
+  <button class="worldQuickButton" id="worldQuestsBtn"><span class="worldQuickIcon">!</span><span>JOURNAL</span><i class="worldPip" id="worldQuestPip" hidden></i></button>
 </nav>
 <div class="worldEffectsPanel" id="worldEffectsPanel" hidden>
   <div class="worldEffectsHead"><div><small>ACTIVE LOADOUT</small><h3>Current Effects</h3></div><button id="worldEffectsClose" aria-label="Close effects">×</button></div>

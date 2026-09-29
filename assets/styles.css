@@ -804,3 +804,27 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 .inventoryItem{min-height:70px}.inventoryItem.gemInventory{border-left:3px solid var(--c)}.inventoryGem{width:22px!important;height:22px!important;margin:0 3px 0 4px!important}.inventoryQty{min-width:38px;text-align:center;border:1px solid #5b4e37;border-radius:999px;padding:5px 7px;color:#e0c27c;font-weight:900;font-size:calc(10px + var(--text-bump))}.consumableInventory{border-left:3px solid #a58352}.consumableShopItem{border-left-color:#a58352}
 .combatItemsHint{margin:0!important;color:#938878!important;font-size:calc(9px + var(--text-bump))!important}.combatItemsList{display:grid;gap:8px;overflow:auto}.combatConsumable{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;text-align:left;padding:10px;border:1px solid #4b4335;background:#171812;color:#ddd2bc;border-radius:6px}.combatConsumable>span{width:32px;height:32px;display:grid;place-items:center;border:1px solid #5f5139;border-radius:6px;color:#dfbd76;background:#11120f;font-size:calc(16px + var(--text-bump))}.combatConsumable small{display:block;color:#8e8270;font-size:calc(7px + var(--text-bump));letter-spacing:.8px}.combatConsumable b{display:block;margin:2px 0;font:calc(14px + var(--text-bump)) Georgia,serif}.combatConsumable p{margin:0!important;color:#8f8779!important;font-size:calc(8px + var(--text-bump))!important;line-height:1.3!important}.combatConsumable em{font-style:normal;font-size:calc(8px + var(--text-bump));color:#d7b66f;font-weight:900}.combatConsumable:disabled{opacity:.38}
 @media(max-width:390px){.inventoryToolbar{grid-template-columns:1fr}.inventoryGrid{gap:7px}}
+
+/* World hub pass: the map is the home screen. */
+.worldHubOverlay{position:absolute;z-index:5;top:calc(62px + env(safe-area-inset-top));left:10px;right:10px;display:grid;gap:6px;pointer-events:none}
+.worldPlayerStrip,.worldObjectiveBar{pointer-events:auto;width:100%;border:1px solid #514938;background:linear-gradient(180deg,rgba(25,26,21,.94),rgba(13,14,11,.95));color:#d8ccb4;box-shadow:0 7px 20px #0008;backdrop-filter:blur(7px)}
+.worldPlayerStrip{min-height:42px;display:grid;grid-template-columns:minmax(0,1fr) minmax(64px,120px) auto;align-items:center;gap:9px;padding:7px 9px;border-radius:9px;text-align:left}
+.worldPlayerIdentity{min-width:0}.worldPlayerIdentity small{display:block;color:#918571;font-size:calc(6px + var(--text-bump));font-weight:900;letter-spacing:1.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worldPlayerIdentity b{display:block;margin-top:2px;color:#e0d2b8;font-size:calc(9px + var(--text-bump));white-space:nowrap}
+.worldXpTrack{height:5px;border:1px solid #494236;border-radius:999px;background:#0b0c09;overflow:hidden}.worldXpTrack i{display:block;height:100%;width:0;background:linear-gradient(90deg,#8f7048,#d4b36b);transition:width .25s ease}
+.worldSkillBadge{min-width:40px;padding:5px 6px;border:1px solid #5a4c37;border-radius:999px;background:#181712;color:#dbc077;text-align:center;font-size:calc(7px + var(--text-bump));font-weight:900;white-space:nowrap}
+.worldObjectiveBar{min-height:48px;display:grid;grid-template-columns:28px minmax(0,1fr) 16px;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;text-align:left}
+.worldObjectiveMark{width:26px;height:26px;display:grid;place-items:center;border:1px solid #7b6340;border-radius:50%;background:#2c2518;color:#f0ca75;font-weight:950;font-size:calc(12px + var(--text-bump))}
+.worldObjectiveCopy{min-width:0}.worldObjectiveCopy small{display:block;color:#9c8865;font-size:calc(6px + var(--text-bump));font-weight:900;letter-spacing:1.2px}.worldObjectiveCopy b{display:block;margin:1px 0;color:#ead9b6;font-size:calc(9px + var(--text-bump));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worldObjectiveCopy em{display:block;color:#9b9282;font-style:normal;font-size:calc(7px + var(--text-bump));white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.worldObjectiveArrow{color:#b69a67;font-size:calc(18px + var(--text-bump));text-align:right}
+.worldObjectiveBar[data-state="ready"]{border-color:#806a42}.worldObjectiveBar[data-state="ready"] .worldObjectiveMark{background:#4a3719;color:#ffe29a;box-shadow:0 0 14px #d2a34d33}
+.worldQuickbar{grid-template-columns:repeat(4,minmax(0,1fr))}
+.worldCard p{display:block}
+.app.text-xl .worldPlayerIdentity b{font-size:14px}.app.text-xl .worldObjectiveCopy b{font-size:14px}.app.text-xl .worldObjectiveCopy em{font-size:12px}
+@media(min-width:700px){
+ .worldHubOverlay{left:50%;right:auto;transform:translateX(-50%);width:min(620px,calc(100% - 44px));top:calc(78px + env(safe-area-inset-top));gap:8px}
+ .worldPlayerStrip{min-height:48px;padding:9px 12px}.worldObjectiveBar{min-height:56px;padding:9px 12px}.worldObjectiveCopy b{font-size:calc(11px + var(--text-bump))}.worldObjectiveCopy em{font-size:calc(8px + var(--text-bump))}
+}
+@media(max-width:390px){
+ .worldHubOverlay{left:7px;right:7px;top:calc(58px + env(safe-area-inset-top));gap:5px}
+ .worldPlayerStrip{grid-template-columns:minmax(0,1fr) 62px auto;gap:6px;padding:6px 7px}.worldPlayerIdentity b{font-size:calc(8px + var(--text-bump))}.worldSkillBadge{min-width:34px;padding-left:4px;padding-right:4px}
+ .worldObjectiveBar{grid-template-columns:24px minmax(0,1fr) 12px;padding:6px 7px;gap:6px}.worldObjectiveMark{width:22px;height:22px}.worldObjectiveCopy em{font-size:calc(6px + var(--text-bump))}
+}
