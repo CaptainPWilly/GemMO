@@ -37,7 +37,7 @@ assert(styles.includes('@media (min-width:700px)'),'tablet breakpoint must exist
 assert(styles.includes('orientation:landscape'),'landscape tablet layout must exist');
 assert(styles.includes('grid-template-areas:'),'landscape combat must use a two-pane grid');
 assert(html.includes('class="splashSigil"')&&html.includes('class="menuNav"')&&html.includes('class="menuSnapshot"'),'splash and menu use the unified game-shell hierarchy');
-assert(html.includes('class="pageHero compact"')&&html.includes('class="settingsStack"')&&html.includes('class="shopHero"'),'utility and catalogue screens use shared page hierarchy');
+assert(html.includes('class="pageHero compact uiHero"')&&html.includes('class="settingsStack"')&&html.includes('class="shopHero uiHero"'),'utility and catalogue screens use the universal page hierarchy');
 assert(html.includes('id="textSize"')&&html.includes('value="normal"')&&html.includes('value="large"')&&html.includes('value="xl"'),'settings expose normal, large and extra-large text sizes');
 assert(styles.includes('--text-bump:1.5px')&&styles.includes('.app.text-normal{--text-bump:0px}')&&styles.includes('.app.text-xl{--text-bump:5px}'),'large typography is the default and XL has a materially stronger text scale');
 assert((styles.match(/font-size:calc\(/g)||[]).length>25,'fixed-size interface typography participates in the global text-size system');
