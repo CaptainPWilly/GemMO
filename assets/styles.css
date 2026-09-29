@@ -1204,3 +1204,129 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   .app.text-xl .game .slots{height:70px;min-height:70px}
   .app.text-xl .game .slot.compactGemCard{height:70px}
 }
+
+
+/* Professional UI language pass: symbols carry repeated concepts; text carries meaning. */
+:root{
+  --chrome:#10110e;
+  --chrome2:#191a15;
+  --chrome3:#232118;
+  --edge:#494234;
+  --edge-hi:#74613f;
+  --ink:#e6dcc8;
+  --ink-dim:#968d7d;
+  --accent:#d3b16d;
+  --control-h:42px;
+}
+button{border-radius:8px}
+button:not(:disabled){cursor:pointer}
+button:disabled{cursor:default}
+.chromeIconButton{
+  width:38px!important;min-width:38px!important;height:38px!important;min-height:38px!important;
+  display:grid!important;place-items:center!important;padding:0!important;
+  border:1px solid var(--edge)!important;border-radius:9px!important;
+  background:linear-gradient(180deg,var(--chrome3),var(--chrome))!important;
+  color:#dfc995!important;font-size:18px!important;font-weight:850!important;line-height:1!important;
+  box-shadow:inset 0 1px #ffffff0a,0 4px 12px #0005!important;
+}
+.chromeIconButton:active{transform:translateY(1px);filter:brightness(1.08)}
+.pageTopbar,.sackTopbar,.inventoryPage>header{
+  min-height:46px;align-items:center;border-bottom:1px solid #2d2c25;
+}
+.eyebrow{font-weight:900;letter-spacing:1.45px;color:#a99a80}
+.primary,.worldQuickButton,.worldAction,.shopItem,.gearCard,.gearSlot,.skillNode,.combatConsumable,.effectsBtn,.combatOverlay button{
+  box-shadow:inset 0 1px #ffffff09,0 5px 14px #0004;
+}
+.primary:active,.worldQuickButton:active,.worldAction:active,.shopItem:not(:disabled):active,.gearCard:not(:disabled):active,.gearSlot:active,.skillNode:not(:disabled):active,.combatConsumable:not(:disabled):active{
+  transform:translateY(1px) scale(.992);
+}
+.menuIcon,.worldQuickIcon,.settingsGlyph,.gearSlotIcon,.gearCardIcon,.shopGearIcon{
+  font-family:Inter,ui-sans-serif,system-ui,sans-serif;
+}
+.menuArrow{font-size:24px;color:#806f52}
+.menuSnapshot small{font-weight:900;letter-spacing:1.15px}
+
+/* Status language */
+.worldGold,.worldSkillBadge,.shopBar b,.skillSummary b,.accountStats b,.inventoryQty,.shopPrice,.gearCardAction,.skillCost{
+  font-variant-numeric:tabular-nums;
+}
+.worldGold{font-size:calc(11px + var(--text-bump));letter-spacing:.3px}
+.worldSkillBadge{font-size:calc(9px + var(--text-bump))}
+.shopBar span{font-weight:900;letter-spacing:1px;color:#8e816f}
+.shopBar b{color:#e0bf77}
+.sackOwnedCount{font-variant-numeric:tabular-nums;font-weight:900;color:#c3a96e}
+.equipmentSelection{font-variant-numeric:tabular-nums}
+
+/* World hub: icon-first dock, stronger map chrome. */
+.worldQuickButton{
+  position:relative;
+  background:linear-gradient(180deg,rgba(31,31,25,.96),rgba(14,15,12,.96));
+  border-color:#4e4638;color:#b5a890;
+}
+.worldQuickButton .worldQuickIcon{color:#dbc077;text-shadow:0 0 12px #d7ae5540}
+.worldQuickButton .worldQuickLabel{font-weight:900;letter-spacing:.6px}
+.worldAction{font-weight:950;letter-spacing:.7px}
+.worldCardTop small{font-weight:950;letter-spacing:1.2px}
+.worldPlayerStrip,.worldObjectiveBar{border-color:#554b39}
+
+/* Shops and inventory: action/state lives in the trailing symbol, not prose. */
+.shopItem{grid-template-columns:auto minmax(0,1fr) auto;align-items:center}
+.shopPrice{
+  min-width:46px;padding:6px 8px;border:1px solid #4e4433;border-radius:999px;
+  background:#11120f;color:#e4c47d;text-align:center;font-weight:950;
+}
+.shopItem:disabled .shopPrice{color:#8fbc91;border-color:#405641}
+.gearCardAction{
+  min-width:34px;padding:5px 7px;border:1px solid #494135;border-radius:999px;
+  background:#10110e;color:#cdb57f;text-align:center;font-weight:950;
+}
+.gearCard.equipped .gearCardAction{color:#9fd2a7;border-color:#3f6347}
+.inventoryQty{background:#10110e}
+.unequipGear{font-weight:900;letter-spacing:.6px}
+
+/* Skill tree: points/ranks read as compact game currency. */
+.skillSummary b,.skillCost{color:#edcd83}
+.skillNode .skillCost{
+  min-width:34px;padding:4px 5px;border:1px solid #403a30;border-radius:999px;
+  background:#0e0f0c;text-align:center;
+}
+.skillNode.owned .skillCost{color:#9dcca5;border-color:#3f5c43}
+
+/* Combat: compact icon HUD and unmistakable controls. */
+.game .stats{font-variant-numeric:tabular-nums}
+.game .effectsBtn{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:950;letter-spacing:.7px}
+.game .effectsBtn>span:first-child{color:#d7b766}
+.game .resource{font-variant-numeric:tabular-nums}
+.combatOverlay header .chromeIconButton,.effectsDrawer header .chromeIconButton{margin-left:auto}
+.combatMenuActions button{min-height:46px;text-align:left;padding-left:14px;font-weight:900;letter-spacing:.5px}
+.combatConsumable em{
+  min-width:30px;height:30px;display:grid;place-items:center;border:1px solid #5b4c35;border-radius:50%;
+  font-size:18px!important;color:#e3c57e!important;
+}
+
+/* Mobile: symbols replace repetitive dock words; names/content remain readable. */
+@media(max-width:699px){
+  .worldQuickbar{height:52px}
+  .worldQuickButton{min-height:48px;padding:4px}
+  .worldQuickButton .worldQuickLabel{
+    position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;
+    overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;
+  }
+  .worldQuickButton .worldQuickIcon{font-size:24px}
+  .worldQuickButton[aria-label="Journal"] .worldQuickIcon{font-size:22px}
+  .menuButtonCopy small{opacity:.72}
+  .menuNav .primary{grid-template-columns:36px minmax(0,1fr) 20px}
+  .menuArrow{font-size:22px}
+  .shopItem p,.gearCardCopy strong{display:none}
+  .shopItem{min-height:72px!important;padding-top:8px!important;padding-bottom:8px!important}
+  .gearCard.inventoryItem{min-height:62px}
+  .effectsBtn{min-height:32px!important}
+  .game .effectsBtnLabel{font-size:calc(7px + var(--text-bump))}
+  .game .resource{gap:8px}
+  .worldLegend{display:none!important}
+}
+
+/* XL: symbols remain compact while meaningful names keep the accessible size. */
+.app.text-xl .chromeIconButton{font-size:21px!important}
+.app.text-xl .worldQuickButton .worldQuickIcon{font-size:27px}
+.app.text-xl .shopPrice,.app.text-xl .gearCardAction{font-size:13px}

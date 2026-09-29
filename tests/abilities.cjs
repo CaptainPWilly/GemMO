@@ -70,6 +70,11 @@ assert(html.includes('id="worldStatusBtn"')&&html.includes('id="worldObjectiveBt
 assert(html.includes('id="combatSacksBtn"')&&src.includes('function openCombatSacks()'),'combat Sack inspection is available from the combat menu when the mobile header is compacted');
 assert(styles.includes('Mobile combat composition: board-first')&&styles.includes('.game .reservoirs{display:none}')&&styles.includes('.game .moveHistoryItem.latest'),'phone combat layout removes duplicate live rows and preserves only essential live history');
 assert(src.includes('compactGemCard')&&src.includes('slotChargeMeter')&&styles.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'all five equipped gem cards remain visible at once on phone');
+assert(html.includes('class="chromeIconButton"')&&html.includes('aria-label="Menu"')&&html.includes('worldQuickLabel'),'symbol-first controls keep explicit accessible labels');
+assert(src.includes("'♥ '+pHP+' · ◈ '+pGuard")&&src.includes("'◆ '+gold")&&src.includes("'✦ '+points"),'combat, currency, and progression HUDs use compact symbolic notation');
+assert(src.includes("compatible?'+':'▣'")&&src.includes("current?'✓'")&&src.includes("sack.includes(v.id)?'◇ ✓':'◇'"),'inventory ownership and equip states use compact symbols instead of repeated words');
+assert(styles.includes('Professional UI language pass')&&styles.includes('.chromeIconButton')&&styles.includes('.worldQuickButton .worldQuickLabel'),'professional chrome and symbol-first mobile dock styling are present');
+assert(styles.includes('.shopItem p,.gearCardCopy strong{display:none}')&&styles.includes('.worldLegend{display:none!important}'),'mobile secondary prose is reduced where symbols and primary names already communicate state');
 assert(styles.includes('Five-up mobile gem dock')&&styles.includes('-webkit-line-clamp:2')&&styles.includes('--charge-fill'),'mobile gem cards use a compact name, charge meter, and simple state treatment');
 assert(styles.includes('.app.text-xl .game .slot.compactGemCard')&&styles.includes('.app.text-xl .game .boardShell'),'Largest Text keeps the five-up gem dock while using dedicated phone sizing');
 assert(src.includes('function worldObjectiveData()')&&src.includes("$('worldPlayerStats').textContent")&&src.includes("matchPower('red')"),'world hub derives live objective and combat-build summary');
