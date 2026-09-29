@@ -1,6 +1,6 @@
 'use strict';
 const {GEAR,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
-const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
+const {rollGemBonus,comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
 const {skillEffects}=require('../shared/progression.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
@@ -679,13 +679,13 @@ function gearStats(equipment={}){
  for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps)){out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0);out.chargeGain[c]+=g.chargeGain?.[c]||0}}
  return out;
 }
-function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consumables={},rewardBudget={gold:0,xp:0}}){
+function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consumables={},rewardBudget={gold:0,xp:0},version='replay-v2'}){
  const encounter=ENCOUNTERS[encounterId];
  if(!encounter||!Number.isInteger(seed)||seed<0||!Array.isArray(sack)||sack.length!==5)throw new Error('invalid_combat_seed');
  const gems=sack.map(id=>id?spec(id):null);if(gems.some((v,i)=>sack[i]&&!v))throw new Error('invalid_combat_sack');
  const gear=gearStats(equipment),skill=skillEffects(skills),charges={red:0,blue:0,green:0,yellow:0,purple:0},s={
-  encounterId,rng:makeRng(seed),seed,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,consumables:Object.fromEntries(Object.keys(CONSUMABLES).map(id=>[id,Math.max(0,Math.floor(Number(consumables?.[id])||0))])),usedConsumables:{},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
-  board:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
+  encounterId,rng:makeRng(seed),seed,version,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,consumables:Object.fromEntries(Object.keys(CONSUMABLES).map(id=>[id,Math.max(0,Math.floor(Number(consumables?.[id])||0))])),usedConsumables:{},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
+  board:[],bonus:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
   charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
   playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
   buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
@@ -699,7 +699,9 @@ function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
 function matchPower(s,color){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return s.sack.reduce((sum,id)=>{const gem=spec(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills);return s.sack.reduce((n,id)=>n+(spec(id)?.color===color?spec(id).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
-function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]]}
+function rollBonus(s){return s.version==='replay-v2'?rollGemBonus(s.rng):0}
+function rollTile(s){const type=roll(s);return {type,bonus:rollBonus(s)}}
+function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]]}
 function key(x,y){return x+','+y}
 function findMatches(s){
  const cells=new Map(),runs=[];
@@ -715,7 +717,7 @@ function findMatches(s){
  return cells.size?{cells:[...cells.values()],runs}:null;
 }
 function legalMoves(s){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){const b={x:x+dx,y:y+dy};if(b.x>=W||b.y>=H)continue;swap(s,a,b);if(findMatches(s))out.push([a,b]);swap(s,a,b)}}return out}
-function buildBoard(s){for(let attempt=0;attempt<100;attempt++){s.board=[];for(let y=0;y<H;y++){const row=[];for(let x=0;x<W;x++){let t=roll(s),tries=0;while(tries++<30&&((x>=2&&row[x-1]===t&&row[x-2]===t)||(y>=2&&s.board[y-1][x]===t&&s.board[y-2][x]===t)))t=roll(s);row.push(t)}s.board.push(row)}if(legalMoves(s).length)return}throw new Error('rat_board_generation_failed')}
+function buildBoard(s){for(let attempt=0;attempt<100;attempt++){s.board=[];s.bonus=[];for(let y=0;y<H;y++){const row=[],bonuses=[];for(let x=0;x<W;x++){let t=roll(s),tries=0;while(tries++<30&&((x>=2&&row[x-1]===t&&row[x-2]===t)||(y>=2&&s.board[y-1][x]===t&&s.board[y-2][x]===t)))t=roll(s);row.push(t);bonuses.push(rollBonus(s))}s.board.push(row);s.bonus.push(bonuses)}if(legalMoves(s).length)return}throw new Error('rat_board_generation_failed')}
 function damageEnemy(s,n){if(s.enemyEffects.mark&&n>0){n+=3;s.enemyEffects.mark=0}const blocked=Math.min(s.eGuard,n);s.eGuard-=blocked;s.eHP-=n-blocked}
 function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
 function encounterSpec(s){return ENCOUNTERS[s.encounterId]}
@@ -747,22 +749,22 @@ function applyCascadeCharge(s,roots,cascadeDepth,actor){
 }
 function fallColumns(s){
  for(let x=0;x<W;x++){
-  if(x===s.pinColumn&&s.pinTurns>0){for(let y=0;y<H;y++)if(!s.board[y][x])s.board[y][x]=roll(s);continue}
-  const kept=[];for(let y=H-1;y>=0;y--)if(s.board[y][x])kept.push(s.board[y][x]);
-  let i=0;for(let y=H-1;y>=0;y--)s.board[y][x]=i<kept.length?kept[i++]:roll(s);
+  if(x===s.pinColumn&&s.pinTurns>0){for(let y=0;y<H;y++)if(!s.board[y][x]){const tile=rollTile(s);s.board[y][x]=tile.type;s.bonus[y][x]=tile.bonus}continue}
+  const kept=[];for(let y=H-1;y>=0;y--)if(s.board[y][x])kept.push({type:s.board[y][x],bonus:s.bonus[y][x]||0});
+  let i=0;for(let y=H-1;y>=0;y--){const tile=i<kept.length?kept[i++]:rollTile(s);s.board[y][x]=tile.type;s.bonus[y][x]=tile.bonus}
  }
  if(!findMatches(s)&&!legalMoves(s).length)buildBoard(s);
 }
 function resolve(s,matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){
  let current=matches,currentTarget=target;
  while(current){
-  const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1}
+  const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1+(s.bonus[p.y]?.[p.x]||0)}
   if(!comboRoots)comboRoots=comboChargeTypes(counts);
   let makeWild=null,match4=false;for(const run of current.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild)makeWild=run.cells.find(p=>currentTarget&&p.x===currentTarget.x&&p.y===currentTarget.y)||run.cells[Math.floor(run.cells.length/2)]}
   for(const [type,n] of Object.entries(counts))applyColor(s,type,n,actor);
   if(cascade>0)applyCascadeCharge(s,comboRoots,cascade,actor);
-  for(const p of current.cells)s.board[p.y][p.x]='';
-  if(makeWild)s.board[makeWild.y][makeWild.x]='wild';
+  for(const p of current.cells){s.board[p.y][p.x]='';s.bonus[p.y][p.x]=0}
+  if(makeWild){s.board[makeWild.y][makeWild.x]='wild';s.bonus[makeWild.y][makeWild.x]=0}
   if(match4&&actor==='player')s.extraTurn=true;
   fallColumns(s);
   if(s.pHP<=0||s.eHP<=0)return;
@@ -825,7 +827,7 @@ function enemyMove(s){
  if(enemyUseActive(s))return;
  let moves=legalMoves(s);if(!moves.length){reshuffleBoard(s);moves=legalMoves(s);if(!moves.length){afterAction(s,'enemy');return}}
  let best=moves[0],bestScore=-Infinity;
- for(const mv of moves){swap(s,mv[0],mv[1]);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=enemyMoveScore(s,t)}swap(s,mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}
+ for(const mv of moves){swap(s,mv[0],mv[1]);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=enemyMoveScore(s,t)*(1+(s.bonus[p.y]?.[p.x]||0))}swap(s,mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}
  trySwap(s,best[0],best[1],'enemy');
 }
 function activate(s,index){
@@ -872,16 +874,16 @@ function target(s,x,y){
  if(mode==='pin'){s.pinColumn=x;s.pinTurns=1;afterAction(s,'player',keepTurn);return true}
  if(mode==='paint')s.board[y][x]='red';
  if(mode==='wildcraft')s.board[y][x]='wild';
- if(mode==='rotate')s.board[y].unshift(s.board[y].pop());
- if(mode==='reroll')s.board[y][x]=roll(s);
+ if(mode==='rotate'){s.board[y].unshift(s.board[y].pop());s.bonus[y].unshift(s.bonus[y].pop())}
+ if(mode==='reroll'){const tile=rollTile(s);s.board[y][x]=tile.type;s.bonus[y][x]=tile.bonus}
  if(['break','blast','purge','consumable_break'].includes(mode)){
   let cells=[];
   if(mode==='break'||mode==='consumable_break')cells=[{x,y}];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
   const broken={};for(const q of cells){const type=s.board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}comboRoots=mode==='consumable_break'?null:comboChargeTypes(broken);
-  if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1,'player')}
-  for(const q of cells)s.board[q.y][q.x]='';
+  if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1+(s.bonus[y][x]||0),'player')}
+  for(const q of cells){s.board[q.y][q.x]='';s.bonus[q.y][q.x]=0}
   fallColumns(s);
  }
  const m=findMatches(s);if(m)resolve(s,m,'player',{x,y},comboRoots!==null?1:0,keepTurn,comboRoots);else afterAction(s,'player',keepTurn);return true;
@@ -908,9 +910,9 @@ function applyCombatAction(s,action){
  }
  return false;
 }
-function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],consumables={},rewardBudget,transcript}){
+function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],consumables={},rewardBudget,transcript,version='replay-v2'}){
  if(!ENCOUNTERS[encounterId]||!Array.isArray(transcript)||transcript.length>256)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
- const s=createCombat({encounterId,seed,sack,equipment,skills,consumables,rewardBudget});
+ const s=createCombat({encounterId,seed,sack,equipment,skills,consumables,rewardBudget,version});
  for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyCombatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
  return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP,usedConsumables:{...s.usedConsumables}};
 }
@@ -923,7 +925,7 @@ function suggestCombatAction(s){
  if(s.freeSwap)return {t:'swap',ax:0,ay:0,bx:1,by:0};
  for(let i=0;i<s.sack.length;i++){const v=spec(s.sack[i]);if(v&&s.charges[v.color]>=v.cap&&!['boost'].includes(v.kind))return {t:'ability',slot:i}}
  let best=null,bestScore=-Infinity;
- for(const [a,b] of legalMoves(s)){swap(s,a,b);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=t==='red'?20:t==='blue'?5:t==='green'?2:t==='gold'||t==='xp'?1:0}swap(s,a,b);if(score>bestScore){bestScore=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}
+ for(const [a,b] of legalMoves(s)){swap(s,a,b);const m=findMatches(s);let score=0;if(m)for(const p of m.cells){const t=p.type||s.board[p.y][p.x];score+=(t==='red'?20:t==='blue'?5:t==='green'?2:t==='gold'||t==='xp'?1:0)*(1+(s.bonus[p.y]?.[p.x]||0))}swap(s,a,b);if(score>bestScore){bestScore=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}

@@ -63,7 +63,7 @@ The browser still renders and simulates the live fight for responsiveness. Its c
 
 Cascade-anchor charging is also replay-authoritative. The colored types present in Combo 1 become anchors; each later cascade adds its depth as extra core value (+1 on Combo 2, +2 on Combo 3, etc.). The bonus applies symmetrically to both fighters and does not retrigger one-per-match ability procs such as attunement bonuses.
 
-The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat, Bandit, and Sentinel tickets use `replay-v1` regardless of local SQLite, file-backed SQLite, or Turso storage.
+The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat, Bandit, and Sentinel tickets use `replay-v2` regardless of local SQLite, file-backed SQLite, or Turso storage.
 
 Replay verification is an important trust boundary, but it is still after-the-fact verification rather than server-owned live action processing. A future multiplayer/PvP boundary can move intent processing live if latency and operating cost justify it.
 
@@ -134,7 +134,7 @@ Story presentation is browser-side, but persistent progression is account-backed
 1. Client reaches an encounter node.
 2. Fight start requests `POST /v1/matches/start`.
 3. Server verifies the player is physically at that encounter and creates a unique match ID.
-4. Match start snapshots server-owned Sack/equipment, creates a server-owned reward budget, and issues a deterministic `replay-v1` seed.
+4. Match start snapshots server-owned Sack/equipment, creates a server-owned reward budget, and issues a deterministic `replay-v2` seed.
 5. The browser seeds its local fight from that value and records player intents only.
 6. On victory, client calls `POST /v1/matches/settle` with `won:true`, its displayed Gold/XP, and the compact transcript. On defeat/surrender it settles `won:false` with zero rewards.
 7. The server rebuilds the fight from the snapshot and seed, replays swaps, abilities, targets, enemy actions, cascades, buffs, HP, and loot, and rejects any transcript that does not end in a legal victory.
@@ -154,3 +154,5 @@ Expandable client world/gem/gear definitions live in `assets/content.js`; runtim
 Persistent gem/equipment validation still lives in `server/catalog.cjs`, and deterministic combat execution lives in `server/combat.cjs`. If another persistent rule exists on both sides, treat server values as authoritative and update both in the same PR. The regression suite checks the important parity boundaries.
 
 Longer term, a generated shared catalog is desirable, but do not weaken server validation or introduce runtime network dependency just to remove duplication.
+
+`replay-v2` adds deterministic +1 gem value rolls. Existing `replay-v1` match proofs still replay under their original board and scoring rules so a fight opened before deployment can settle. The 1-in-20 spawn rate lives at `BONUS_SPAWN_DENOMINATOR` in `shared/combat-rules.js`. A future rate change must issue a new replay version and retain this v2 rate for unfinished fights.

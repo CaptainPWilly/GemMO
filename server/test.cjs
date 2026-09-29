@@ -31,6 +31,28 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     const replay=verifyCombatTranscript({encounterId:'sentinel',seed:victory.seed,sack:['dagger','shield',null,null,null],rewardBudget:{gold:32,xp:25},transcript:victory.transcript});
     assert.equal(replay.won,true);assert.equal(replay.gold,victory.fight.gold);assert.equal(replay.xp,victory.fight.xp);
   }
+  const oldProof=createRatCombat({seed:101,version:'replay-v1',sack:['dagger',null,null,null,null]});
+  const enhanced=createRatCombat({seed:101,sack:['dagger',null,null,null,null]});
+  assert(oldProof.bonus.flat().every(v=>v===0),'old match proofs keep the original scoring rule');
+  assert.notDeepEqual(enhanced.board,oldProof.board,'new bonus rolls advance the deterministic board stream');
+  for(const [type,property] of [['red','eHP'],['blue','pGuard'],['gold','gold'],['xp','xp']]){
+    const g=createRatCombat({seed:23,sack:['dagger','shield',null,null,null],rewardBudget:{gold:20,xp:20}});
+    g.board=Array.from({length:8},(_,y)=>Array.from({length:8},(_,x)=>['red','blue','green','yellow','purple','gold','xp'][(x+y)%7]));
+    g.bonus=g.board.map(row=>row.map(()=>0));
+    g.board[0][0]=type;g.board[0][1]=type;g.board[0][2]='purple';g.board[1][2]=type;g.bonus[1][2]=1;
+    const before=g[property];assert.equal(applyCombatAction(g,{t:'swap',ax:2,ay:1,bx:2,by:0}),true);
+    assert(Math.abs(g[property]-before)>=4,'matching a '+type+' +1 tile scores at least four value');
+    if(type==='red')assert(g.charges.red>=4,'enhanced Red also increases charge');
+  }
+  const rareTypes=new Set();for(let seed=1;seed<=80&&rareTypes.size<7;seed++){
+    const g=createRatCombat({seed,sack:['dagger',null,null,null,null]});
+    for(let y=0;y<8;y++)for(let x=0;x<8;x++)if(g.bonus[y][x])rareTypes.add(g.board[y][x]);
+  }
+  assert.deepEqual([...rareTypes].sort(),['blue','gold','green','purple','red','xp','yellow'],'every naturally spawned gem type can carry +1');
+  const moving=createRatCombat({seed:75,sack:['dagger',null,null,null,null]});
+  moving.bonus=moving.board.map(row=>row.map(()=>0));moving.bonus[0][4]=1;moving.freeSwap=true;
+  assert.equal(applyCombatAction(moving,{t:'swap',ax:4,ay:0,bx:5,by:0}),true);
+  assert.equal(moving.bonus[0][5],1,'the bonus travels with a swapped tile');
   assert.deepEqual([xpForLevel(1),xpForLevel(2),xpForLevel(3),xpForLevel(4),xpForLevel(5)],[0,20,45,75,110]);assert.equal(levelForXp(44),2);assert.equal(levelForXp(45),3);assert.equal(availableSkillPoints(3,['red-cap-1']),2);assert.equal(availableSkillPoints(3,['red-cap-1','red-cap-1@2']),1);assert.equal(BRANCHES.length,6);assert.equal(BRANCHES.flatMap(b=>b.nodes).reduce((n,s)=>n+s.maxRank,0),42);assert.equal(skillRank('red-cap-1',['red-cap-1','red-cap-1@2']),2);assert.equal(canPurchase('red-start',['red-cap-1'],3).reason,'skill_prerequisite');assert.equal(canPurchase('red-start',['red-cap-1','red-cap-1@2'],3).ok,true);const skillTest=skillEffects(['neutral-vitality','neutral-vitality@2','neutral-bulwark','red-cap-1','red-cap-1@2','red-start']);assert.equal(skillTest.maxHP,4);assert.equal(skillTest.startGuard,1);assert.equal(skillTest.caps.red,2);assert.equal(skillTest.startCharge.red,1);const resonanceTest=skillEffects(['red-cap-1','red-cap-1@2','red-cap-1@3','red-start','red-cap-2','red-cap-2@2','red-resonance']);assert.equal(resonanceTest.chargeGain.red,1,'deep Red specialization grants +1 match charge');
   {
     const blank={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
@@ -59,7 +81,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
       }}
     };
     const match=await startMatch(matchDb,1,'bandit');
-    assert.equal(match.authority?.mode,'replay-v1','Bandit matches require replay authority in every storage mode');
+    assert.equal(match.authority?.mode,'replay-v2','Bandit matches require replay authority in every storage mode');
     assert(Number.isInteger(match.authority.seed));
   }
   {
@@ -146,7 +168,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:7,xp:5}});assert.equal(r.status,400,'loss cannot claim rewards');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:0,xp:0}});assert.equal(r.status,200);assert.equal(r.data.settlement.won,false);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.profile.xp,0);assert(!r.data.account.world.clearedEncounters.includes('rat'),'loss does not unlock encounter');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:0,xp:0}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true,'loss settlement is idempotent');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const ratMatchId=r.data.match.matchId,ratBudget=r.data.match.rewardBudget;assert(ratMatchId);assert.equal(r.data.match.authority?.mode,'replay-v1');assert(Number.isInteger(r.data.match.authority.seed));
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const ratMatchId=r.data.match.matchId,ratBudget=r.data.match.rewardBudget;assert(ratMatchId);assert.equal(r.data.match.authority?.mode,'replay-v2');assert(Number.isInteger(r.data.match.authority.seed));
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:[]}});assert.equal(r.status,409,'empty fake Rat victory proof is rejected');assert.equal(r.data.error,'combat_proof_failed');
     const blankEquipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     let ratProof=null;
@@ -157,10 +179,10 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     }
     assert(ratProof,'test bot must find a legal deterministic Rat victory');
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(ratProof.seed,ratMatchId);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v1');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'ready','authoritative encounter clear advances quest readiness');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v2');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'ready','authoritative encounter clear advances quest readiness');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true);assert.equal(r.data.account.profile.gold,ratProof.state.gold,'retry cannot double-award verified Rat gold');assert.equal(r.data.account.profile.xp,ratProof.state.xp,'retry cannot double-award verified Rat XP');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'bandit-pass');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,201);const banditMatchId=r.data.match.matchId,banditBudget=r.data.match.rewardBudget;assert(banditBudget.gold>=18&&banditBudget.gold<=24);assert(banditBudget.xp>=12&&banditBudget.xp<=18);assert.equal(r.data.match.authority?.mode,'replay-v1');assert(Number.isInteger(r.data.match.authority.seed));
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,201);const banditMatchId=r.data.match.matchId,banditBudget=r.data.match.rewardBudget;assert(banditBudget.gold>=18&&banditBudget.gold<=24);assert(banditBudget.xp>=12&&banditBudget.xp<=18);assert.equal(r.data.match.authority?.mode,'replay-v2');assert(Number.isInteger(r.data.match.authority.seed));
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:[]}});assert.equal(r.status,409,'empty fake Bandit victory proof is rejected');assert.equal(r.data.error,'combat_proof_failed');
     let banditProof=null;
     for(let seed=1;seed<=500&&!banditProof;seed++){
@@ -170,10 +192,10 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     }
     assert(banditProof,'test bot must find a legal deterministic Bandit victory');
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(banditProof.seed,banditMatchId);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:banditProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v1');assert.equal(r.data.settlement.gold,banditProof.state.gold,'Bandit Gold comes from server replay');assert.equal(r.data.settlement.xp,banditProof.state.xp,'Bandit XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('bandit'),'every verified encounter victory records a generic clear flag');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:banditProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v2');assert.equal(r.data.settlement.gold,banditProof.state.gold,'Bandit Gold comes from server replay');assert.equal(r.data.settlement.xp,banditProof.state.xp,'Bandit XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('bandit'),'every verified encounter victory records a generic clear flag');
     assert(await db.prepare("SELECT 1 ok FROM audit_events WHERE type='match_result_mismatch' AND user_id=?").get(r.data.account.user.id),'replay result mismatches are audited');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'sentinel-gate'}});assert.equal(r.status,200,'verified Bandit clear unlocks the Sentinel');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'sentinel'}});assert.equal(r.status,201);assert.equal(r.data.match.authority.mode,'replay-v1');const sentinelMatchId=r.data.match.matchId;
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'sentinel'}});assert.equal(r.status,201);assert.equal(r.data.match.authority.mode,'replay-v2');const sentinelMatchId=r.data.match.matchId;
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:true,gold:999,xp:999,transcript:[]}});assert.equal(r.status,409,'unproved Sentinel win cannot award progression');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:false,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);

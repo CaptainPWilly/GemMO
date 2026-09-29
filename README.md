@@ -56,6 +56,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 - Login is remembered on the device until logout or server-session expiry. A valid remembered session opens the map after account refresh; fresh login and registration do the same.
 - New and reset accounts start with an Iron Dagger in the Sack. Other colors and gear are earned or bought.
 - The Sack supports 1–5 unique owned gems and uses a compact deck/card collection UI.
+- Board gems can naturally spawn with a visible +1 value (1 in 20 by default). The extra value follows that gem through swaps and falls, and adds to match rewards, combat power, and charge. The spawn rate is defined by `BONUS_SPAWN_DENOMINATOR` in `shared/combat-rules.js`; changing it requires a new replay version to preserve unfinished fights.
 - The Sack owns the gem collection; Inventory shows only physical gear and one-shot consumables. Server ownership records still cover all three item kinds.
 - Base player HP is **18** plus equipment bonuses.
 - Early equipment can modify HP, opening Guard, and color reservoir capacity.
