@@ -69,6 +69,8 @@ assert(html.includes('id="worldEffectsPanel"')&&html.includes('id="worldEffectsL
 assert(html.includes('id="worldStatusBtn"')&&html.includes('id="worldObjectiveBtn"')&&html.includes('id="worldSkillsBtn"'),'world map exposes persistent status, objective, and progression controls');
 assert(html.includes('id="combatSacksBtn"')&&src.includes('function openCombatSacks()'),'combat Sack inspection is available from the combat menu when the mobile header is compacted');
 assert(styles.includes('Mobile combat composition: board-first')&&styles.includes('.game .reservoirs{display:none}')&&styles.includes('.game .moveHistoryItem.latest'),'phone combat layout removes duplicate live rows and preserves only essential live history');
+assert(src.includes('moveHistoryPlaceholder latest')&&html.includes('moveHistoryPlaceholder latest')&&!src.includes('moveHistoryEmpty">COMBAT HISTORY'),'combat history reserves a real first-card footprint before the opening move');
+assert(styles.includes('.moveHistoryPlaceholder{')&&styles.includes('visibility:hidden'),'empty history placeholder uses the same card geometry without visible filler text');
 assert(src.includes('compactGemCard')&&src.includes('slotChargeMeter')&&styles.includes('grid-template-columns:repeat(5,minmax(0,1fr))'),'all five equipped gem cards remain visible at once on phone');
 assert(html.includes('class="chromeIconButton"')&&html.includes('aria-label="Menu"')&&html.includes('worldQuickLabel'),'symbol-first controls keep explicit accessible labels');
 assert(src.includes("'♥ '+pHP+' · ◈ '+pGuard")&&src.includes("'◆ '+gold")&&src.includes("'✦ '+points"),'combat, currency, and progression HUDs use compact symbolic notation');

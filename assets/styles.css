@@ -581,7 +581,8 @@ html,body{background:#060705;color:var(--text)}
 .status{display:grid;gap:4px}
 .combatMessage{font-size:calc(8px + var(--text-bump))!important;line-height:1.2!important;max-height:11px!important;color:#877f70!important;white-space:nowrap!important;text-overflow:ellipsis;overflow:hidden}
 .moveHistory{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;min-height:44px}
-.moveHistoryEmpty{grid-column:1/-1;display:grid;place-items:center;min-height:40px;border:1px dashed #38342b;border-radius:5px;color:#625c50;font-size:calc(7px + var(--text-bump));letter-spacing:1.4px}
+.moveHistoryPlaceholder{pointer-events:none;opacity:.28!important;border-color:#343128!important;background:#10110e!important;box-shadow:none!important}
+.moveHistoryPlaceholder .moveHistoryMeta,.moveHistoryPlaceholder .moveBreaks{visibility:hidden}
 .moveHistoryItem{min-width:0;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:5px;padding:5px 6px;border:1px solid #37342c;border-radius:5px;background:#11120f;opacity:.48}
 .moveHistoryItem.latest{opacity:1;border-color:#5c513e;background:linear-gradient(180deg,#1d1d18,#12130f);box-shadow:inset 0 1px #ffffff05}
 .moveHistoryItem.player.latest{border-left:3px solid #648b69}.moveHistoryItem.enemy.latest{border-left:3px solid #a95c50}
@@ -940,7 +941,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
     grid-template-columns:minmax(72px,1fr) auto;
     gap:5px;
   }
-  .game .moveHistoryEmpty{min-height:29px}
+  .game .moveHistoryPlaceholder{min-height:29px}
   .game .moveHistoryMeta small{font-size:calc(5px + var(--text-bump))}
   .game .moveHistoryMeta strong{font-size:calc(7px + var(--text-bump))}
   .game .moveBreaks{gap:3px}
@@ -1037,7 +1038,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
   .game .combatant{padding:4px 5px}
   .game .boardShell{width:min(100%,calc(100dvh - 390px))}
   .game .moveHistory{min-height:27px;max-height:30px}
-  .game .moveHistoryItem.latest,.game .moveHistoryEmpty{min-height:27px}
+  .game .moveHistoryItem.latest,.game .moveHistoryPlaceholder{min-height:27px}
   .game .slots{min-height:72px}
   .game .slot{height:70px;flex-basis:82px;padding-top:4px}
   .game .slot .effect{display:none}

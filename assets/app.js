@@ -402,7 +402,7 @@ function setLog(message,kind='event'){
 function moveActorLabel(actor){return actor==='player'?'YOU':enemyLabel()}
 function renderMoveHistory(){
  const host=$('moveHistory');if(!host)return;
- if(!combatHistory.length){host.innerHTML='<div class="moveHistoryEmpty">COMBAT HISTORY</div>';return}
+ if(!combatHistory.length){host.innerHTML='<article class="moveHistoryItem moveHistoryPlaceholder latest" aria-hidden="true"><div class="moveHistoryMeta"><small>&nbsp;</small><strong>&nbsp;</strong></div><div class="moveBreaks"><span class="moveNoBreak">&nbsp;</span></div></article>';return}
  host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
   const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" data-gem="'+type+'" title="'+type+' value '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
   const ability=move.ability?'<span class="moveAbilityChip" style="--c:var(--'+(move.ability.color?.[0]||'gold')+')"><i>✦</i><b>ABILITY</b></span>':'';
