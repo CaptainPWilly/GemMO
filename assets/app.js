@@ -76,7 +76,7 @@ function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slo
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
 const DEFAULT_SACK=['dagger',null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false,textSize='large';
-let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
+let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,armedConsumableId=null,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
@@ -257,7 +257,19 @@ function cancelArmedAbility(index){
  setLog(spec.name+' cancelled. No charge spent.','system');render();touchActivity();return true;
 }
 async function applyTarget(p){
- const mode=targetMode,keepTurn=targetKeepsTurn;if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});let comboRoots=null;
+ const mode=targetMode,keepTurn=targetKeepsTurn;
+ if(mode==='consumable_break'){
+  const item=consumableById(armedConsumableId);if(!item||!combatConsumableCount(item.id)||!activeMatchId){targetMode=null;armedConsumableId=null;render();return}
+  busy=true;
+  try{
+   const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId:item.id}});combatConsumables[item.id]--;applyAccount(data.account);
+   recordCombatAction({t:'consume',itemId:item.id});recordCombatAction({t:'target',x:p.x,y:p.y});beginCombatMove('player','ITEM · '+item.name);const type=board[p.y][p.x];if(type)recordBrokenGems({[type]:1});
+   targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=center(cellAt(p));await popCells([p]);effectOrigin=null;board[p.y][p.x]='';await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
+   render();const m=findMatches();if(m)await resolve(m,'player',p,0,false,null);else{busy=false;afterAction('player',false)}
+  }catch(error){busy=false;targetMode=null;targetKeepsTurn=false;armedConsumableId=null;setLog('Cherry Bomb failed: '+error.message.replaceAll('_',' '),'system');render();touchActivity()}
+  return;
+ }
+ if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});let comboRoots=null;
  if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player',keepTurn);return}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
@@ -831,11 +843,15 @@ function drawInventory(){
 function pauseCombatView(){combatPaused=true;clearTimeout(enemyTimer);clearTimeout(hintTimer)}
 function resumeCombatView(){combatPaused=false;if(screen==='fight'&&!playerTurn&&!busy&&pHP>0&&eHP>0)enemyTimer=setTimeout(()=>void enemyMove(),300);else touchActivity()}
 function combatConsumableCount(id){return Math.max(0,Number(combatConsumables[id])||0)}
-function drawCombatItems(){$('combatItemsList').innerHTML=CONSUMABLES.map(item=>{const qty=combatConsumableCount(item.id);return '<button class="combatConsumable" data-consume="'+item.id+'" '+(!qty?'disabled':'')+'><span>'+item.icon+'</span><div><small>×'+qty+' · ONE-SHOT</small><b>'+item.name+'</b><p>'+item.desc+'</p></div><em>'+(qty?'USE':'EMPTY')+'</em></button>'}).join('');document.querySelectorAll('.combatConsumable:not(:disabled)').forEach(b=>b.onclick=()=>void useCombatConsumable(b.dataset.consume))}
+function drawCombatItems(){$('combatItemsList').innerHTML=CONSUMABLES.map(item=>{const qty=combatConsumableCount(item.id),armed=armedConsumableId===item.id;return '<button class="combatConsumable" data-consume="'+item.id+'" '+(!qty&&!armed?'disabled':'')+'><span>'+item.icon+'</span><div><small>×'+qty+' · ONE-SHOT</small><b>'+item.name+'</b><p>'+item.desc+'</p></div><em>'+(armed?'CANCEL':qty?'USE':'EMPTY')+'</em></button>'}).join('');document.querySelectorAll('.combatConsumable:not(:disabled)').forEach(b=>b.onclick=()=>void useCombatConsumable(b.dataset.consume))}
 function openCombatItems(){if(screen!=='fight')return;pauseCombatView();$('combatMenuPanel').hidden=true;$('combatItemsStatus').textContent='';drawCombatItems();$('combatItemsPanel').hidden=false}
 function closeCombatItems(){$('combatItemsPanel').hidden=true;$('combatMenuPanel').hidden=false}
 async function useCombatConsumable(itemId){
- const item=consumableById(itemId);if(!item||!combatConsumableCount(itemId)||!playerTurn||busy||targetMode||freeSwap||!activeMatchId)return;busy=true;$('combatItemsStatus').textContent='Using…';
+ const item=consumableById(itemId);if(!item||!playerTurn||busy||freeSwap||!activeMatchId)return;
+ if(armedConsumableId===itemId){armedConsumableId=null;targetMode=null;targetKeepsTurn=false;selected=null;$('combatItemsStatus').textContent='Cancelled.';drawCombatItems();render();return}
+ if(targetMode||!combatConsumableCount(itemId))return;
+ if(item.kind==='break'){armedConsumableId=itemId;targetMode='consumable_break';targetKeepsTurn=false;selected=null;$('combatItemsPanel').hidden=true;combatPaused=false;setLog('CHERRY BOMB: choose one board gem · reopen Consumables to cancel.','system');render();touchActivity();return}
+ busy=true;$('combatItemsStatus').textContent='Using…';
  try{const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+item.power);if(item.kind==='guard'){pGuard+=item.power;guardTurns=2}if(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
  catch(error){busy=false;$('combatItemsStatus').textContent=error.message.replaceAll('_',' ');drawCombatItems()}
 }
@@ -885,7 +901,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
+ clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;combatConsumables=Object.fromEntries(inventoryItems.filter(v=>v.kind==='consumable'&&v.qty>0).map(v=>[v.id,v.qty]));

@@ -873,12 +873,12 @@ function target(s,x,y){
  if(mode==='wildcraft')s.board[y][x]='wild';
  if(mode==='rotate')s.board[y].unshift(s.board[y].pop());
  if(mode==='reroll')s.board[y][x]=roll(s);
- if(['break','blast','purge'].includes(mode)){
+ if(['break','blast','purge','consumable_break'].includes(mode)){
   let cells=[];
-  if(mode==='break')cells=[{x,y}];
+  if(mode==='break'||mode==='consumable_break')cells=[{x,y}];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
-  const broken={};for(const q of cells){const type=s.board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}comboRoots=comboChargeTypes(broken);
+  const broken={};for(const q of cells){const type=s.board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}comboRoots=mode==='consumable_break'?null:comboChargeTypes(broken);
   if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1,'player')}
   for(const q of cells)s.board[q.y][q.x]='';
   fallColumns(s);
@@ -892,6 +892,7 @@ function useConsumable(s,itemId){
  if(item.kind==='heal')s.pHP=Math.min(playerMaxHP(s),s.pHP+item.power);
  if(item.kind==='guard'){s.pGuard+=item.power;s.guardTurns=2}
  if(item.kind==='charge'){const color=lowestReservoir(s,null);if(color)s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+item.power)}
+ if(item.kind==='break'){s.targetMode='consumable_break';s.targetKeepsTurn=false;return true}
  afterAction(s,'player',false);return true;
 }
 function applyCombatAction(s,action){

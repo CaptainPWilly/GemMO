@@ -17,7 +17,7 @@ const SHOP_STOCK={
  ],
  'item-shop':[
   {id:'frayed-hood',price:12},{id:'padded-tunic',price:20},{id:'cloth-wraps',price:12},{id:'linen-trousers',price:12},{id:'scuffed-boots',price:12},{id:'copper-pendant',price:15},{id:'tin-ring',price:15},{id:'iron-band',price:15},
-  {id:'minor-healing-draught',price:8},{id:'ironbark-tonic',price:8},{id:'prism-dust',price:10}
+  {id:'minor-healing-draught',price:8},{id:'ironbark-tonic',price:8},{id:'prism-dust',price:10},{id:'cherry-bomb',price:8}
  ]
 };
 const WORLD_HEIGHT=[
@@ -44,7 +44,8 @@ const ITEMS=[{"id":"hand-crossbow","color":"red","item":"Hand Crossbow","name":"
 const CONSUMABLES=[
  {id:'minor-healing-draught',name:'Minor Healing Draught',kind:'heal',power:5,icon:'♥',desc:'One-shot potion. Restore 5 HP immediately. Uses your action.'},
  {id:'ironbark-tonic',name:'Ironbark Tonic',kind:'guard',power:5,icon:'◆',desc:'One-shot tonic. Gain 5 Guard immediately. Uses your action.'},
- {id:'prism-dust',name:'Prism Dust',kind:'charge',power:3,icon:'✦',desc:'One-shot catalyst. Add 3 charge to your most depleted equipped color. Uses your action.'}
+ {id:'prism-dust',name:'Prism Dust',kind:'charge',power:3,icon:'✦',desc:'One-shot catalyst. Add 3 charge to your most depleted equipped color. Uses your action.'},
+ {id:'cherry-bomb',name:'Cherry Bomb',kind:'break',power:0,icon:'●',desc:'One-shot bomb. Choose one board gem and destroy it without gaining its match effect. Uses your action.'}
 ];
 
 const EQUIPMENT_SLOTS=[

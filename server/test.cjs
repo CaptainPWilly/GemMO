@@ -11,7 +11,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
 
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
-  assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');assert.equal(Object.keys(CONSUMABLES).length,3,'three one-shot consumables exist');
+  assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');assert.equal(Object.keys(CONSUMABLES).length,4,'four one-shot consumables exist');
   assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit'],'shared encounter catalog owns the current encounter set');
   assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
@@ -46,8 +46,8 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
   }
   {
     const equipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
-    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,consumables:{'minor-healing-draught':1,'ironbark-tonic':1},rewardBudget:{gold:24,xp:18}});
-    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);state.pHP=10;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'minor-healing-draught'}),true);assert.equal(state.pHP,15,'healing potion restores HP immediately');state.playerTurn=true;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'ironbark-tonic'}),true);assert.equal(state.pGuard,5,'guard tonic grants immediate Guard');assert.equal(state.usedConsumables['minor-healing-draught'],1);assert.equal(state.usedConsumables['ironbark-tonic'],1);
+    const state=createBanditCombat({seed:1,sack:['dagger',null,null,null,null],equipment,consumables:{'minor-healing-draught':1,'ironbark-tonic':1,'cherry-bomb':1},rewardBudget:{gold:24,xp:18}});
+    assert.equal(state.encounterId,'bandit');assert.equal(state.eHP,24);state.pHP=10;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'minor-healing-draught'}),true);assert.equal(state.pHP,15,'healing potion restores HP immediately');state.playerTurn=true;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'ironbark-tonic'}),true);assert.equal(state.pGuard,5,'guard tonic grants immediate Guard');assert.equal(state.usedConsumables['minor-healing-draught'],1);assert.equal(state.usedConsumables['ironbark-tonic'],1);state.playerTurn=true;state.extraTurn=true;assert.equal(applyCombatAction(state,{t:'consume',itemId:'cherry-bomb'}),true);assert.equal(state.targetMode,'consumable_break','Cherry Bomb arms a single board target without ending the action');assert.equal(state.actions,2,'arming the bomb does not spend an action yet');assert.equal(applyCombatAction(state,{t:'target',x:0,y:0}),true);assert.equal(state.targetMode,null);assert.equal(state.actions,3,'committing the Cherry Bomb target spends the action');assert.equal(state.usedConsumables['cherry-bomb'],1);assert(state.board.flat().every(Boolean),'Cherry Bomb collapse refills the board');
     const replay=verifyBanditTranscript({seed:1,sack:['dagger',null,null,null,null],equipment,rewardBudget:{gold:24,xp:18},transcript:[]});
     assert.equal(replay.won,false,'empty Bandit transcript cannot claim victory');
   }
