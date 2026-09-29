@@ -452,7 +452,13 @@ function renderSlots(){
  $('slots').innerHTML=sack.map((id,i)=>{const v=itemById(id);if(!v)return '<button class="slot" disabled data-slot="'+i+'" style="--c:#5f5a4e"><div class="orb"></div><div class="slotName">Empty</div><div class="effect">Earn a gem</div><div class="charge">—</div></button>';const armed=i===armedAbilitySlot&&(!!targetMode||freeSwap),ready=charges[v.color]>=v.cap;return '<button class="slot '+(armed?'armed ':ready?'ready ':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+')" title="'+v.desc+'"><div class="orb"></div><div class="slotName">'+v.item+'</div><div class="effect">'+v.name+'</div><div class="charge">'+(armed?'TAP TO CANCEL':ready?'USE · '+v.cap:charges[v.color]+' / '+v.cap)+'</div></button>'}).join('');
  document.querySelectorAll('.slot:not(:disabled)').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)));
 }
-$('sacksBtn').onclick=()=>{const boxes=document.querySelectorAll('.sackGrid .sack'),enemy=encounterSpec();boxes[0].innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+(v?v.item+' — '+v.name:'Empty')+'</div>'}).join('');boxes[1].innerHTML='<h3>'+enemy.name+'</h3>'+Object.entries(enemy.reservoirs).filter(([,v])=>v.visible).map(([color,v])=>'<div class="line">'+color[0].toUpperCase()+color.slice(1)+' — '+v.name[0]+v.name.slice(1).toLowerCase()+'</div>').join('');$('modal').classList.add('show')};$('closeModal').onclick=()=>$('modal').classList.remove('show');
+function openCombatSacks(){
+ const boxes=document.querySelectorAll('.sackGrid .sack'),enemy=encounterSpec();
+ boxes[0].innerHTML='<h3>YOUR SACK</h3>'+sack.map(id=>{const v=itemById(id);return '<div class="line">'+(v?v.item+' — '+v.name:'Empty')+'</div>'}).join('');
+ boxes[1].innerHTML='<h3>'+enemy.name+'</h3>'+Object.entries(enemy.reservoirs).filter(([,v])=>v.visible).map(([color,v])=>'<div class="line">'+color[0].toUpperCase()+color.slice(1)+' — '+v.name[0]+v.name.slice(1).toLowerCase()+'</div>').join('');
+ $('modal').classList.add('show');
+}
+$('sacksBtn').onclick=openCombatSacks;$('closeModal').onclick=()=>{$('modal').classList.remove('show');if(combatPaused)resumeCombatView()};
 
 async function accountRequest(path,options={}){
  const headers={'Content-Type':'application/json',...(options.headers||{})};if(accountToken)headers.Authorization='Bearer '+accountToken;
@@ -992,7 +998,7 @@ $('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
 $('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
-$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatItemsBtn').onclick=openCombatItems;$('closeCombatItems').onclick=closeCombatItems;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
+$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatSacksBtn').onclick=()=>{$('combatMenuPanel').hidden=true;openCombatSacks()};$('combatItemsBtn').onclick=openCombatItems;$('closeCombatItems').onclick=closeCombatItems;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
 
 function renderStatuses(){
  updateTurnCue();

@@ -828,3 +828,240 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
  .worldPlayerStrip{grid-template-columns:minmax(0,1fr) 62px auto;gap:6px;padding:6px 7px}.worldPlayerIdentity b{font-size:calc(8px + var(--text-bump))}.worldSkillBadge{min-width:34px;padding-left:4px;padding-right:4px}
  .worldObjectiveBar{grid-template-columns:24px minmax(0,1fr) 12px;padding:6px 7px;gap:6px}.worldObjectiveMark{width:22px;height:22px}.worldObjectiveCopy em{font-size:calc(6px + var(--text-bump))}
 }
+
+/* Mobile combat composition: board-first, readable, and non-overlapping. */
+@media (max-width:699px){
+  .game{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    padding:calc(6px + env(safe-area-inset-top)) 7px calc(6px + env(safe-area-inset-bottom));
+    overflow:hidden;
+  }
+
+  /* Two combatants only. Turn ownership has its own dedicated row below. */
+  .game .top{
+    flex:0 0 auto;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:7px;
+    min-height:0;
+    padding:6px 7px;
+    border-radius:8px;
+  }
+  .game .top .turn{display:none}
+  .game .combatant{min-width:0;margin:0;padding:5px 6px;border-radius:6px}
+  .game .playerSide{text-align:left}
+  .game .enemySide{text-align:right}
+  .game .name{
+    font-size:calc(8px + var(--text-bump));
+    line-height:1.05;
+    letter-spacing:.8px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .game .stats{
+    margin-top:2px;
+    font-size:calc(8px + var(--text-bump));
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .game .health{height:6px;margin-top:4px}
+
+  /* Enemy charge remains visible as five tiny progress tracks, not five text blocks. */
+  .game .enemyChargeGauges{
+    height:7px;
+    margin-top:4px;
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:2px;
+  }
+  .game .enemyChargeGauge{
+    display:grid;
+    grid-template-columns:3px minmax(0,1fr);
+    grid-template-rows:5px;
+    gap:2px;
+    min-width:0;
+    align-items:center;
+  }
+  .game .enemyChargeGauge .enemyChargeDot{width:3px;height:3px;grid-row:auto}
+  .game .enemyChargeGauge .enemyChargeTrack{grid-column:2;grid-row:1;height:4px}
+  .game .enemyChargeGauge b{display:none}
+
+  .game .turnBadge{
+    flex:0 0 auto;
+    min-height:24px;
+    padding:3px 6px;
+    border-radius:5px;
+    font-size:calc(9px + var(--text-bump));
+    line-height:1;
+    letter-spacing:.8px;
+  }
+
+  /* Full effect detail belongs in Current Effects on a phone. */
+  .game .statusTags{display:none}
+
+  /* Guarantee the board its square before any secondary combat UI. */
+  .game .boardShell{
+    flex:0 0 auto;
+    width:min(100%,calc(100dvh - 380px));
+    min-width:0;
+    max-width:100%;
+    align-self:center;
+    padding:4px;
+    border-radius:8px;
+  }
+  .game .board{gap:3px}
+  .game .cell{border-radius:4px}
+
+  /* One latest action is enough in the live layout; full state is preserved internally. */
+  .game .status{
+    flex:0 0 auto;
+    min-height:0;
+    padding:0;
+    display:grid;
+    gap:2px;
+  }
+  .game .resource{display:none}
+  .game .moveHistory{
+    display:block;
+    min-height:29px;
+    max-height:34px;
+    overflow:hidden;
+  }
+  .game .moveHistoryItem{display:none!important}
+  .game .moveHistoryItem.latest{
+    display:grid!important;
+    min-height:29px;
+    padding:4px 6px;
+    grid-template-columns:minmax(72px,1fr) auto;
+    gap:5px;
+  }
+  .game .moveHistoryEmpty{min-height:29px}
+  .game .moveHistoryMeta small{font-size:calc(5px + var(--text-bump))}
+  .game .moveHistoryMeta strong{font-size:calc(7px + var(--text-bump))}
+  .game .moveBreaks{gap:3px}
+  .game .moveBreak{min-width:25px}
+  .game .historyGemVisual{width:14px;height:14px}
+  .game .combatMessage{
+    min-height:15px;
+    max-height:17px!important;
+    margin:0!important;
+    font-size:calc(7px + var(--text-bump))!important;
+    line-height:1.15!important;
+    white-space:nowrap!important;
+    overflow:hidden!important;
+    text-overflow:ellipsis;
+  }
+
+  /* Charge is already printed on each ability card; do not duplicate it in a second row. */
+  .game .reservoirs{display:none}
+
+  /* Readable action rail rather than five crushed cards. */
+  .game .slots{
+    flex:0 0 auto;
+    display:flex;
+    overflow-x:auto;
+    overflow-y:hidden;
+    gap:6px;
+    min-height:78px;
+    height:auto;
+    margin:0;
+    padding:1px 1px 4px;
+    scroll-snap-type:x proximity;
+    scrollbar-width:none;
+    overscroll-behavior-x:contain;
+  }
+  .game .slots::-webkit-scrollbar{display:none}
+  .game .slot{
+    flex:0 0 clamp(84px,24vw,98px);
+    width:auto;
+    height:76px;
+    min-width:0;
+    padding:6px 5px 5px;
+    border-radius:7px;
+    scroll-snap-align:start;
+    text-align:center;
+  }
+  .game .slot .orb{width:11px;height:11px;margin:0 auto 4px}
+  .game .slotName{
+    min-height:0;
+    font-size:calc(8px + var(--text-bump));
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .game .effect{
+    display:block;
+    margin-top:3px;
+    font-size:calc(6px + var(--text-bump));
+    line-height:1.1;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .game .charge{
+    margin-top:5px;
+    font-size:calc(7px + var(--text-bump));
+    line-height:1.05;
+    white-space:nowrap;
+  }
+
+  .game .effectsBtn{
+    flex:0 0 auto;
+    min-height:29px;
+    padding:5px 8px;
+    border-radius:6px;
+    font-size:calc(7px + var(--text-bump));
+    font-weight:850;
+    letter-spacing:.6px;
+  }
+  .game .foot{display:none}
+
+  /* Largest Text gets wider cards instead of squeezing larger type. */
+  .app.text-xl .game .slot{flex-basis:108px;height:82px}
+  .app.text-xl .game .slotName{font-size:13px}
+  .app.text-xl .game .effect{font-size:11px}
+  .app.text-xl .game .charge{font-size:12px}
+  .app.text-xl .game .combatMessage{font-size:11px!important}
+  .app.text-xl .game .boardShell{width:min(100%,calc(100dvh - 398px))}
+}
+
+@media (max-width:699px) and (max-height:730px){
+  .game{gap:3px;padding-top:calc(4px + env(safe-area-inset-top));padding-bottom:calc(4px + env(safe-area-inset-bottom))}
+  .game .top{padding:4px 6px}
+  .game .combatant{padding:4px 5px}
+  .game .boardShell{width:min(100%,calc(100dvh - 390px))}
+  .game .moveHistory{min-height:27px;max-height:30px}
+  .game .moveHistoryItem.latest,.game .moveHistoryEmpty{min-height:27px}
+  .game .slots{min-height:72px}
+  .game .slot{height:70px;flex-basis:82px;padding-top:4px}
+  .game .slot .effect{display:none}
+  .game .slot .charge{margin-top:4px}
+  .app.text-xl .game .boardShell{width:min(100%,calc(100dvh - 414px))}
+  .app.text-xl .game .slot{height:76px;flex-basis:104px}
+}
+
+/* iPhone landscape/coarse-pointer fallback: keep the board and controls in two clear columns. */
+@media (min-width:700px) and (max-height:500px) and (pointer:coarse){
+  .game{
+    grid-template-columns:minmax(250px,48dvh) minmax(280px,1fr);
+    grid-template-rows:auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"top top" "board turn" "board status" "board slots" "board equip";
+    column-gap:12px;row-gap:4px;
+    padding:calc(5px + env(safe-area-inset-top)) 10px calc(5px + env(safe-area-inset-bottom));
+  }
+  .game .boardShell{grid-area:board;width:min(100%,48dvh);align-self:center}
+  .game #statusTags,.game .reservoirs,.game .foot{display:none}
+  .game .status{grid-area:status;min-height:0}
+  .game .resource{display:none}
+  .game .slots{grid-area:slots;display:flex;overflow-x:auto;gap:5px;margin:0;scrollbar-width:none}
+  .game .slots::-webkit-scrollbar{display:none}
+  .game .slot{flex:0 0 88px;height:66px}
+  .game .slot .effect{display:none}
+  .game .effectsBtn{grid-area:equip}
+}
