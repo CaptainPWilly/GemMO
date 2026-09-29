@@ -171,6 +171,11 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'item-shop'}});assert.equal(r.status,200);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,2,'consumables stack on repeat purchase');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const consumableMatchId=r.data.match.matchId;
+    r=await call('/v1/matches/consume',{method:'POST',token,body:{matchId:consumableMatchId,itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'using a one-shot immediately decrements its stack');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:consumableMatchId,won:false,gold:0,xp:0,transcript:[{t:'consume',itemId:'minor-healing-draught'}]}});assert.equal(r.status,200);assert.equal(r.data.settlement.won,false,'consumable use verifies during loss settlement');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
 
     r=await call('/v1/account/profile',{method:'PUT',token,body:{gold:999999,xp:999999,level:99}});assert.equal(r.status,403);
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:'fake-match-id-123456',won:true,gold:999999,xp:999999}});assert.equal(r.status,404,'invented match ids cannot award rewards');
@@ -181,7 +186,7 @@ const {createRatCombat,createBanditCombat,applyRatAction,suggestRatAction,applyC
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
     assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
-    assert.equal(r.data.account.profile.gold,82,'gold survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'battle and quest XP survive logout/login');
+    assert.equal(r.data.account.profile.gold,66,'gold survives logout/login after consumable purchases');assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'remaining consumable stack survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'battle and quest XP survive logout/login');
     assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','quest state survives logout/login');assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'cutscene state survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
