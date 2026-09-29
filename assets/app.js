@@ -436,7 +436,7 @@ function updateTurnCue(){
  const owner=playerTurn?'player':'enemy',game=document.querySelector('.game'),badge=$('turnBadge');
  if(game){game.classList.remove('turn-player','turn-enemy');game.classList.add('turn-'+owner)}
  badge.classList.remove('turn-player','turn-enemy');badge.classList.add('turn-'+owner);
- badge.textContent=owner==='player'?'✦ YOU · '+actionNumber:'⚔ '+enemyLabel().toUpperCase()+' · '+actionNumber;
+ badge.textContent=owner==='player'?'✦ YOUR TURN · '+actionNumber:'⚔ '+enemyLabel().toUpperCase()+' TURN · '+actionNumber;
  if(renderedTurnOwner!==owner){
   badge.classList.remove('turnPulse');if(!reducedMotion()){void badge.offsetWidth;badge.classList.add('turnPulse')}
   renderedTurnOwner=owner;
