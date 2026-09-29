@@ -793,10 +793,16 @@ function clearAccountSession(){
  account=null;accountToken=null;lastAccountSync='';sack=Array(5).fill(null);equipment={...DEFAULT_EQUIPMENT};inventory=[];inventoryItems=[];combatConsumables={};worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]};selectedWorldNode='camp';currentShop=null;
  rememberAccountToken(null);drawAccount()
 }
-async function refreshAccount(){
- if(!accountToken)return false;
- try{const data=await accountRequest('/v1/account');applyAccount(data.account);return true}
- catch(error){if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Account server unavailable.';return false}
+let accountRefreshPromise=null;
+function refreshAccount(){
+ if(!accountToken)return Promise.resolve(false);
+ if(accountRefreshPromise)return accountRefreshPromise;
+ const token=accountToken;
+ accountRefreshPromise=(async()=>{
+  try{const data=await accountRequest('/v1/account');if(accountToken!==token)return false;applyAccount(data.account);return true}
+  catch(error){if(accountToken!==token)return false;if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Account server unavailable.';return false}
+ })().finally(()=>{accountRefreshPromise=null});
+ return accountRefreshPromise;
 }
 function drawAccount(){
  const logged=!!account;
@@ -815,7 +821,7 @@ async function submitAuth(mode){
  setAuthBusy(true);$('accountStatus').textContent=mode==='register'?'Creating account…':'Logging in…';
  try{
   const data=await accountRequest('/v1/auth/'+mode,{method:'POST',body:{username,password,captchaToken}});
-  rememberAccountToken(data.token);$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Account secure and synced.';showScreen('menu');
+  rememberAccountToken(data.token);$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Account secure and synced.';enterWorld();
  }catch(error){
   const message={
    invalid_username_or_password:'Invalid username or password.',
@@ -961,7 +967,7 @@ function startFight(){
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
-$('enterBtn').onclick=async()=>{if(account){showScreen('menu');return}if(accountToken&&await refreshAccount()){showScreen('menu');return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
+$('enterBtn').onclick=async()=>{if(account){enterWorld();return}if(accountToken&&await refreshAccount()){enterWorld();return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
 $('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='skills')openSkills();if(action==='talk')openDialogue($('worldAction').dataset.npc)};
@@ -1052,4 +1058,5 @@ boardEl.addEventListener('pointercancel',event=>{if(swipeStart&&event.pointerId=
 document.querySelector('.app').addEventListener('pointerdown',touchActivity);document.querySelector('.app').addEventListener('keydown',touchActivity);
 
 showScreen('splash');
+if(accountToken)void refreshAccount().then(ok=>{if(screen==='splash'){if(ok)enterWorld();else if(!accountToken)showScreen('account')}});
 })();

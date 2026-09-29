@@ -15,6 +15,7 @@ let src=fs.readFileSync(path.join(root,'assets','app.js'),'utf8');
 assert(html.includes('href="assets/styles.css"'),'production shell must load the canonical stylesheet');
 assert(html.includes('src="assets/content.js"')&&html.includes('src="shared/encounters.js"')&&html.includes('src="shared/combat-rules.js"')&&html.includes('src="shared/progression.js"')&&html.includes('src="shared/story.js"')&&html.includes('src="assets/combat-core.js"')&&html.indexOf('assets/content.js')<html.indexOf('shared/encounters.js')&&html.indexOf('shared/encounters.js')<html.indexOf('shared/combat-rules.js')&&html.indexOf('shared/combat-rules.js')<html.indexOf('shared/progression.js')&&html.indexOf('shared/progression.js')<html.indexOf('shared/story.js')&&html.indexOf('shared/story.js')<html.indexOf('assets/combat-core.js')&&html.indexOf('assets/combat-core.js')<html.indexOf('assets/app.js'),'production shell must load content, shared encounter/combat/story rules, combat core, then runtime');
 assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
+assert(/<div class="worldEffectsPanel uiSheet" id="worldEffectsPanel" hidden>/.test(html)&&/<div class="worldQuestPanel uiSheet" id="worldQuestPanel" hidden>/.test(html),'world drawers have real DOM IDs so map setup can open');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
 assert(!content.includes("'env'")&&!html.includes('ENVIRONMENT · RIFT')&&!src.includes("type==='env'"),'standalone Environment gem rules stay removed');
 assert(encounterDefs.includes("else root.GEMMO_ENCOUNTERS=encounters"),'encounter definitions must be shared between browser and server');
@@ -276,5 +277,13 @@ assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived a
  a.setEncounter('sentinel');a.startFight();assert.equal(a.get().eHP,30);assert(a.enemyIntent().text.includes('BUILDING'));
  a.get().charges.red=5;a.get().charges.blue=4;a.setEnemyReady('purple');assert(a.enemyIntent().text.includes('READY · SIPHON'));
  assert.equal(a.enemyUseActive(),true);assert.equal(a.get().charges.red,2,'browser Siphon drains the same fullest reservoir as replay');assert.equal(a.get().charges.blue,4);
+
+ // A saved session restores once and lands on the world map without a menu tap.
+ const restoredElements=new Map(),restoredDocument={getElementById(id){if(!restoredElements.has(id))restoredElements.set(id,new El());return restoredElements.get(id)},createElement:()=>new El(),querySelectorAll:()=>[],querySelector:()=>new El()};
+ const savedAccount={user:{id:7,username:'Returning'},profile:{level:1,xp:0,gold:0},skills:{purchased:[],availablePoints:1},sack:['dagger',null,null,null,null],equipment:{},inventory:['dagger'],inventoryItems:[{id:'dagger',kind:'gem',qty:1}],world:{region:'brackenreach',currentNode:'camp',clearedEncounters:[]},quests:[],story:{seenCutscenes:[]}};
+ const restored={document:restoredDocument,window:{matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>fn()},requestAnimationFrame:fn=>fn(),location:{hostname:'captainpwilly.github.io'},localStorage:{getItem:key=>key==='gemmo.session'?'saved-session':null,setItem(){},removeItem(){}},sessionStorage:{getItem:()=>null,removeItem(){}},fetch:async(url)=>{assert(url.endsWith('/v1/account'));return {ok:true,json:async()=>({account:savedAccount})}},setTimeout:()=>1,clearTimeout(){},console};
+ for(const file of [content,encounterDefs,combatRules,progressionDefs,storyDefs,combatCore])vm.runInNewContext(file,restored);
+ vm.runInNewContext(src.replace('setHintDelay:v=>hintDelay=v,','getScreen:()=>screen,setHintDelay:v=>hintDelay=v,'),restored);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(restored.api.getScreen(),'world','remembered login enters the map after account refresh');
  console.log('PASS: 74 organized gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard/Evade durations, hints, reshuffle preservation and swipe input.');
 })().catch(e=>{console.error(e);process.exitCode=1});
