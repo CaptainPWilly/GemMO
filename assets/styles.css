@@ -44,6 +44,13 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .health{height:8px;background:#100d09;border:1px solid #8a7048;margin-top:7px;overflow:hidden;box-shadow:0 1px #ffffff14}
 .healthFill{height:100%;width:100%;background:linear-gradient(#ed8c72,#b7373a);transition:width .3s ease;box-shadow:0 0 8px #ed735c66}
 .right .healthFill{background:linear-gradient(#c96d59,#8e2f32)}
+.enemyChargeGauges{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin-top:5px;direction:ltr}
+.enemyChargeGauge{display:grid;grid-template-columns:5px minmax(0,1fr);grid-template-rows:4px auto;gap:2px 3px;align-items:center;min-width:0;opacity:.96}
+.enemyChargeGauge .enemyChargeDot{grid-row:1;width:4px;height:4px;border-radius:1px;background:var(--c);box-shadow:0 0 5px color-mix(in srgb,var(--c) 45%,transparent)}
+.enemyChargeTrack{grid-column:2;height:3px;background:#0f0d09;border:1px solid #4a4031;overflow:hidden}
+.enemyChargeTrack i{display:block;width:var(--fill);height:100%;background:var(--c);transition:width 180ms cubic-bezier(.2,.8,.2,1)}
+.enemyChargeGauge b{grid-column:1/-1;font-size:calc(5px + var(--text-bump));line-height:1;text-align:center;color:color-mix(in srgb,var(--c) 78%,#ded2bb);font-weight:850;letter-spacing:.1px}
+.enemyChargeGauge.inactive{opacity:.22}.enemyChargeGauge.inactive .enemyChargeTrack i{width:0}
 .boardShell{border-radius:6px;border:2px solid #8e7447;background:#15140f;box-shadow:inset 0 0 0 2px #332c1f,0 14px 32px #0007;padding:6px;overflow:hidden}
 .board{gap:4px}.cell{border-radius:4px;background:linear-gradient(145deg,#2c2b23,#1b1c17);box-shadow:inset 0 1px #b09c6f15;touch-action:manipulation}
 .gem{border-radius:14%;box-shadow:inset 3px 3px 0 #ffffff55,inset -4px -4px 0 #0003,0 4px 6px #0008}
@@ -57,7 +64,7 @@ html,body{background:#100f0c}.app{background:radial-gradient(ellipse at 50% 0,#5
 .fxLayer{position:absolute;inset:0;pointer-events:none;z-index:40;overflow:hidden}.damageSpark{position:absolute;width:12px;height:12px;border-radius:2px;background:#ffe3a0;box-shadow:0 0 9px #ffca6a,0 0 22px #e04d36;transform:rotate(45deg)}
 .damageNumber{position:absolute;color:#ffe0ab;font:bold 24px Georgia,serif;text-shadow:0 2px 3px #000,0 0 12px #dd4a32;white-space:nowrap}
 @media(max-height:730px){.game{gap:5px}.top{padding:8px;min-height:66px}.boardShell{width:min(100%,calc(100dvh - 264px))}.slots{height:97px}.slot{height:97px;padding-top:6px}.orb{margin-bottom:5px}.slotName{font-size:calc(10px + var(--text-bump));min-height:23px}.effect{display:block;font-size:calc(6px + var(--text-bump))}.charge{margin-top:5px}.status{min-height:35px}}
-@media(max-width:360px){.slotName{font-size:calc(9px + var(--text-bump))}.resource{font-size:calc(7px + var(--text-bump));gap:7px}.stats{font-size:calc(9px + var(--text-bump))}.turn{font-size:calc(8px + var(--text-bump))}}
+@media(max-width:360px){.slotName{font-size:calc(9px + var(--text-bump))}.resource{font-size:calc(7px + var(--text-bump));gap:7px}.stats{font-size:calc(9px + var(--text-bump))}.turn{font-size:calc(8px + var(--text-bump))}.enemyChargeGauge b{font-size:calc(4px + var(--text-bump))}.enemyChargeGauges{gap:2px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
 
