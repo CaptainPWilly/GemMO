@@ -77,7 +77,7 @@ function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=n
 const DEFAULT_SACK=['dagger',null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false,textSize='large';
 let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
-let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
+let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0,laststand:0,ironbark:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const itemById=id=>ITEMS.find(i=>i.id===id);
@@ -105,7 +105,7 @@ function findMatches(){return COMBAT_CORE.findMatches(board,TYPES)}
 function reservoirCap(color){const skills=currentSkillEffects();return sack.reduce((sum,id)=>sum+(itemById(id)?.color===color?itemById(id).cap:0),0)+gearStats().caps[color]+skills.allCap+skills.caps[color]}
 function legalMoves(){return COMBAT_CORE.legalMoves(board,TYPES)}
 function damageEnemy(n){if(enemyEffects.mark&&n>0){n+=3;enemyEffects.mark=0;setLog('HUNTER’S MARK: +3 damage.')}let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
-function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);let blocked=Math.min(pGuard,n),dealt=n-blocked;pGuard-=blocked;pHP-=dealt;damageFlight('p',dealt,blocked);if(buffs.reflect&&dealt>0){buffs.reflect=0;const reflected=Math.max(1,Math.ceil(dealt/2));damageEnemy(reflected);setLog('REPRISAL: reflected '+reflected+' damage.')}}
+function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);if(buffs.ironbark&&n>0){const reduced=Math.min(buffs.ironbark,n);n-=reduced;buffs.ironbark=0;setLog('IRONBARK: reduced the hit by '+reduced+'.')}let blocked=Math.min(pGuard,n),dealt=n-blocked;pGuard-=blocked;pHP-=dealt;if(pHP<=0&&dealt>0&&buffs.laststand){buffs.laststand=0;pHP=1;setLog('LAST-BREATH: you hold at 1 HP.')}damageFlight('p',dealt,blocked);if(buffs.reflect&&dealt>0){buffs.reflect=0;const reflected=Math.max(1,Math.ceil(dealt/2));damageEnemy(reflected);setLog('REPRISAL: reflected '+reflected+' damage.')}}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function lowestReservoir(exclude){
  const order=['red','blue','green','yellow','purple'];let best=null,bestRatio=Infinity;
@@ -836,7 +836,7 @@ function openCombatItems(){if(screen!=='fight')return;pauseCombatView();$('comba
 function closeCombatItems(){$('combatItemsPanel').hidden=true;$('combatMenuPanel').hidden=false}
 async function useCombatConsumable(itemId){
  const item=consumableById(itemId);if(!item||!combatConsumableCount(itemId)||!playerTurn||busy||targetMode||freeSwap||!activeMatchId)return;busy=true;$('combatItemsStatus').textContent='Using…';
- try{const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+item.power);if(item.kind==='guard'){pGuard+=item.power;guardTurns=2}if(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
+ try{const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='last_stand')buffs.laststand=1;if(item.kind==='ironbark')buffs.ironbark=item.powerif(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
  catch(error){busy=false;$('combatItemsStatus').textContent=error.message.replaceAll('_',' ');drawCombatItems()}
 }
 function openCombatMenu(){if(screen!=='fight')return;pauseCombatView();$('combatMenuStatus').textContent='';$('combatMenuPanel').hidden=false}
@@ -860,6 +860,8 @@ function combatEffectRows(){
   {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:'Green match resolutions heal 2 HP.'},
   {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:'Yellow matches send +2 charge to your most depleted other color.'},
   {side:'you',name:'Reprisal',value:buffs.reflect,turns:buffs.reflect,detail:'Reflects half of the next unblocked hit.'},
+  {side:'you',name:'Last Breath',value:buffs.laststand,turns:null,detail:'The next lethal hit leaves you at 1 HP.'},
+  {side:'you',name:'Ironbark',value:buffs.ironbark,turns:null,detail:'Reduces the next incoming hit by '+buffs.ironbark+' before Guard.'},
   {side:'you',name:'Overdrive',value:overdrive?1:0,turns:null,detail:'Doubles the next colored match once.'},
   {side:'you',name:'Earthbind',value:pinTurns,turns:pinTurns,detail:'The pinned column refills in place through the next enemy action.'},
   {side:'enemy',name:'Bleed',value:enemyEffects.bleed,turns:enemyEffects.bleed,detail:'Takes 2 damage after each enemy action.'},
@@ -885,7 +887,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
+ clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0,laststand:0,ironbark:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;combatConsumables=Object.fromEntries(inventoryItems.filter(v=>v.kind==='consumable'&&v.qty>0).map(v=>[v.id,v.qty]));

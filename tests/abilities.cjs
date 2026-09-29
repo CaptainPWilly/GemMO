@@ -85,6 +85,8 @@ assert(src.includes("openLoadoutScreen('sack','world')")&&src.includes("openLoad
 assert(html.includes('class="equipmentHero"')&&html.includes('id="equipmentSelection"'),'Equipment screen uses the polished loadout structure');
 assert(html.includes('id="inventoryFilter"')&&html.includes('id="inventorySort"')&&src.includes('function inventoryEntry(record)'),'Inventory is a unified sortable collection');
 assert(content.includes("const CONSUMABLES=[")&&html.includes('id="combatItemsPanel"')&&src.includes("accountRequest('/v1/matches/consume'"),'one-shot combat consumables are exposed end-to-end');
+assert(content.includes("name:'Last-Breath Draught'")&&content.includes("kind:'ironbark'")&&!content.includes("name:'Minor Healing Draught'"),'consumables avoid direct Heal/Guard duplication');
+assert(content.includes('"item":"Lifebloom Sigil"')&&content.includes('"item":"Mender\'s Rune"')&&html.includes('The gem is the focus; the ability is the spell.'),'healing gems are framed as reusable spells/foci');
 assert(src.includes("const GEAR_SLOT_ICON=")&&src.includes("shopGearCatalog")&&src.includes("shopGearGrid"),'Equipment and Outfitter use slot-aware compact UI');
 assert(styles.includes('.equipmentHero')&&styles.includes('.gearCardAction')&&styles.includes('.shopGearGrid'),'Equipment and Outfitter compact styling is present');
 assert(html.includes('class="combatant playerSide"')&&html.includes('class="right combatant enemySide"'),'combat header names explicit player and enemy sides');
