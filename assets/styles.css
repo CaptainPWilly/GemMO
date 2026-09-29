@@ -24,6 +24,12 @@
   --surface-raised:#1b1c17;
   --text-bump:1.5px;
 }
+
+/* Enemy intent occupies one compact line on every combat layout. */
+.enemyIntent{min-width:0;min-height:23px;padding:3px 9px;border:1px solid #5c4b32;border-radius:6px;background:#1b1b17;color:#dfc89a;text-align:center;font-size:calc(10px + var(--text-bump));font-weight:750;line-height:1.3;overflow-wrap:anywhere}
+.enemyIntent[data-state="ready"]{border-color:#a95b4e;background:#30201d;color:#ffcfb5}
+.enemyIntent[data-state="blocked"]{border-color:#5a8b80;background:#182927;color:#b6e8d9}
+@media(max-width:699px){.game .enemyIntent{font-size:calc(8px + var(--text-bump));min-height:20px;padding:2px 6px}}
 .app.text-normal{--text-bump:0px}
 .app.text-large{--text-bump:1.5px}
 .app.text-xl{--text-bump:5px}
@@ -738,15 +744,15 @@ html,body{background:#060705;color:var(--text)}
   .game{padding:calc(16px + env(safe-area-inset-top)) 22px calc(16px + env(safe-area-inset-bottom));gap:8px}
   .top{width:min(100%,700px);align-self:center;padding:14px 16px;min-height:78px}
   .boardShell{width:min(100%,620px,calc(100dvh - 430px));align-self:center}
-  #turnBadge,#statusTags,.status,#reservoirs,.slots,.effectsBtn,.foot{width:min(100%,620px);align-self:center}
+  #turnBadge,#enemyIntent,#statusTags,.status,#reservoirs,.slots,.effectsBtn,.foot{width:min(100%,620px);align-self:center}
   .turnBadge{font-size:calc(13px + var(--text-bump))}.statusTag{font-size:calc(9px + var(--text-bump));padding:5px 8px}.slots{gap:7px}.slot{height:118px;padding:9px 5px}.slotName{font-size:calc(12px + var(--text-bump))}.effect{font-size:calc(8px + var(--text-bump))}.charge{font-size:calc(10px + var(--text-bump))}
 }
 @media (min-width:700px) and (orientation:landscape){
   .app{width:min(100vw,1180px)}
-  .game{display:grid;grid-template-columns:minmax(380px,min(68dvh,58vw,620px)) minmax(310px,1fr);grid-template-rows:auto auto auto minmax(42px,1fr) auto auto auto auto;grid-template-areas:"top top" "board turn" "board tags" "board status" "board reservoirs" "board slots" "board equip" "board foot";column-gap:20px;row-gap:7px;padding:calc(14px + env(safe-area-inset-top)) 20px calc(14px + env(safe-area-inset-bottom))}
+  .game{display:grid;grid-template-columns:minmax(380px,min(68dvh,58vw,620px)) minmax(310px,1fr);grid-template-rows:auto auto auto auto minmax(42px,1fr) auto auto auto auto;grid-template-areas:"top top" "board turn" "board intent" "board tags" "board status" "board reservoirs" "board slots" "board equip" "board foot";column-gap:20px;row-gap:7px;padding:calc(14px + env(safe-area-inset-top)) 20px calc(14px + env(safe-area-inset-bottom))}
   .top{grid-area:top;min-height:70px;padding:10px 18px}.boardShell{grid-area:board;width:100%;max-width:none;align-self:center}
-  #turnBadge{grid-area:turn}#statusTags{grid-area:tags}.status{grid-area:status}.reservoirs{grid-area:reservoirs}.slots{grid-area:slots}.effectsBtn{grid-area:equip}.foot{grid-area:foot}
-  #turnBadge,#statusTags,.status,.reservoirs,.slots,.effectsBtn,.foot{width:auto;align-self:stretch}.status{min-height:44px;align-self:start}.resource{flex-wrap:wrap;row-gap:4px}.slots{margin-top:0;gap:6px}.slot{height:clamp(88px,14dvh,112px)}
+  #turnBadge{grid-area:turn}#enemyIntent{grid-area:intent}#statusTags{grid-area:tags}.status{grid-area:status}.reservoirs{grid-area:reservoirs}.slots{grid-area:slots}.effectsBtn{grid-area:equip}.foot{grid-area:foot}
+  #turnBadge,#enemyIntent,#statusTags,.status,.reservoirs,.slots,.effectsBtn,.foot{width:auto;align-self:stretch}.status{min-height:44px;align-self:start}.resource{flex-wrap:wrap;row-gap:4px}.slots{margin-top:0;gap:6px}.slot{height:clamp(88px,14dvh,112px)}
   #leaveFight{top:calc(18px + env(safe-area-inset-top));left:24px}.combatOverlay{left:50%;right:auto;width:min(760px,88vw);transform:translateX(-50%)}
 }
 @media(max-width:390px){
@@ -1051,8 +1057,8 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 @media (min-width:700px) and (max-height:500px) and (pointer:coarse){
   .game{
     grid-template-columns:minmax(250px,48dvh) minmax(280px,1fr);
-    grid-template-rows:auto auto minmax(0,1fr) auto auto;
-    grid-template-areas:"top top" "board turn" "board status" "board slots" "board equip";
+    grid-template-rows:auto auto auto minmax(0,1fr) auto auto;
+    grid-template-areas:"top top" "board turn" "board intent" "board status" "board slots" "board equip";
     column-gap:12px;row-gap:4px;
     padding:calc(5px + env(safe-area-inset-top)) 10px calc(5px + env(safe-area-inset-bottom));
   }

@@ -104,7 +104,8 @@ const WORLD_NODES=Object.freeze({
   crossroads:{id:'crossroads',name:'Crossroads',kind:'road',neighbors:['camp','shrine','rat']},
   shrine:{id:'shrine',name:'Shrine',kind:'landmark',neighbors:['crossroads']},
   rat:{id:'rat',name:'Rat',kind:'encounter',encounter:'rat',neighbors:['crossroads','bandit-pass']},
-  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat']}
+  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate']},
+  'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']}
 });
 const SHOP_CATALOG=Object.freeze({
   'gem-shop':Object.freeze({

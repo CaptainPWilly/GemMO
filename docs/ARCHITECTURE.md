@@ -57,13 +57,13 @@ A browser request cannot directly set profile wealth/progression.
 
 ### Combat authority
 
-**Rat and Bandit are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
+**Rat, Bandit, and Road Sentinel are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
 
 The browser still renders and simulates the live fight for responsiveness. Its claimed HP, enemy death, Gold, and XP are not trusted at settlement; replay output decides the accepted result.
 
 Cascade-anchor charging is also replay-authoritative. The colored types present in Combo 1 become anchors; each later cascade adds its depth as extra core value (+1 on Combo 2, +2 on Combo 3, etc.). The bonus applies symmetrically to both fighters and does not retrigger one-per-match ability procs such as attunement bonuses.
 
-The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat and Bandit tickets use `replay-v1` regardless of local SQLite, file-backed SQLite, or Turso storage.
+The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat, Bandit, and Sentinel tickets use `replay-v1` regardless of local SQLite, file-backed SQLite, or Turso storage.
 
 Replay verification is an important trust boundary, but it is still after-the-fact verification rather than server-owned live action processing. A future multiplayer/PvP boundary can move intent processing live if latency and operating cost justify it.
 
@@ -86,7 +86,7 @@ The September 26, 2026 fresh-start release keeps user credentials and login sess
 
 The migration clears inventory, Sack slots, equipment, starter choice, world clears, open/settled matches, Gold and XP, then returns every account to Camp with an empty Sack. The migration records itself in `app_migrations`; normal restarts and redeploys do not repeat it.
 
-After the reset, the only starter choices are Red Dagger, Yellow Sling, and Blue Crystal Wand. All three starter abilities deal damage.
+Current new and reset accounts receive an Iron Dagger in the first Sack slot; starter selection has been removed in a later release.
 
 ## Authentication
 
@@ -110,13 +110,13 @@ Current progression:
 ```text
                  Shrine
                    |
-Camp ─ Crossroads ─ Rat ─ Bandit
+Camp ─ Crossroads ─ Rat ─ Bandit ─ Sentinel
  │
  ├─ Gem Shop
  └─ Item Shop
 ```
 
-Bandit is hidden/locked until Rat is cleared.
+Bandit is hidden/locked until Rat is cleared. The Road Sentinel is hidden/locked until Bandit is cleared.
 
 ## Story and quest progression
 

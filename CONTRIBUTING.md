@@ -152,7 +152,7 @@ This avoids deploying a newer untested SHA by accident.
 - Do not make browser/localStorage data authoritative for Gold, XP, ownership, world progress, equipment, quest completion, or quest rewards.
 - Keep server-side ownership/slot/world/shop validation.
 - Preserve idempotent reward settlement.
-- Rat and Bandit victories are replay-verified, but do not call combat fully anti-cheat: the browser still runs the responsive live simulation and the server verifies the transcript after the fight rather than owning every action live.
+- Rat, Bandit, and Sentinel victories are replay-verified, but do not call combat fully anti-cheat: the browser still runs the responsive live simulation and the server verifies the transcript after the fight rather than owning every action live.
 - Production storage must report `provider: turso` and `persistent: true`.
 - If `/health` reports local SQLite on Render, persistence is misconfigured.
 

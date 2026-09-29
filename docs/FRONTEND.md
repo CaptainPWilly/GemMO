@@ -111,4 +111,4 @@ Structural assertions also ensure:
 
 The browser is responsible for presentation, input, and responsive local simulation. The server/database remain authoritative for accounts, inventory, Sack ownership, equipment, world progress, purchases, match identity, and persistent rewards.
 
-Rat and Bandit victories are replay-verified from server-issued seeds and server-owned loadout snapshots. The remaining trust upgrade is architectural rather than encounter-specific: replay is after-the-fact verification, not live server-owned intent processing.
+Rat, Bandit, and Road Sentinel victories are replay-verified from server-issued seeds and server-owned loadout snapshots. The Sentinel's Siphon chooses the fullest player reservoir using the shared combat rule. The intent strip shows ready abilities and the nearest charging ability; the board can change before the enemy acts, so charging text is a threat cue rather than a promised move. The remaining trust upgrade is architectural rather than encounter-specific: replay is after-the-fact verification, not live server-owned intent processing.
