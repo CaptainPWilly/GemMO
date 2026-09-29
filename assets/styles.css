@@ -1207,7 +1207,7 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 
 
 /* Professional UI language pass: symbols carry repeated concepts; text carries meaning. */
-:root{
+.app{
   --chrome:#10110e;
   --chrome2:#191a15;
   --chrome3:#232118;
