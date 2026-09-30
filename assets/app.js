@@ -627,7 +627,7 @@ function refreshWorldHud(){
  const progress=xpProgress(account?.profile?.xp||0),skillPoints=account?.skills?.availablePoints??0,objective=worldObjectiveData(),xpPct=progress.required?Math.max(0,Math.min(100,progress.current/progress.required*100)):100;
  $('worldGold').textContent=String(account?.profile?.gold||0);
  $('worldLevel').textContent='LV '+progress.level+' · XP '+progress.current+'/'+progress.required;
- $('worldPlayerName').textContent=(account?.user?.username||'ADVENTURER').toUpperCase();
+ $('worldPlayerName').textContent=(account?.character?.name||account?.user?.username||'ADVENTURER').toUpperCase();
  $('worldPlayerStats').textContent='♥ '+playerMaxHP()+' · ⚔ '+matchPower('red')+' · ◈ '+matchPower('blue');
  $('worldXpFill').style.width=xpPct+'%';$('worldSkillPoints').textContent='✦ '+skillPoints;
  $('worldObjectiveTitle').textContent=objective.title;$('worldObjectiveText').textContent=objective.text;$('worldObjectiveBtn').dataset.target=objective.target||'';$('worldObjectiveBtn').dataset.state=objective.state;
@@ -755,7 +755,7 @@ async function travelWorld(nodeId){
   if(travelError){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel stopped: '+travelError.message.replaceAll('_',' ')}
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
-function enterWorld(){selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
+function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
 function drawSkills(){
  if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??Math.max(0,progress.level-pointsSpent(purchased));
  $('skillPoints').textContent='✦ '+points;$('skillLevel').textContent='LV '+progress.level;$('skillXP').textContent='XP '+progress.current+'/'+progress.required;
@@ -852,6 +852,7 @@ function animateScreenChange(previous,next){
 }
 function showScreen(next){
  clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';
+ if(account?.needsCharacterName&&!['character','account','splash','settings'].includes(next))next='character';
  const previous=screen;screen=next;
  document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';
  if(next==='sack'){markWorldSeen('sack');drawSack()}if(next==='inventory'){markWorldSeen('inventory');drawInventory()}if(next==='world'){refreshWorldHud();requestAnimationFrame(drawWorld);setTimeout(maybeStartWorldCutscene,0)}if(next==='shop')drawShop();if(next!=='world'){$('worldEffectsPanel').hidden=true;$('worldQuestPanel').hidden=true}
@@ -969,6 +970,11 @@ function startFight(){
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
+$('characterForm').onsubmit=async event=>{event.preventDefault();const button=$('characterSubmit');if(button.disabled)return;button.disabled=true;$('characterStatus').textContent='Registering…';try{const data=await accountRequest('/v1/account/character',{method:'POST',body:{name:$('characterName').value}});applyAccount(data.account);$('characterStatus').textContent='';enterWorld()}catch(error){$('characterStatus').textContent=({invalid_character_name:'Use 3–20 characters, starting with a letter.',character_name_unavailable:'That name is already taken. Choose another.',character_already_registered:'Your character already has a name.'})[error.message]||'Could not register. Please try again.'}finally{button.disabled=false}};
+$('characterLogout').onclick=()=>void logoutAccount().then(()=>showScreen('account'));
+let leaderboardRequest=0;
+$('worldLeaderboard').onclick=async()=>{showScreen('leaderboard');const request=++leaderboardRequest;$('leaderboardStatus').textContent='Loading rankings…';$('leaderboardList').replaceChildren();$('leaderboardYou').textContent='';try{const data=await accountRequest('/v1/leaderboard');if(request!==leaderboardRequest||screen!=='leaderboard')return;$('leaderboardStatus').textContent=data.entries.length?'':'No characters ranked yet.';for(const entry of data.entries){const row=document.createElement('li');row.className='leaderboardRow'+(entry.isYou?' isYou':'');const rank=document.createElement('span'),name=document.createElement('strong'),stats=document.createElement('span');rank.textContent='#'+entry.rank;name.textContent=entry.name+(entry.isYou?' · YOU':'');stats.textContent='LV '+entry.level+' · '+entry.xp+' XP';row.append(rank,name,stats);$('leaderboardList').appendChild(row)}if(data.you)$('leaderboardYou').textContent='YOUR RANK #'+data.you.rank+' · LV '+data.you.level}catch{if(screen==='leaderboard')$('leaderboardStatus').textContent='Could not load rankings. Reopen to try again.'}};
+$('leaderboardBack').onclick=()=>{leaderboardRequest++;enterWorld()};
 $('enterBtn').onclick=async()=>{if(account){enterWorld();return}if(accountToken&&await refreshAccount()){enterWorld();return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
 $('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
