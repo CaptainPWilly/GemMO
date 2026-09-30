@@ -56,8 +56,8 @@ function gearStats(loadout=equipment){
 }
 function gearBonusText(g){
  if(!g)return 'No bonus';const parts=[];if(g.hp)parts.push('+'+g.hp+' MAX HP');if(g.guard)parts.push('+'+g.guard+' START GUARD');
- for(const color of ['red','blue','green','yellow','purple']){if(g.caps?.[color])parts.push('+'+g.caps[color]+' '+color.toUpperCase()+' CAP');if(g.chargeGain?.[color])parts.push('✦ +'+g.chargeGain[color]+' '+color.toUpperCase()+' / MATCH')}
- if(g.allCap)parts.push('+'+g.allCap+' ALL CAPS');return parts.join(' · ')||'No bonus';
+ for(const color of ['red','blue','green','yellow','purple']){if(g.caps?.[color])parts.push('+'+g.caps[color]+' '+color.toUpperCase()+' MAX CHARGE');if(g.chargeGain?.[color])parts.push('✦ +'+g.chargeGain[color]+' '+color.toUpperCase()+' CHARGE / MATCH')}
+ if(g.allCap)parts.push('+'+g.allCap+' MAX CHARGE · ALL COLORS');if(g.weaponGemSlots)parts.push('+'+g.weaponGemSlots+' WEAPON SLOT'+(g.weaponGemSlots===1?'':'S'));return parts.join(' · ')||'No bonus';
 }
 const GEAR_SLOT_ICON={head:'◒',chest:'▣',hands:'✦',legs:'Ⅱ',feet:'⌁',necklace:'◇',ring:'○'};
 function gearSlotIcon(type){return GEAR_SLOT_ICON[type]||'▣'}
@@ -350,6 +350,7 @@ function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pH
 async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
  try{
+  if(!await syncAccountLoadout())throw new Error('loadout_not_synced');
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
   applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
@@ -654,22 +655,28 @@ function applyAccount(next){
 }
 function applyTextSize(){const app=document.querySelector('.app');if(!app)return;for(const cls of ['text-normal','text-large','text-xl'])app.classList.remove(cls);app.classList.add('text-'+textSize)}
 function saveDeviceSettings(){try{localStorage.setItem('gemmo.motionOff',String(motionOff));localStorage.setItem('gemmo.hintDelay',String(hintDelay));localStorage.setItem('gemmo.textSize',textSize);localStorage.setItem('gemmo.apiBase',apiBase)}catch{}}
+let loadoutSyncPromise=null;
+function loadoutSyncStatus(message){$('sackSaveStatus').textContent=message;$('inventorySaveStatus').textContent=message}
 function scheduleAccountSync(){
- if(!accountToken||!account||!sackIsValid())return;
+ if(!accountToken||!account||!sackIsValid())return;loadoutSyncStatus('Saving…');
  clearTimeout(accountSyncTimer);accountSyncTimer=setTimeout(()=>void syncAccountLoadout(),250);
 }
-async function syncAccountLoadout(){
- if(!accountToken||!account||!sackIsValid())return;
- const signature=JSON.stringify({sack,equipment});if(signature===lastAccountSync)return;
- try{
-  await accountRequest('/v1/account/sack',{method:'PUT',body:{sack}});
-  const data=await accountRequest('/v1/account/equipment',{method:'PUT',body:{equipment}});
-  account=data.account||account;lastAccountSync=signature;$('accountStatus').textContent='Account loadout synced.';
- }catch(error){
-  if(error.status===401){clearAccountSession();$('accountStatus').textContent='Session expired. Log in again.'}
-  else $('accountStatus').textContent='Sync failed: '+error.message;
- }
+function syncAccountLoadout(){
+ if(loadoutSyncPromise)return loadoutSyncPromise;
+ loadoutSyncPromise=(async()=>{
+  try{
+   while(accountToken&&account&&sackIsValid()){
+    const desired={sack:sack.slice(),equipment:{...equipment}},signature=JSON.stringify(desired),token=accountToken;if(signature===lastAccountSync)return true;
+    loadoutSyncStatus('Saving…');await accountRequest('/v1/account/sack',{method:'PUT',body:{sack:desired.sack}});
+    if(accountToken!==token)return false;
+    const data=await accountRequest('/v1/account/equipment',{method:'PUT',body:{equipment:desired.equipment}});if(accountToken!==token)return false;
+    account=data.account||account;lastAccountSync=signature;loadoutSyncStatus('Saved');$('accountStatus').textContent='Account loadout synced.';
+   }
+   return !accountToken;
+  }catch(error){loadoutSyncStatus('Not saved · '+error.message.replaceAll('_',' '));if(error.status===401){clearAccountSession();$('accountStatus').textContent='Session expired. Log in again.'}else $('accountStatus').textContent='Sync failed: '+error.message;return false}
+ })().finally(()=>{loadoutSyncPromise=null});return loadoutSyncPromise;
 }
+
 function worldIso(x,y,z,canvas){
  const tw=58*worldCamera.zoom,th=29*worldCamera.zoom,zh=15*worldCamera.zoom;
  return {x:canvas.clientWidth/2+(x-y)*tw/2+worldCamera.panX,y:92+(x+y)*th/2-z*zh+worldCamera.panY};
@@ -762,7 +769,7 @@ async function travelWorld(nodeId){
   if(travelError){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel stopped: '+travelError.message.replaceAll('_',' ')}
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
-function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
+function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}if(accountToken&&JSON.stringify({sack,equipment})!==lastAccountSync){void syncAccountLoadout().then(ok=>{if(ok&&account)enterWorld()});return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
 function drawSkills(){
  if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??Math.max(0,progress.level-pointsSpent(purchased));
  $('skillPoints').textContent='✦ '+points;$('skillLevel').textContent='LV '+progress.level;$('skillXP').textContent='XP '+progress.current+'/'+progress.required;
@@ -794,11 +801,20 @@ function drawShop(){
  }
  document.querySelectorAll('.shopItem:not(:disabled)').forEach(b=>b.onclick=()=>void buyShopItemClient(b.dataset.buy));
 }
-async function buyShopItemClient(itemId){
- if(!account||!currentShop)return;$('shopStatus').textContent='Buying…';
- try{const data=await accountRequest('/v1/shop/buy',{method:'POST',body:{shopId:currentShop,itemId}});applyAccount(data.account);$('shopStatus').textContent='Purchased.';drawShop()}
- catch(error){$('shopStatus').textContent=error.message.replaceAll('_',' ')}
+let pendingPurchase=null,purchaseBusy=false,purchaseReturnFocus=null;
+function closePurchaseConfirmation(){if(purchaseBusy)return;pendingPurchase=null;const dialog=$('purchaseDialog');if(dialog.open)dialog.close?.();dialog.hidden=true;purchaseReturnFocus?.focus?.()}
+function buyShopItemClient(itemId){
+ const entry=(SHOP_STOCK[currentShop]||[]).find(v=>v.id===itemId),item=shopItemData(itemId);if(!account||!entry||!item||purchaseBusy||account.pendingMatch)return;
+ pendingPurchase={shopId:currentShop,itemId,price:entry.price};purchaseReturnFocus=document.activeElement;$('purchaseName').textContent=item.name;$('purchaseKind').textContent=item.sub;$('purchaseEffects').textContent=item.desc;$('purchasePrice').textContent=entry.price+' GOLD';$('purchaseBalance').textContent='Your balance: '+account.profile.gold+' Gold';$('purchaseStatus').textContent='';$('purchaseConfirm').textContent='BUY · '+entry.price+' GOLD';$('purchaseConfirm').disabled=account.profile.gold<entry.price;if(account.profile.gold<entry.price)$('purchaseStatus').textContent='Not enough Gold.';const dialog=$('purchaseDialog');dialog.hidden=false;if(!dialog.open)dialog.showModal?.();$('purchaseCancel').focus?.();
 }
+async function confirmShopPurchase(){
+ if(purchaseBusy||!pendingPurchase)return;const purchase={...pendingPurchase};if(!account||currentShop!==purchase.shopId||account.profile.gold<purchase.price)return;purchaseBusy=true;$('purchaseConfirm').disabled=$('purchaseCancel').disabled=true;$('purchaseStatus').textContent='Buying…';
+ try{const data=await accountRequest('/v1/shop/buy',{method:'POST',body:{shopId:purchase.shopId,itemId:purchase.itemId}});applyAccount(data.account);$('shopStatus').textContent='Purchased '+shopItemData(purchase.itemId).name+'.';drawShop();purchaseBusy=false;closePurchaseConfirmation()}
+ catch(error){$('purchaseStatus').textContent=error.message.replaceAll('_',' ');$('shopStatus').textContent='Purchase failed.'}
+ finally{purchaseBusy=false;$('purchaseCancel').disabled=false;$('purchaseConfirm').disabled=!pendingPurchase||!account||account.profile.gold<purchase.price}
+}
+$('purchaseConfirm').onclick=()=>void confirmShopPurchase();$('purchaseCancel').onclick=closePurchaseConfirmation;$('purchaseDialog').oncancel=event=>{if(purchaseBusy)event.preventDefault();else closePurchaseConfirmation()};$('purchaseDialog').onclose=()=>{pendingPurchase=null;$('purchaseDialog').hidden=true};
+
 function clearAccountSession(){
  account=null;accountToken=null;lastAccountSync='';sack=Array(5).fill(null);equipment={...DEFAULT_EQUIPMENT};inventory=[];inventoryItems=[];combatConsumables={};worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]};selectedWorldNode='camp';currentShop=null;
  rememberAccountToken(null);drawAccount()
@@ -861,12 +877,27 @@ function showScreen(next){
  clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';
  if(account?.needsCharacterName&&!['character','account','splash','settings'].includes(next))next='character';
  if(account?.pendingMatch&&['world','menu','sack','inventory','shop','skills'].includes(next))next='resume';
+ if(next!=='shop'&&!purchaseBusy)closePurchaseConfirmation();if(next!=='sack'){clearSackDrag();selectedSackGem=null}
  const previous=screen;screen=next;
  document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';
  if(next==='sack'){markWorldSeen('sack');drawSack()}if(next==='inventory'){markWorldSeen('inventory');drawInventory()}if(next==='world'){refreshWorldHud();requestAnimationFrame(drawWorld);setTimeout(maybeStartWorldCutscene,0)}if(next==='shop')drawShop();if(next!=='world'){$('worldEffectsPanel').hidden=true;$('worldQuestPanel').hidden=true}
  if(next==='account'){drawAccount();void renderCaptcha();if(accountToken&&!account)void refreshAccount()}
  if(next==='menu'){const gs=gearStats();$('playBtn').disabled=!!account&&!sackIsValid();$('sackSummary').textContent=(account?account.inventory.filter(id=>itemById(id)).length+' gems owned · ':'')+sack.filter(Boolean).length+'/5 equipped';$('gearSummary').textContent='LV 1 · '+Object.values(equipment).filter(Boolean).length+'/8 gear · '+playerMaxHP()+' Max HP · '+gs.guard+' Starting Guard'}
  if(previous!==next){const raf=window.requestAnimationFrame||globalThis.requestAnimationFrame;if(raf)raf(()=>animateScreenChange(previous,next));else setTimeout(()=>animateScreenChange(previous,next),0)}save();
+}
+let selectedSackGem=null,sackDrag=null,sackDragScrollTimer=0,suppressSackClickUntil=0;
+function selectSackGem(id){if(!itemById(id)||account&&!account.inventory.includes(id))return;selectedSackGem=selectedSackGem===id?null:id;drawSack()}
+function equipSackGemToSlot(id,slot){
+ if(account?.pendingMatch||!itemById(id)||!Number.isInteger(slot)||slot<0||slot>=5||account&&!account.inventory.includes(id))return false;
+ sack=GEMMO_WEAPON_GEMS.equipGem(sack,slot,id,weaponGemEffects());chosenSlot=slot;selectedSackGem=null;save();drawSack();return true;
+}
+function clearSackDrag(){clearTimeout(sackDragScrollTimer);document.querySelectorAll('.sackDropTarget').forEach(el=>el.classList.remove('sackDropTarget'));if(sackDrag){sackDrag.ghost?.remove();(()=>{try{sackDrag.source.releasePointerCapture?.(sackDrag.pointerId)}catch{}})()}sackDrag=null}
+function sackDragTarget(x,y){return document.elementFromPoint?.(x,y)?.closest?.('.sackSlot[data-index]')||null}
+function scrollSackDrag(){if(!sackDrag?.dragging)return;const page=$('sackPage'),height=window.innerHeight||800;if(sackDrag.y<100)page.scrollTop-=12;else if(sackDrag.y>height-90)page.scrollTop+=12;sackDragScrollTimer=setTimeout(scrollSackDrag,16)}
+function bindSackDrag(card){
+ card.onpointerdown=event=>{if(event.pointerType==='mouse'&&event.button!==0||event.pointerType==='touch'&&!event.target.closest('.sackDragHandle,.itemGem'))return;clearSackDrag();sackDrag={id:card.dataset.item,pointerId:event.pointerId,source:card,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,dragging:false};card.setPointerCapture?.(event.pointerId)};
+ card.onpointermove=event=>{if(!sackDrag||sackDrag.pointerId!==event.pointerId)return;sackDrag.x=event.clientX;sackDrag.y=event.clientY;if(!sackDrag.dragging&&Math.hypot(event.clientX-sackDrag.startX,event.clientY-sackDrag.startY)<8)return;event.preventDefault();if(!sackDrag.dragging){sackDrag.dragging=true;const gem=itemById(sackDrag.id),ghost=document.createElement('div');ghost.className='sackDragGhost';ghost.textContent=gem.item;document.body.appendChild(ghost);sackDrag.ghost=ghost;scrollSackDrag()}sackDrag.ghost.style.left=event.clientX+'px';sackDrag.ghost.style.top=event.clientY+'px';document.querySelectorAll('.sackDropTarget').forEach(el=>el.classList.remove('sackDropTarget'));sackDragTarget(event.clientX,event.clientY)?.classList.add('sackDropTarget')};
+ card.onpointerup=event=>{if(!sackDrag||sackDrag.pointerId!==event.pointerId)return;const drag=sackDrag,target=drag.dragging?sackDragTarget(event.clientX,event.clientY):null;if(drag.dragging){event.preventDefault();suppressSackClickUntil=Date.now()+350}clearSackDrag();if(target&&screen==='sack')equipSackGemToSlot(drag.id,Number(target.dataset.index))};card.onpointercancel=clearSackDrag;
 }
 function drawSack(){
  const ownedGemIds=account?new Set(account.inventory.filter(id=>itemById(id))):null;
@@ -878,18 +909,16 @@ function drawSack(){
   if(!v)return '<button class="equip sackSlot empty '+(chosen?'chosen':'')+'" data-index="'+i+'"><span class="sackSlotNumber">'+(i+1)+'</span><span class="sackPlus">+</span><b>Empty</b></button>';
   return '<button class="equip sackSlot '+(chosen?'chosen':'')+'" data-index="'+i+'" style="--c:var(--'+v.color[0]+')"><span class="sackSlotNumber">'+(i+1)+'</span><span class="cardCost">'+v.cap+'</span><span class="sackGem itemGem '+v.color+'"></span><b>'+v.item+'</b><span>'+(v.gemType==='weapon'?'⚔ WEAPON · ':'')+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+'</span></button>'
  }).join('');
- document.querySelectorAll('.equip').forEach(b=>b.onclick=()=>{chosenSlot=Number(b.dataset.index);drawSack()});
+ document.querySelectorAll('#loadout .sackSlot').forEach(b=>b.onclick=()=>{if(Date.now()<suppressSackClickUntil)return;const slot=Number(b.dataset.index);if(selectedSackGem)equipSackGemToSlot(selectedSackGem,slot);else{chosenSlot=slot;drawSack()}});
  const query=$('itemSearch').value.trim().toLowerCase(),filter=$('colorFilter').value;
  const visible=ownedGems.filter(v=>(filter==='all'||v.color===filter)&&[v.item,v.name,v.desc].join(' ').toLowerCase().includes(query));
  $('collection').innerHTML=visible.map(v=>{
-  const other=sack.findIndex((id,i)=>i!==chosenSlot&&id===v.id),locked=other>=0,equipped=sack[chosenSlot]===v.id;
-  return '<button class="itemCard uiCard '+(equipped?'equipped':'')+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+(v.gemType==='weapon'?'⚔ WEAPON · ':'')+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(equipped?'✓':locked?'#'+(other+1):'+')+'</em></button>'
+  const other=sack.indexOf(v.id),locked=false,equipped=other>=0,picked=selectedSackGem===v.id;
+  return '<button class="itemCard uiCard '+(equipped?'equipped ':'')+(picked?'picked':'')+'" aria-pressed="'+picked+'" data-item="'+v.id+'" style="--c:var(--'+v.color[0]+')" '+(locked?'disabled aria-disabled="true"':'')+'><span class="cardCost">'+v.cap+'</span><span class="itemGem '+v.color+'"></span><small>'+(v.gemType==='weapon'?'⚔ WEAPON · ':'')+v.color.toUpperCase()+(gemMatchStatText(v)?' · '+gemMatchStatText(v):'')+' · '+v.effectLabel+(v.turnCost===0?' · QUICK':'')+'</small><b>'+v.item+'</b><strong>'+v.name+'</strong><p>'+v.desc+'</p><em>'+(picked?'SELECTED':equipped?'SLOT '+(other+1):'SELECT')+'</em><span class="sackDragHandle" title="Drag to a Sack slot" aria-hidden="true">⠿</span></button>'
  }).join('');
- document.querySelectorAll('.itemCard:not(:disabled)').forEach(b=>b.onclick=()=>{
-  const id=b.dataset.item;if(sack.some((equipped,i)=>i!==chosenSlot&&equipped===id))return;
-  sack=GEMMO_WEAPON_GEMS.equipGem(sack,chosenSlot,id,weaponGemEffects());chosenSlot=(chosenSlot+1)%5;save();drawSack()
- });
- $('equipHint').textContent='⚔ '+sack.filter(GEMMO_WEAPON_GEMS.isWeaponGem).length+'/'+GEMMO_WEAPON_GEMS.weaponGemLimit(weaponGemEffects())+' weapons · choosing a weapon replaces the current one · '+(account?'Slot '+(chosenSlot+1)+' selected · '+sack.filter(Boolean).length+'/5 equipped':'Slot '+(chosenSlot+1)+' selected');
+ document.querySelectorAll('#collection .itemCard').forEach(b=>{b.onclick=()=>{if(Date.now()>=suppressSackClickUntil)selectSackGem(b.dataset.item)};bindSackDrag(b)});
+ $('equipHint').textContent=selectedSackGem?'Choose a slot for '+itemById(selectedSackGem).item+'.':'Select a gem, then a slot · or drag its gem icon / ⠿ handle to a slot. One weapon by default.';
+
 }
 function inventoryEntry(record){
  const gear=gearById(record.id);if(gear)return {id:record.id,kind:'gear',name:gear.name,color:'',qty:record.qty,sub:'EQUIPMENT · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),icon:gearSlotIcon(gear.slot),gear};
@@ -1049,7 +1078,7 @@ function endWorldPointer(e,cancel=false){
 }
 $('worldViewport').addEventListener('pointerup',e=>endWorldPointer(e));$('worldViewport').addEventListener('pointercancel',e=>endWorldPointer(e,true));
 window.addEventListener?.('resize',()=>{if(screen==='world')drawWorld()});
-$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('inventoryFilter').onchange=drawInventory;$('inventorySort').onchange=drawInventory;$('emptySlot').onclick=()=>{sack[chosenSlot]=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
+$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('inventoryFilter').onchange=drawInventory;$('inventorySort').onchange=drawInventory;$('emptySlot').onclick=()=>{if(sack[chosenSlot]&&sack.filter(Boolean).length<=1){$('sackSaveStatus').textContent='Keep at least one gem equipped.';return}sack[chosenSlot]=null;selectedSackGem=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
 $('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').value;applyTextSize();saveDeviceSettings()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};

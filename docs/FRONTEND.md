@@ -114,3 +114,9 @@ Structural assertions also ensure:
 The browser is responsible for presentation, input, and responsive local simulation. The server/database remain authoritative for accounts, inventory, Sack ownership, equipment, world progress, purchases, match identity, and persistent rewards.
 
 Rat, Bandit, and Road Sentinel victories are replay-verified from server-issued seeds and server-owned loadout snapshots. The Sentinel's Siphon chooses the fullest player reservoir using the shared combat rule. The intent strip shows ready abilities and the nearest charging ability; the board can change before the enemy acts, so charging text is a threat cue rather than a promised move. The remaining trust upgrade is architectural rather than encounter-specific: replay is after-the-fact verification, not live server-owned intent processing.
+
+## Sack and purchasing controls
+
+Select a collection gem, then activate its destination slot, or drag the gem icon/handle onto the slot (mouse can drag the whole card). Touch scrolling remains available on the rest of each card. Both paths call the same destination-aware equip operation. Moving an equipped gem swaps positions; replacing a weapon places it in the requested slot and moves any displaced regular gem to the former weapon slot where possible. The UI keeps at least one gem equipped and waits for serialized loadout saves before entering the map or starting combat.
+
+Equipment effects stay visible without mobile hiding or clipping in shops and Inventory. Shop activation opens a native confirmation dialog showing effects, price, and balance. Cancel spends nothing; only explicit Buy sends a purchase, with duplicate activation blocked while the request is pending.

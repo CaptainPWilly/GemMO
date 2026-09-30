@@ -30,10 +30,11 @@
 </section>
 <section class="page sackPage uiScreen" id="sackPage" hidden>
   <header class="sackTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◇ SACK</span><span id="sackOwnedCount" class="sackOwnedCount">◇ 0</span></header>
-  <div class="sackHero uiHero"><div><small>BATTLE DECK</small><h1>Your Sack</h1><p>Pick a slot. Pick a gem. Build five.</p></div><div id="sackEquippedCount" class="sackEquippedCount">0/5</div></div>
-  <div class="sackSectionHead uiSectionHead"><b>Equipped</b><span>Tap a slot to edit</span></div>
+  <div class="sackHero uiHero"><div><small>BATTLE DECK</small><h1>Your Sack</h1><p>Select a gem, then its slot. Or drag it into place.</p></div><div id="sackEquippedCount" class="sackEquippedCount">0/5</div></div>
+  <div class="sackSectionHead uiSectionHead"><b>Equipped</b><span>Five slots · one weapon by default</span></div>
   <div id="loadout" aria-label="Equipped Sack"></div>
   <div class="sackEditRow"><p id="equipHint" aria-live="polite"></p><button id="emptySlot" aria-label="Clear selected slot" title="Clear selected slot">× CLEAR</button></div>
+  <p id="sackSaveStatus" class="loadoutSaveStatus" role="status"></p>
   <div class="sackSectionHead uiSectionHead collectionHead"><b>Collection</b><span>Unique gems only</span></div>
   <div class="sackToolbar uiToolbar">
     <input id="itemSearch" type="search" placeholder="Search gems" autocomplete="off" aria-label="Search gems">
@@ -140,6 +141,7 @@
 <button class="unequipGear" id="unequipGear">× UNEQUIP</button>
 <div class="equipmentSectionHead uiSectionHead ownedHead"><div><small>COLLECTION</small><h2>Physical Items</h2></div><span id="inventoryCount"></span></div>
 <div class="inventoryToolbar uiToolbar"><select id="inventoryFilter" aria-label="Inventory type"><option value="all">All Items</option><option value="gear">Equipment</option><option value="consumable">Consumables</option></select><select id="inventorySort" aria-label="Inventory sorting"><option value="type">Sort: Type</option><option value="name">Sort: Name</option><option value="qty">Sort: Quantity</option></select></div>
+<p id="inventorySaveStatus" class="loadoutSaveStatus" role="status"></p>
 <div class="inventoryGrid" id="inventoryGrid"></div>
 </section>
 <section class="page gemologyPage uiScreen" id="gemologyPage" hidden>
@@ -220,6 +222,9 @@
   </div>
 </section>
 <button id="leaveFight" class="chromeIconButton" aria-label="Combat menu" title="Combat menu" hidden>☰</button>
+<dialog id="purchaseDialog" class="purchaseDialog" aria-labelledby="purchaseName" aria-describedby="purchaseEffects" hidden>
+<small id="purchaseKind"></small><h2 id="purchaseName"></h2><p id="purchaseEffects"></p><strong id="purchasePrice"></strong><p id="purchaseBalance"></p><p id="purchaseStatus" role="status"></p><div class="purchaseActions"><button id="purchaseCancel" type="button">CANCEL</button><button id="purchaseConfirm" type="button">BUY</button></div>
+</dialog>
 <div class="game" hidden>
   <div class="top">
     <div class="combatant playerSide"><div class="name">YOU</div><div class="stats" id="pstats">♥ 18 · ◈ 0</div><div class="health" id="phealth" role="progressbar" aria-label="Your health" aria-valuemin="0" aria-valuemax="18"><div class="healthFill" id="pfill"></div></div></div>
@@ -237,7 +242,9 @@
 <section id="effectsDrawer" class="effectsDrawer uiSheet" hidden><header><div><small>✦ LIVE STATE</small><h2>Effects</h2></div><button id="closeEffectsDrawer" class="chromeIconButton" aria-label="Close effects">×</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard uiModal"><h2>Combat Sacks</h2><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Sack ATK × broken</div><div class="line" style="--c:var(--b)"><b></b>Blue — Sack DEF × broken</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>ENEMY</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">← FIGHT</button></div></div>
 <div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p id="resultText"></p><button class="close" id="resultRetry" hidden>↻ SAVE</button><button class="close" id="resultMenu">← WORLD</button></div></div>
+
 </div>
+
 <script src="shared/weapon-gems.js"></script>
 <script src="assets/content.js"></script>
 <script src="shared/encounters.js"></script>
