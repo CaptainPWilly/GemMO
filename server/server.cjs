@@ -1,11 +1,11 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {registerCharacter,levelLeaderboard,createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,startMatch,consumeMatchItem,settleMatch,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
+const {checkpointMatch,openMatch,surrenderMatch,registerCharacter,levelLeaderboard,createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,startMatch,consumeMatchItem,settleMatch,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
-const MAX_BODY=16*1024;
+const MAX_BODY=128*1024;
 
 function defaultDbPath(options={}){
   if(options.dbPath)return options.dbPath;
@@ -96,15 +96,21 @@ async function createGemmoServer(options={}){
       if(req.method==='POST'&&pathname==='/v1/auth/logout'){const token=bearer(req);await revokeSession(db,token);send(req,res,200,{ok:true});return}
       if(req.method==='GET'&&pathname==='/v1/account'){const {user}=await requireUser(req);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/account/character'){const {user}=await requireUser(req),body=await json(req);await registerCharacter(db,user.id,body.name);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
-      if(req.method==='GET'&&pathname==='/v1/leaderboard'){const {user}=await requireUser(req);send(req,res,200,await levelLeaderboard(db,user.id));return}
+      if(req.method==='GET'&&pathname==='/v1/leaderboard'){const {user}=await requireUser(req);send(req,res,200,await levelLeaderboard(db,user.id,url.searchParams.get('metric')||'level'));return}
       if(['POST','PUT'].includes(req.method)&&/^\/v1\/(world|matches|skills|shop|story|account\/(sack|equipment))/.test(pathname)&&pathname!=='/v1/matches/settle'&&pathname!=='/v1/world/complete-encounter'){
         const {user}=await requireUser(req);if(!await db.prepare('SELECT user_id FROM characters WHERE user_id=?').get(user.id)){send(req,res,403,{error:'character_name_required'});return}
+      }
+      if(['POST','PUT'].includes(req.method)&&/^\/v1\/(world\/move|skills|shop|account\/(sack|equipment))/.test(pathname)){
+        const {user}=await requireUser(req);if(await db.prepare('SELECT m.id FROM matches m JOIN match_checkpoints c ON c.match_id=m.id WHERE m.user_id=? AND m.settled_at IS NULL LIMIT 1').get(user.id)){send(req,res,409,{error:'unfinished_match'});return}
       }
       if(req.method==='POST'&&pathname==='/v1/account/starter'){await requireUser(req);send(req,res,410,{error:'starter_selection_removed',message:'Every player starts with an Iron Dagger.'});return}
       if(req.method==='PUT'&&pathname==='/v1/account/sack'){const {user}=await requireUser(req),body=await json(req);await updateSack(db,user.id,body.sack);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/equipment'){const {user}=await requireUser(req),body=await json(req);await updateEquipment(db,user.id,body.equipment);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/move'){const {user}=await requireUser(req),body=await json(req);await moveWorld(db,user.id,body.nodeId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/complete-encounter'){const {user}=await requireUser(req);await audit(db,user.id,'direct_encounter_clear_blocked');send(req,res,403,{error:'encounter_result_required'});return}
+      if(req.method==='GET'&&pathname==='/v1/matches/open'){const {user}=await requireUser(req);send(req,res,200,{match:await openMatch(db,user.id)});return}
+      if(req.method==='POST'&&pathname==='/v1/matches/checkpoint'){const {user}=await requireUser(req),body=await json(req);const match=await checkpointMatch(db,user.id,body.matchId,body.transcript);send(req,res,200,{match});return}
+      if(req.method==='POST'&&pathname==='/v1/matches/surrender'){const {user}=await requireUser(req),body=await json(req);const settlement=await surrenderMatch(db,user.id,body.matchId);send(req,res,200,{settlement,account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/matches/start'){const {user}=await requireUser(req),body=await json(req),match=await startMatch(db,user.id,body.encounterId);send(req,res,201,{match,account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/matches/consume'){const {user}=await requireUser(req),body=await json(req);await consumeMatchItem(db,user.id,body.matchId,body.itemId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/skills/buy'){const {user}=await requireUser(req),body=await json(req);await buySkill(db,user.id,body.skillId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}

@@ -93,12 +93,18 @@ function enemyMoveScore(type){
  if(type==='green')return eHP<ai.woundedBelow?ai.greenWounded:ai.greenHealthy;
  return ai[type]||0;
 }
+let resumedArmedSpec=null,resumedConsumablePaid=false,combatCheckpointQueue=Promise.resolve();
 let board=[],boardBonus=[],selected=null,busy=false,playerTurn=true,freeSwap=false,extraTurn=false,overdrive=false,enemyReload=false,encounterClearSaved=false,encounterSettling=false,activeMatchId=null,activeRewardBudget=null,activeAuthority=null,combatRng=null,combatTranscript=[],matchStartPromise=null,rewardsSettled=false,lossSettlementStarted=false,lastMatchError='',combatPaused=false;
 let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
 function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
-function recordCombatAction(action){if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))combatTranscript.push(action)}
+function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
+function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
+function clearCombatJournal(){try{localStorage.removeItem(combatJournalKey())}catch{}}
+function recordCombatAction(action){if(!['replay-v1','replay-v2'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
+async function flushCombatCheckpoint(){await combatCheckpointQueue;if(activeMatchId&&accountToken)return accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:activeMatchId,transcript:combatTranscript}})}
+
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
 function rollBonus(){return activeAuthority?.mode==='replay-v1'?0:COMBAT_RULES.rollGemBonus(combatRng||Math.random)}
 function rollTile(){return {type:roll(),bonus:rollBonus()}}
@@ -251,6 +257,7 @@ function afterAction(actor,keepTurn=false){
 }
 
 function commitArmedAbility(){
+ if(resumedArmedSpec){const spec=resumedArmedSpec;resumedArmedSpec=null;return spec}
  const index=armedAbilitySlot;if(index<0)return null;const spec=itemById(sack[index]);if(!spec)return null;
  armedAbilitySlot=-1;recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);effectOrigin=center($('slots').children[index]);
  announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.',spec.color);effectOrigin=null;return spec;
@@ -263,11 +270,11 @@ function cancelArmedAbility(index){
 async function applyTarget(p){
  const mode=targetMode,keepTurn=targetKeepsTurn;
  if(mode==='consumable_break'){
-  const item=consumableById(armedConsumableId);if(!item||!combatConsumableCount(item.id)||!activeMatchId){targetMode=null;armedConsumableId=null;render();return}
+  const item=consumableById(armedConsumableId);if(!item||(!resumedConsumablePaid&&!combatConsumableCount(item.id))||!activeMatchId){targetMode=null;armedConsumableId=null;render();return}
   busy=true;
   try{
-   const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId:item.id}});combatConsumables[item.id]--;applyAccount(data.account);
-   recordCombatAction({t:'consume',itemId:item.id});recordCombatAction({t:'target',x:p.x,y:p.y});beginCombatMove('player','ITEM · '+item.name);const type=board[p.y][p.x];if(type)recordBrokenGems({[type]:1+(boardBonus[p.y]?.[p.x]||0)});
+   if(!resumedConsumablePaid){await flushCombatCheckpoint();const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId:item.id}});combatConsumables[item.id]--;applyAccount(data.account);recordCombatAction({t:'consume',itemId:item.id})}resumedConsumablePaid=false;
+   recordCombatAction({t:'target',x:p.x,y:p.y});beginCombatMove('player','ITEM · '+item.name);const type=board[p.y][p.x];if(type)recordBrokenGems({[type]:1+(boardBonus[p.y]?.[p.x]||0)});
    targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=center(cellAt(p));await popCells([p]);effectOrigin=null;board[p.y][p.x]='';boardBonus[p.y][p.x]=0;await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
    render();const m=findMatches();if(m)await resolve(m,'player',p,0,false,null);else{busy=false;afterAction('player',false)}
   }catch(error){busy=false;targetMode=null;targetKeepsTurn=false;armedConsumableId=null;setLog('Cherry Bomb failed: '+error.message.replaceAll('_',' '),'system');render();touchActivity()}
@@ -338,15 +345,15 @@ function activate(index){
  effectOrigin=null;announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.',spec.color);afterAction('player',spec.turnCost===0);
  checkEnd();render();
 }
-async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=enemyMoveScore(t)*(1+(boardBonus[p.y]?.[p.x]||0))}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}trySwap(best[0],best[1],'enemy')}
+async function enemyMove(){if(screen!=='fight'||combatPaused||playerTurn||busy||pHP<=0||eHP<=0)return;if(enemyEffects.stun){enemyEffects.stun=0;setLog('STUN: '+enemyLabel()+' loses its action.');afterAction('enemy');return}if(enemyUseActive())return;let moves=legalMoves();if(!moves.length){await reshuffleBoard();moves=legalMoves();if(!moves.length){afterAction('enemy');return}}let best=moves[0],bestScore=-Infinity;for(const mv of moves){swap(mv[0],mv[1]);let m=findMatches(),score=0;if(m)for(const p of m.cells){let t=p.type||board[p.y][p.x];score+=enemyMoveScore(t)*(1+(boardBonus[p.y]?.[p.x]||0))}swap(mv[0],mv[1]);if(score>bestScore){bestScore=score;best=mv}}return trySwap(best[0],best[1],'enemy')}
 function tapCell(x,y){touchActivity();if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;let p={x,y};if(targetMode){void applyTarget(p);return}if(!selected){selected=p;render();return}let dist=Math.abs(selected.x-x)+Math.abs(selected.y-y);if(dist===1){let a=selected;selected=null;if(freeSwap){if(!commitArmedAbility()){freeSwap=false;render();return}freeSwap=false;trySwap(a,p,'player',true)}else trySwap(a,p,'player',false)}else{selected=p;render()}}
 async function startMatchTicket(){
  if(!accountToken||!activeEncounter)return null;
  try{
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
+  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
- }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';return null}
+ }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';if(error.message==='unfinished_match'){await refreshAccount();enterWorld()}return null}
 }
 async function ensureMatchTicket(){
  if(activeMatchId)return activeMatchId;
@@ -384,7 +391,7 @@ async function settleVictory(){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
    else throw error;
   }
-  const previousLevel=account?.profile?.level||1;applyAccount(data.account);rewardsSettled=true;encounterClearSaved=worldCleared(activeEncounter);
+  const previousLevel=account?.profile?.level||1;applyAccount(data.account);clearCombatJournal();rewardsSettled=true;encounterClearSaved=worldCleared(activeEncounter);
   const awardedGold=data.settlement?.gold??gold,awardedXp=data.settlement?.xp??xp,newLevel=account?.profile?.level||previousLevel,levelGain=Math.max(0,newLevel-previousLevel),points=account?.skills?.availablePoints||0;
   $('resultText').textContent='+'+awardedGold+' GOLD · +'+awardedXp+' XP'+(levelGain?' · LEVEL '+newLevel+'! · '+points+' SKILL POINT'+(points===1?'':'S'):'')+(firstClear&&worldCleared(activeEncounter)&&unlockText?' · '+unlockText:'');
  }catch(error){$('resultText').textContent='SAVE FAILED · '+saveErrorText(error);$('resultRetry').hidden=false}
@@ -395,7 +402,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;
  try{
   if(!await ensureMatchTicket())return;
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))body.transcript=combatTranscript;await accountRequest('/v1/matches/settle',{method:'POST',body});
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))body.transcript=combatTranscript;const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
  }catch{}
 }
 function checkEnd(){if(pHP<=0||eHP<=0)clearTimeout(hintTimer);if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);const won=eHP<=0;$('resultTitle').textContent=won?'VICTORY':'DEFEAT';$('resultText').textContent=won?'SAVING…':'';$('result').classList.add('show');if(won)void settleVictory();else void settleDefeat();render()}}
@@ -755,7 +762,7 @@ async function travelWorld(nodeId){
   if(travelError){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel stopped: '+travelError.message.replaceAll('_',' ')}
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
-function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
+function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
 function drawSkills(){
  if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??Math.max(0,progress.level-pointsSpent(purchased));
  $('skillPoints').textContent='✦ '+points;$('skillLevel').textContent='LV '+progress.level;$('skillXP').textContent='XP '+progress.current+'/'+progress.required;
@@ -853,6 +860,7 @@ function animateScreenChange(previous,next){
 function showScreen(next){
  clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';
  if(account?.needsCharacterName&&!['character','account','splash','settings'].includes(next))next='character';
+ if(account?.pendingMatch&&['world','menu','sack','inventory','shop','skills'].includes(next))next='resume';
  const previous=screen;screen=next;
  document.querySelectorAll('.page').forEach(p=>p.hidden=p.id!==next+'Page');document.querySelector('.game').hidden=next!=='fight';$('leaveFight').hidden=next!=='fight';
  if(next==='sack'){markWorldSeen('sack');drawSack()}if(next==='inventory'){markWorldSeen('inventory');drawInventory()}if(next==='world'){refreshWorldHud();requestAnimationFrame(drawWorld);setTimeout(maybeStartWorldCutscene,0)}if(next==='shop')drawShop();if(next!=='world'){$('worldEffectsPanel').hidden=true;$('worldQuestPanel').hidden=true}
@@ -904,12 +912,13 @@ function drawCombatItems(){$('combatItemsList').innerHTML=CONSUMABLES.map(item=>
 function openCombatItems(){if(screen!=='fight')return;pauseCombatView();$('combatMenuPanel').hidden=true;$('combatItemsStatus').textContent='';drawCombatItems();$('combatItemsPanel').hidden=false}
 function closeCombatItems(){$('combatItemsPanel').hidden=true;$('combatMenuPanel').hidden=false}
 async function useCombatConsumable(itemId){
+ if(resumedConsumablePaid){setLog('Choose the saved Cherry Bomb target.','system');return}
  const item=consumableById(itemId);if(!item||!playerTurn||busy||freeSwap||!activeMatchId)return;
  if(armedConsumableId===itemId){armedConsumableId=null;targetMode=null;targetKeepsTurn=false;selected=null;$('combatItemsStatus').textContent='Cancelled.';drawCombatItems();render();return}
  if(targetMode||!combatConsumableCount(itemId))return;
  if(item.kind==='break'){armedConsumableId=itemId;targetMode='consumable_break';targetKeepsTurn=false;selected=null;$('combatItemsPanel').hidden=true;combatPaused=false;setLog('CHERRY BOMB: choose one board gem · reopen Consumables to cancel.','system');render();touchActivity();return}
  busy=true;$('combatItemsStatus').textContent='Using…';
- try{const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+item.power);if(item.kind==='guard'){pGuard+=item.power;guardTurns=2}if(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
+ try{await flushCombatCheckpoint();const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId}});combatConsumables[itemId]--;applyAccount(data.account);beginCombatMove('player','ITEM · '+item.name);recordCombatAction({t:'consume',itemId});if(item.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+item.power);if(item.kind==='guard'){pGuard+=item.power;guardTurns=2}if(item.kind==='charge'){const color=lowestReservoir(null);if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+item.power)}setLog('You used '+item.name+'.','system');$('combatItemsPanel').hidden=true;combatPaused=false;busy=false;afterAction('player',false);checkEnd();render()}
  catch(error){busy=false;$('combatItemsStatus').textContent=error.message.replaceAll('_',' ');drawCombatItems()}
 }
 function openCombatMenu(){if(screen!=='fight')return;pauseCombatView();$('combatMenuStatus').textContent='';$('combatMenuPanel').hidden=false}
@@ -958,6 +967,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
+ resumedArmedSpec=null;resumedConsumablePaid=false;
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(!sackIsValid())return;
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
@@ -970,10 +980,30 @@ function startFight(){
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}
+function restoreCombatMatch(match){
+ clearTimeout(enemyTimer);clearTimeout(hintTimer);const s=match.state;activeMatchId=match.matchId;activeEncounter=match.encounterId;activeRewardBudget=match.rewardBudget;activeAuthority=match.authority;combatTranscript=match.transcript;combatRng=makeCombatRng(activeAuthority.seed);for(let i=0;i<s.rngCalls;i++)combatRng();
+ sack=s.sack.slice();equipment={...s.equipment};if(account){account.skills={...account.skills,purchased:s.skills};account.pendingMatch={matchId:match.matchId,encounterId:match.encounterId}}
+ board=s.board;boardBonus=s.bonus;pHP=s.pHP;eHP=s.eHP;pGuard=s.pGuard;eGuard=s.eGuard;gold=s.gold;xp=s.xp;charges=s.charges;ec=s.ec;buffs=s.buffs;enemyEffects=s.enemyEffects;playerTurn=s.playerTurn;freeSwap=s.freeSwap;extraTurn=s.extraTurn;overdrive=s.overdrive;enemyReload=s.enemyReload;targetMode=s.targetMode;targetKeepsTurn=s.targetKeepsTurn;pinColumn=s.pinColumn;pinTurns=s.pinTurns;guardTurns=s.guardTurns;evadeTurns=s.evadeTurns;combatConsumables=s.consumables;actionNumber=s.actions+1;
+ armedAbilitySlot=-1;armedConsumableId=null;resumedArmedSpec=null;resumedConsumablePaid=false;const last=match.transcript[match.transcript.length-1];if((targetMode||freeSwap)&&last?.t==='ability')resumedArmedSpec=itemById(sack[last.slot]);if(targetMode==='consumable_break'&&last?.t==='consume'){armedConsumableId=last.itemId;resumedConsumablePaid=true}
+ selected=null;busy=false;combatPaused=false;rewardsSettled=false;lossSettlementStarted=false;encounterSettling=false;matchStartPromise=null;pendingHP.p=pendingHP.e=0;shownHP.p=pHP;shownHP.e=eHP;damageAnimations=[];effectOrigin=null;renderedTurnOwner='';combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');render();setLog(targetMode||freeSwap?'MATCH RESUMED · choose your pending target.':'MATCH RESUMED','system');persistCombatJournal();checkEnd();touchActivity();
+}
+async function loadSavedMatch(){
+ const data=await accountRequest('/v1/matches/open');let match=data.match;if(!match)return null;
+ let journal=null;try{journal=JSON.parse(localStorage.getItem(combatJournalKey(match.matchId))||'null')}catch{}
+ if(Array.isArray(journal)&&journal.length>match.transcript.length){try{const synced=await accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:match.matchId,transcript:journal}});match=synced.match}catch(error){if(error.status!==409)throw error}}
+ return match;
+}
+async function resolvePendingMatch(surrender){
+ const resume=$('resumeMatchBtn'),quit=$('surrenderMatchBtn');if(resume.disabled)return;resume.disabled=quit.disabled=true;$('resumeStatus').textContent=surrender?'Surrendering…':'Restoring your match…';
+ try{await combatCheckpointQueue;const match=await loadSavedMatch();if(!match){const data=await accountRequest('/v1/account');applyAccount(data.account);enterWorld();return}if(surrender){const data=await accountRequest('/v1/matches/surrender',{method:'POST',body:{matchId:match.matchId}});try{localStorage.removeItem(combatJournalKey(match.matchId))}catch{}applyAccount(data.account);enterWorld()}else restoreCombatMatch(match);$('resumeStatus').textContent=''}catch(error){$('resumeStatus').textContent='Could not restore your match. Your saved fight is safe; try again.'}finally{resume.disabled=quit.disabled=false}
+}
+$('resumeMatchBtn').onclick=()=>void resolvePendingMatch(false);$('surrenderMatchBtn').onclick=()=>void resolvePendingMatch(true);
 $('characterForm').onsubmit=async event=>{event.preventDefault();const button=$('characterSubmit');if(button.disabled)return;button.disabled=true;$('characterStatus').textContent='Registering…';try{const data=await accountRequest('/v1/account/character',{method:'POST',body:{name:$('characterName').value}});applyAccount(data.account);$('characterStatus').textContent='';enterWorld()}catch(error){$('characterStatus').textContent=({invalid_character_name:'Use 3–20 characters, starting with a letter.',character_name_unavailable:'That name is already taken. Choose another.',character_already_registered:'Your character already has a name.'})[error.message]||'Could not register. Please try again.'}finally{button.disabled=false}};
 $('characterLogout').onclick=()=>void logoutAccount().then(()=>showScreen('account'));
 let leaderboardRequest=0;
-$('worldLeaderboard').onclick=async()=>{showScreen('leaderboard');const request=++leaderboardRequest;$('leaderboardStatus').textContent='Loading rankings…';$('leaderboardList').replaceChildren();$('leaderboardYou').textContent='';try{const data=await accountRequest('/v1/leaderboard');if(request!==leaderboardRequest||screen!=='leaderboard')return;$('leaderboardStatus').textContent=data.entries.length?'':'No characters ranked yet.';for(const entry of data.entries){const row=document.createElement('li');row.className='leaderboardRow'+(entry.isYou?' isYou':'');const rank=document.createElement('span'),name=document.createElement('strong'),stats=document.createElement('span');rank.textContent='#'+entry.rank;name.textContent=entry.name+(entry.isYou?' · YOU':'');stats.textContent='LV '+entry.level+' · '+entry.xp+' XP';row.append(rank,name,stats);$('leaderboardList').appendChild(row)}if(data.you)$('leaderboardYou').textContent='YOUR RANK #'+data.you.rank+' · LV '+data.you.level}catch{if(screen==='leaderboard')$('leaderboardStatus').textContent='Could not load rankings. Reopen to try again.'}};
+function leaderboardValue(entry,metric){if(metric==='wins')return entry.wins+' WINS';if(metric==='winrate')return entry.winrate.toFixed(1)+'% · '+entry.wins+'/'+entry.played;if(metric==='cascade')return entry.cascade+' COMBO';if(metric==='gems')return entry.gems+' GEMS';return 'LV '+entry.level+' · '+entry.xp+' XP'}
+async function loadLeaderboard(){const metric=$('leaderboardMetric').value||'level',request=++leaderboardRequest;const help={level:'Ranked by level, then total XP.',winrate:'Wins ÷ finished matches. Surrenders count as losses; pending fights are excluded.',wins:'Total matches won.',cascade:'Your longest chain of player match resolutions in one move. Tracked from this update.',gems:'Total actual gems popped by you, including abilities. +1 gems count as one. Tracked from this update.'};$('leaderboardHelp').textContent=help[metric];$('leaderboardStatus').textContent='Loading rankings…';$('leaderboardList').replaceChildren();$('leaderboardYou').textContent='';try{const data=await accountRequest('/v1/leaderboard?metric='+metric);if(request!==leaderboardRequest||screen!=='leaderboard')return;$('leaderboardStatus').textContent=data.entries.length?'':'No ranked matches yet.';for(const entry of data.entries){const row=document.createElement('li');row.className='leaderboardRow'+(entry.isYou?' isYou':'');const rank=document.createElement('span'),name=document.createElement('strong'),stats=document.createElement('span');rank.textContent='#'+entry.rank;name.textContent=entry.name+(entry.isYou?' · YOU':'');stats.textContent=leaderboardValue(entry,metric);row.append(rank,name,stats);$('leaderboardList').appendChild(row)}if(data.you)$('leaderboardYou').textContent='YOUR RANK #'+data.you.rank+' · '+leaderboardValue(data.you,metric)}catch{if(screen==='leaderboard')$('leaderboardStatus').textContent='Could not load rankings. Reopen to try again.'}}
+$('worldLeaderboard').onclick=()=>{showScreen('leaderboard');void loadLeaderboard()};$('leaderboardMetric').onchange=()=>void loadLeaderboard();
 $('leaderboardBack').onclick=()=>{leaderboardRequest++;enterWorld()};
 $('enterBtn').onclick=async()=>{if(account){enterWorld();return}if(accountToken&&await refreshAccount()){enterWorld();return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();

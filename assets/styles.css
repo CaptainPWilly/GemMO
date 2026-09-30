@@ -1485,3 +1485,5 @@ button:disabled{cursor:default}
 .characterPage form,.leaderboardPage .leaderboardList{width:100%;max-width:720px;margin:16px auto}.characterPage input{width:100%;padding:14px;background:#231f16;color:#f4db9e;border:1px solid #695735;font:inherit;font-size:16px}.leaderboardList{padding:0;list-style:none}.leaderboardRow{display:grid;grid-template-columns:3em minmax(0,1fr) auto;gap:10px;align-items:center;padding:16px 12px;border-bottom:1px solid #695735}.leaderboardRow strong{overflow-wrap:anywhere}.leaderboardRow.isYou{background:#69502c44;border-left:3px solid #f4d58d}.leaderboardRow span:last-child{font-size:12px;color:#d8c49c}@media(max-width:480px){.leaderboardRow{grid-template-columns:2.5em minmax(0,1fr)}.leaderboardRow span:last-child{grid-column:2}}
 
 .worldHud{grid-template-columns:auto auto minmax(0,1fr) auto}.worldTitle{min-width:0}.worldTitle b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.resumePage .accountBox{max-width:640px;margin:24px auto}.leaderboardPage select{margin:12px 0;font-size:16px;min-height:44px}
