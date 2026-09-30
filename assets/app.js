@@ -666,7 +666,7 @@ function syncAccountLoadout(){
  loadoutSyncPromise=(async()=>{
   try{
    while(accountToken&&account&&sackIsValid()){
-    const desired={sack:sack.slice(),equipment:{...equipment}},signature=JSON.stringify(desired),token=accountToken;if(signature===lastAccountSync)return true;
+    const desired={sack:sack.slice(),equipment:{...equipment}},signature=JSON.stringify(desired),token=accountToken;if(signature===lastAccountSync){loadoutSyncStatus('Saved');return true;}
     loadoutSyncStatus('Saving…');await accountRequest('/v1/account/sack',{method:'PUT',body:{sack:desired.sack}});
     if(accountToken!==token)return false;
     const data=await accountRequest('/v1/account/equipment',{method:'PUT',body:{equipment:desired.equipment}});if(accountToken!==token)return false;
