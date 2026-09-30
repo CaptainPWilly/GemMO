@@ -52,6 +52,9 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 
 ## Current gameplay snapshot
 
+- Every account must register a unique character name before entering gameplay. Existing accounts keep their saves and choose a name on their next entry. Names are permanent and separate from login usernames.
+- The map crown opens a top-100 level leaderboard, ordered by earned XP with stable account-order ties; your rank is shown even outside the top 100.
+
 - Account = save file. Durable player state lives in Turso.
 - Login is remembered on the device until logout or server-session expiry. A valid remembered session opens the map after account refresh; fresh login and registration do the same.
 - New and reset accounts start with an Iron Dagger in the Sack. Other colors and gear are earned or bought.

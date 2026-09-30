@@ -136,6 +136,21 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/auth/register',{method:'POST',body:{username:'FiveChar',password:'12345'}});assert.equal(r.status,400,'five-character passwords stay invalid');
     r=await call('/v1/auth/register',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});
     assert.equal(r.status,201);const token=r.data.token;assert(token&&token.length>32);
+    assert.equal(r.data.account.needsCharacterName,true);
+    const gated=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(gated.status,403);assert.equal(gated.data.error,'character_name_required');
+    assert.equal((await call('/v1/account/character',{method:'POST',token,body:{name:'<script>'}})).status,400);
+    const named=await call('/v1/account/character',{method:'POST',token,body:{name:'  Perevan  Wrenault  '}});assert.equal(named.status,200);assert.equal(named.data.account.character.name,'Perevan Wrenault');assert.equal(named.data.account.needsCharacterName,false);
+    assert.equal((await call('/v1/account/character',{method:'POST',token,body:{name:'Perevan Wrenault'}})).status,200,'retry is idempotent');
+    assert.equal((await call('/v1/account/character',{method:'POST',token,body:{name:'Different Name'}})).status,409,'registered identity is permanent');
+    const rival=await call('/v1/auth/register',{method:'POST',body:{username:'RivalHero',password:'abc123'}});assert.equal(rival.status,201);
+    assert.equal((await call('/v1/account/character',{method:'POST',token:rival.data.token,body:{name:'perevan wrenault'}})).status,409,'names are case-insensitively unique');
+    assert.equal((await call('/v1/account/character',{method:'POST',token:rival.data.token,body:{name:'Rival Hero'}})).status,200);
+    const rivalId=rival.data.account.user.id;await db.prepare('UPDATE profiles SET xp=45 WHERE user_id=?').run(rivalId);
+    const leaders=await call('/v1/leaderboard',{token});assert.equal(leaders.status,200);assert.equal(leaders.data.entries[0].name,'Rival Hero');assert.equal(leaders.data.entries[0].level,3);assert.equal(leaders.data.you.rank,2);assert.equal(leaders.data.entries[1].isYou,true);assert(!JSON.stringify(leaders.data).includes('LevelOneHero'),'login identity is private');
+    await db.prepare('UPDATE profiles SET xp=0 WHERE user_id=?').run(rivalId);assert.equal((await call('/v1/leaderboard',{token})).data.you.rank,1,'equal XP uses stable account order');
+    assert.equal((await call('/v1/leaderboard')).status,401);
+    assert.equal((await call('/v1/account',{token})).data.account.character.name,'Perevan Wrenault','character name persists in account snapshots');
+
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.skills.purchased,[]);
     assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);assert.equal(r.data.account.needsStarter,false,'new accounts start ready with the Iron Dagger');
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');

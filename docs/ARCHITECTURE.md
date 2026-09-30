@@ -156,3 +156,7 @@ Persistent gem/equipment validation still lives in `server/catalog.cjs`, and det
 Longer term, a generated shared catalog is desirable, but do not weaken server validation or introduce runtime network dependency just to remove duplication.
 
 `replay-v2` adds deterministic +1 gem value rolls. Existing `replay-v1` match proofs still replay under their original board and scoring rules so a fight opened before deployment can settle. The 1-in-20 spawn rate lives at `BONUS_SPAWN_DENOMINATOR` in `shared/combat-rules.js`. A future rate change must issue a new replay version and retain this v2 rate for unfinished fights.
+
+## Character identity and rankings
+
+`characters` stores one immutable, case-insensitively unique name per account. The table is added idempotently without resetting progression. `POST /v1/account/character` registers a name; account snapshots expose `character` and `needsCharacterName`. Gameplay mutation routes require a registered character; historical match settlement remains available to preserve in-flight rewards. `GET /v1/leaderboard` requires a session and exposes only character names, server-owned XP/derived level, rank, and a self marker. Rankings use XP descending, then account ID ascending, with the top 100 and the caller’s rank returned.

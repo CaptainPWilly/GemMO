@@ -43,6 +43,7 @@
 </section>
 <section class="page worldPage" id="worldPage" hidden>
 <div class="worldHud">
+  <button id="worldLeaderboard" class="chromeIconButton" aria-label="Level leaderboard" title="Leaderboard">♛</button>
   <button id="worldCamp" class="chromeIconButton" aria-label="Menu" title="Menu">☰</button>
   <div class="worldTitle"><small id="worldLevel">LV 1</small><b>BRACKENREACH</b></div>
   <div class="worldGold" aria-label="Gold"><span>◆</span><b id="worldGold">0</b></div>
@@ -93,6 +94,15 @@
 <header class="pageTopbar uiTopbar"><button id="skillsBack" class="chromeIconButton" aria-label="Back to Shrine" title="Shrine">←</button><span class="eyebrow">ATTUNEMENT · SKILL TREE</span></header>
 <div class="skillHero uiHero"><div><small>✦ THE SHRINE</small><h1>Attunement</h1><p>One skill point per level. Invest freely across every branch.</p></div><div class="skillSummary"><b id="skillPoints">✦ 1</b><span id="skillLevel">LV 1</span><small id="skillXP">XP 0/20</small></div></div>
 <div id="skillTree" class="skillTree"></div><p id="skillStatus" class="skillStatus" role="status"></p>
+</section>
+<section class="page characterPage uiScreen" id="characterPage" hidden>
+<div class="pageHero uiHero"><small>YOUR CHARACTER</small><h1>Choose your name</h1><p>This name represents you in the world and on the leaderboard. Choose carefully: your name is permanent.</p></div>
+<form id="characterForm" class="accountBox uiPanel"><label for="characterName">CHARACTER NAME</label><input id="characterName" minlength="3" maxlength="20" autocomplete="off" required aria-describedby="characterHelp"><p id="characterHelp">3–20 characters. Start with a letter; use letters, numbers, spaces, apostrophes or hyphens. Names are unique.</p><button class="accountButton" id="characterSubmit" type="submit">ENTER THE WORLD</button><p id="characterStatus" role="status"></p></form><button id="characterLogout" class="accountButton">LOG OUT</button>
+</section>
+<section class="page leaderboardPage uiScreen" id="leaderboardPage" hidden>
+<header class="pageTopbar uiTopbar"><button id="leaderboardBack" class="chromeIconButton" aria-label="Back">←</button><span class="eyebrow">♛ LEADERBOARD</span></header>
+<div class="pageHero compact uiHero"><small>TOP 100</small><h1>Level leaderboard</h1><p>Ranked by level, then total XP. Equal XP uses account order.</p></div>
+<p id="leaderboardStatus" role="status"></p><p id="leaderboardYou"></p><ol id="leaderboardList" class="leaderboardList"></ol>
 </section>
 <section class="page accountPage uiScreen" id="accountPage" hidden>
 <header class="pageTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◎ PLAYER</span></header>

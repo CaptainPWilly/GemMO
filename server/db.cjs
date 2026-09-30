@@ -11,6 +11,7 @@ const {QUESTS,CUTSCENES,NPCS}=require('../shared/story.js');
 const {skillEffects,levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased,rankMap}=require('../shared/progression.js');
 
 const SCHEMA=[
+  "CREATE TABLE IF NOT EXISTS characters(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,name TEXT NOT NULL,name_norm TEXT NOT NULL UNIQUE,created_at INTEGER NOT NULL) STRICT;",
   'CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY,username_norm TEXT NOT NULL UNIQUE,username_display TEXT NOT NULL,password_hash TEXT NOT NULL,created_at INTEGER NOT NULL,failed_logins INTEGER NOT NULL DEFAULT 0,locked_until INTEGER NOT NULL DEFAULT 0) STRICT;',
   'CREATE TABLE IF NOT EXISTS profiles(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,level INTEGER NOT NULL DEFAULT 1 CHECK(level>=1),xp INTEGER NOT NULL DEFAULT 0 CHECK(xp>=0),gold INTEGER NOT NULL DEFAULT 0 CHECK(gold>=0),created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL) STRICT;',
   "CREATE TABLE IF NOT EXISTS inventory(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,item_id TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('gem','gear','consumable')),qty INTEGER NOT NULL DEFAULT 1 CHECK(qty>=0),PRIMARY KEY(user_id,item_id)) STRICT;",
@@ -181,8 +182,26 @@ async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
   });
 }
 async function userByName(db,usernameNorm){return await db.prepare('SELECT * FROM users WHERE username_norm=?').get(usernameNorm)}
+async function registerCharacter(db,userId,value){
+  const name=typeof value==='string'?value.trim().replace(/\s+/g,' '):'';
+  if(!/^[A-Za-z][A-Za-z0-9 '\-]{2,19}$/.test(name))throw Object.assign(new Error('invalid_character_name'),{status:400});
+  return transaction(db,async tx=>{
+    const existing=await tx.prepare('SELECT name FROM characters WHERE user_id=?').get(userId);
+    if(existing){if(existing.name===name)return;throw Object.assign(new Error('character_already_registered'),{status:409})}
+    if(await tx.prepare('SELECT user_id FROM characters WHERE name_norm=?').get(name.toLowerCase()))throw Object.assign(new Error('character_name_unavailable'),{status:409});
+    try{await tx.prepare('INSERT INTO characters(user_id,name,name_norm,created_at) VALUES(?,?,?,?)').run(userId,name,name.toLowerCase(),Date.now())}catch(error){if(/unique/i.test(error.message))throw Object.assign(new Error('character_name_unavailable'),{status:409});throw error}
+  });
+}
+async function levelLeaderboard(db,userId){
+  const rows=await db.prepare('SELECT c.user_id,c.name,p.xp FROM characters c JOIN profiles p ON p.user_id=c.user_id ORDER BY p.xp DESC,c.user_id ASC LIMIT 100').all();
+  const entries=rows.map((r,i)=>({rank:i+1,name:r.name,level:levelForXp(Number(r.xp)),xp:Number(r.xp),isYou:Number(r.user_id)===Number(userId)}));
+  const me=await db.prepare('SELECT c.name,p.xp FROM characters c JOIN profiles p ON p.user_id=c.user_id WHERE c.user_id=?').get(userId);
+  let you=null;if(me){const higher=await db.prepare('SELECT COUNT(*) n FROM characters c JOIN profiles p ON p.user_id=c.user_id WHERE p.xp>? OR (p.xp=? AND c.user_id<?)').get(me.xp,me.xp,userId);you={rank:Number(higher.n)+1,name:me.name,level:levelForXp(Number(me.xp)),xp:Number(me.xp)}}
+  return {entries,you};
+}
 async function accountSnapshot(db,userId){
   const user=await db.prepare('SELECT id,username_display,created_at FROM users WHERE id=?').get(userId);if(!user)return null;
+  const character=await db.prepare('SELECT name FROM characters WHERE user_id=?').get(userId);
   const [profile,inventoryRows,equipmentRows,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
     db.prepare('SELECT level,xp,gold,created_at,updated_at FROM profiles WHERE user_id=?').get(userId),
     db.prepare('SELECT item_id,kind,qty FROM inventory WHERE user_id=? AND qty>0 ORDER BY kind,item_id').all(userId),
@@ -198,7 +217,7 @@ async function accountSnapshot(db,userId){
   const inventory=inventoryRows.map(r=>r.item_id),inventoryItems=inventoryRows.map(r=>({id:r.item_id,kind:r.kind,qty:Number(r.qty)})),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {character:character?{name:character.name}:null,needsCharacterName:!character,user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -401,4 +420,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,consumeMatchItem,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={registerCharacter,levelLeaderboard,createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,consumeMatchItem,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};
