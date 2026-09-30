@@ -52,8 +52,10 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 
 ## Current gameplay snapshot
 
+- New unfinished fights persist to the account and offer Resume or Surrender on return. A server-verified intent checkpoint restores the board, bonuses, charges, effects, pending targets, consumables, and exact RNG position. The device also journals intents to recover an interrupted upload on that same device. Resumable fights do not expire after 24 hours.
+
 - Every account must register a unique character name before entering gameplay. Existing accounts keep their saves and choose a name on their next entry. Names are permanent and separate from login usernames.
-- The map crown opens a top-100 level leaderboard, ordered by earned XP with stable account-order ties; your rank is shown even outside the top 100.
+- The map crown opens a top-100 leaderboards for level, win rate, matches won, longest cascade, and gems popped; your rank is shown even outside the top 100. Win rate uses settled matches and includes surrenders as losses. Cascade and gem statistics are replay-derived from matches settled after the statistics update.
 
 - Account = save file. Durable player state lives in Turso.
 - Login is remembered on the device until logout or server-session expiry. A valid remembered session opens the map after account refresh; fresh login and registration do the same.

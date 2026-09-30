@@ -673,7 +673,7 @@ const GEM=Object.freeze({
   ]
 });
 function spec(id){const v=GEM[id];return v?{id,color:v[0],cap:v[1],kind:v[2],power:v[3],turnCost:v[4]??1,attack:v[5]||0,defense:v[6]||0}:null}
-function makeRng(seed){let a=Number(seed)>>>0;return()=>{a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296}}
+function makeRng(seed){let a=Number(seed)>>>0,calls=0;const rng=()=>{calls++;a=(a+0x6D2B79F5)|0;let t=Math.imul(a^(a>>>15),1|a);t=(t+Math.imul(t^(t>>>7),61|t))^t;return ((t^(t>>>14))>>>0)/4294967296};rng.calls=()=>calls;return rng}
 function gearStats(equipment={}){
  const out={hp:0,guard:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0},chargeGain:{red:0,blue:0,green:0,yellow:0,purple:0}};
  for(const id of Object.values(equipment||{})){const g=GEAR[id];if(!g)continue;out.hp+=g.hp||0;out.guard+=g.guard||0;for(const c of Object.keys(out.caps)){out.caps[c]+=(g.caps?.[c]||0)+(g.allCap||0);out.chargeGain[c]+=g.chargeGain?.[c]||0}}
@@ -688,7 +688,7 @@ function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consum
   board:[],bonus:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
   charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
   playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
-  buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0
+  buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0,gemsPopped:0,longestCascade:0
  };
  for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(s,color),skill.startCharge[color]||0);
  buildBoard(s);return s;
@@ -758,6 +758,7 @@ function fallColumns(s){
 function resolve(s,matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){
  let current=matches,currentTarget=target;
  while(current){
+  if(actor==='player'){s.gemsPopped+=current.cells.length;s.longestCascade=Math.max(s.longestCascade,cascade+1)}
   const counts={};for(const p of current.cells){const t=p.type||s.board[p.y][p.x];counts[t]=(counts[t]||0)+1+(s.bonus[p.y]?.[p.x]||0)}
   if(!comboRoots)comboRoots=comboChargeTypes(counts);
   let makeWild=null,match4=false;for(const run of current.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild)makeWild=run.cells.find(p=>currentTarget&&p.x===currentTarget.x&&p.y===currentTarget.y)||run.cells[Math.floor(run.cells.length/2)]}
@@ -881,6 +882,7 @@ function target(s,x,y){
   if(mode==='break'||mode==='consumable_break')cells=[{x,y}];
   if(mode==='blast')cells=[[0,0],[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:x+dx,y:y+dy})).filter(q=>q.x>=0&&q.x<W&&q.y>=0&&q.y<H);
   if(mode==='purge'){const chosen=s.board[y][x];for(let yy=0;yy<H;yy++)for(let xx=0;xx<W;xx++)if(s.board[yy][xx]===chosen)cells.push({x:xx,y:yy})}
+  s.gemsPopped+=cells.filter(q=>s.board[q.y][q.x]).length;s.longestCascade=Math.max(s.longestCascade,1);
   const broken={};for(const q of cells){const type=s.board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1}comboRoots=mode==='consumable_break'?null:comboChargeTypes(broken);
   if(mode==='break'){const type=s.board[y][x];if(type)applyColor(s,type,1+(s.bonus[y][x]||0),'player')}
   for(const q of cells){s.board[q.y][q.x]='';s.bonus[q.y][q.x]=0}
@@ -910,11 +912,13 @@ function applyCombatAction(s,action){
  }
  return false;
 }
-function verifyCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],consumables={},rewardBudget,transcript,version='replay-v2'}){
- if(!ENCOUNTERS[encounterId]||!Array.isArray(transcript)||transcript.length>256)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
+function replayCombatTranscript({encounterId='rat',seed,sack,equipment,skills=[],consumables={},rewardBudget,transcript,version='replay-v2'}){
+ if(!ENCOUNTERS[encounterId]||!Array.isArray(transcript)||transcript.length>1024)throw Object.assign(new Error('invalid_combat_proof'),{status:400});
  const s=createCombat({encounterId,seed,sack,equipment,skills,consumables,rewardBudget,version});
  for(let i=0;i<transcript.length;i++){if(s.eHP<=0||s.pHP<=0)throw Object.assign(new Error('invalid_combat_proof'),{status:400});if(!applyCombatAction(s,transcript[i]))throw Object.assign(new Error('invalid_combat_proof'),{status:400})}
- return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP,usedConsumables:{...s.usedConsumables}};
+ return {...s,rngCalls:s.rng.calls(),rng:undefined};
+}
+function verifyCombatTranscript(args){const s=replayCombatTranscript(args);return {won:s.eHP<=0,gold:s.gold,xp:s.xp,actions:s.actions,pHP:s.pHP,eHP:s.eHP,gemsPopped:s.gemsPopped,longestCascade:s.longestCascade,usedConsumables:{...s.usedConsumables}};
 }
 function applyRatAction(s,action){return applyCombatAction(s,action)}
 function verifyRatTranscript(args){return verifyCombatTranscript({...args,encounterId:'rat'})}
@@ -929,4 +933,4 @@ function suggestCombatAction(s){
  return best;
 }
 function suggestRatAction(s){return suggestCombatAction(s)}
-module.exports={GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,enemyMove,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge,applyColor};
+module.exports={replayCombatTranscript,GEM,createCombat,createRatCombat,createBanditCombat,applyCombatAction,applyRatAction,verifyCombatTranscript,verifyRatTranscript,verifyBanditTranscript,suggestCombatAction,suggestRatAction,enemyMove,findMatches,legalMoves,reservoirCap,matchPower,applyCascadeCharge,applyColor};

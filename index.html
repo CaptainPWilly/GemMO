@@ -43,7 +43,7 @@
 </section>
 <section class="page worldPage" id="worldPage" hidden>
 <div class="worldHud">
-  <button id="worldLeaderboard" class="chromeIconButton" aria-label="Level leaderboard" title="Leaderboard">♛</button>
+  <button id="worldLeaderboard" class="chromeIconButton" aria-label="Leaderboards" title="Leaderboard">♛</button>
   <button id="worldCamp" class="chromeIconButton" aria-label="Menu" title="Menu">☰</button>
   <div class="worldTitle"><small id="worldLevel">LV 1</small><b>BRACKENREACH</b></div>
   <div class="worldGold" aria-label="Gold"><span>◆</span><b id="worldGold">0</b></div>
@@ -99,9 +99,14 @@
 <div class="pageHero uiHero"><small>YOUR CHARACTER</small><h1>Choose your name</h1><p>This name represents you in the world and on the leaderboard. Choose carefully: your name is permanent.</p></div>
 <form id="characterForm" class="accountBox uiPanel"><label for="characterName">CHARACTER NAME</label><input id="characterName" minlength="3" maxlength="20" autocomplete="off" required aria-describedby="characterHelp"><p id="characterHelp">3–20 characters. Start with a letter; use letters, numbers, spaces, apostrophes or hyphens. Names are unique.</p><button class="accountButton" id="characterSubmit" type="submit">ENTER THE WORLD</button><p id="characterStatus" role="status"></p></form><button id="characterLogout" class="accountButton">LOG OUT</button>
 </section>
+<section class="page resumePage uiScreen" id="resumePage" hidden>
+<div class="pageHero uiHero"><small>UNFINISHED MATCH</small><h1>Your fight awaits</h1><p id="resumeDescription">Continue your saved fight, or surrender to return to the map. Surrender counts as a loss.</p></div>
+<div class="accountBox uiPanel"><button id="resumeMatchBtn" class="accountButton">▶ RESUME</button><button id="surrenderMatchBtn" class="accountButton">⚑ SURRENDER</button><p id="resumeStatus" role="status"></p></div>
+</section>
 <section class="page leaderboardPage uiScreen" id="leaderboardPage" hidden>
 <header class="pageTopbar uiTopbar"><button id="leaderboardBack" class="chromeIconButton" aria-label="Back">←</button><span class="eyebrow">♛ LEADERBOARD</span></header>
-<div class="pageHero compact uiHero"><small>TOP 100</small><h1>Level leaderboard</h1><p>Ranked by level, then total XP. Equal XP uses account order.</p></div>
+<div class="pageHero compact uiHero"><small>TOP 100</small><h1>Leaderboards</h1><p id="leaderboardHelp">Ranked by level, then total XP.</p></div>
+<label for="leaderboardMetric">RANKING</label><select id="leaderboardMetric"><option value="level">Level</option><option value="winrate">Win rate</option><option value="wins">Matches won</option><option value="cascade">Longest cascade</option><option value="gems">Gems popped</option></select>
 <p id="leaderboardStatus" role="status"></p><p id="leaderboardYou"></p><ol id="leaderboardList" class="leaderboardList"></ol>
 </section>
 <section class="page accountPage uiScreen" id="accountPage" hidden>

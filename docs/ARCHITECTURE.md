@@ -141,7 +141,7 @@ Story presentation is browser-side, but persistent progression is account-backed
 8. Accepted Gold/XP come from replay output, not from the browser's claimed totals. Mismatches are audited.
 9. Rewards and encounter unlocks are committed transactionally only for accepted victories.
 10. Retrying any settled match is idempotent and cannot double-award.
-11. Unsettled tickets older than 24 hours are automatically closed as abandoned losses by server maintenance.
+11. Historical tickets without resumable checkpoints older than 24 hours are closed as abandoned losses. Resumable tickets remain open until finished or surrendered.
 12. Historical proof-less tickets retain a bounded legacy settlement path solely for compatibility; every new supported encounter match carries replay authority.
 13. A verified victory writes the generic `encounter:<id>` clear flag, so future world locks can depend on any encounter without new settlement code.
 
@@ -160,3 +160,11 @@ Longer term, a generated shared catalog is desirable, but do not weaken server v
 ## Character identity and rankings
 
 `characters` stores one immutable, case-insensitively unique name per account. The table is added idempotently without resetting progression. `POST /v1/account/character` registers a name; account snapshots expose `character` and `needsCharacterName`. Gameplay mutation routes require a registered character; historical match settlement remains available to preserve in-flight rewards. `GET /v1/leaderboard` requires a session and exposes only character names, server-owned XP/derived level, rank, and a self marker. Rankings use XP descending, then account ID ascending, with the top 100 and the caller’s rank returned.
+
+## Match recovery and combat statistics
+
+New matches create an empty `match_checkpoints` journal. Player intents are journaled immediately on the device and uploaded serially to `/v1/matches/checkpoint`. The server accepts only legal replay transcripts extending the stored prefix. `/v1/matches/open` reconstructs the fight from immutable seed/loadout/skill/consumable proofs and saved intents, including completed enemy responses. Recovery returns a stable input boundary, rather than replaying an interrupted visual animation. The client restores all combat fields and advances its seeded RNG by the replay's draw count. Same-device recovery can upload an interrupted journal; another device resumes the last server checkpoint.
+
+Consumable debit and its consume intent are recorded together in one transaction. On resume, paid targeting effects continue without a second debit. Only one new resumable match can be open per account; movement, purchases, skills, and loadout changes are blocked until it is resolved. Surrender settles a loss idempotently. Historical pre-update fights lack journals and cannot reconstruct earlier unsaved intents.
+
+`match_stats` stores replay-derived player gem removals and the longest player cascade once per settled match. Enhanced gems count as one actual removal, and enemy removals are excluded. These metrics include verified actions from surrendered/defeated fights. Historical victories and settled losses contribute to win totals and win rate; old fights lack historical cascade/gem transcripts, so those records start with this release. Pending matches never enter win rate. All ranking metrics are selected from a whitelist, show the top 100 plus the caller's rank, and use account order for final ties; win-rate ties first compare wins.

@@ -4,6 +4,6 @@
   "version":"0.3.0",
   "description":"geMMO persistent account authority",
   "engines":{"node":">=22.18.0"},
-  "scripts":{"start":"node server.cjs","test":"node test.cjs"},
+  "scripts":{"start":"node server.cjs","test":"node test.cjs && node match-test.cjs"},
   "dependencies":{"@tursodatabase/serverless":"1.4.0"}
 }
