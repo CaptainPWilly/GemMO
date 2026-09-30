@@ -9,9 +9,15 @@ function weaponGemLimit(effects=[]){return Math.min(5,1+effects.reduce((n,e)=>n+
 function validWeaponGems(sack,effects=[]){return sack.filter(isWeaponGem).length<=weaponGemLimit(effects)}
 function equipGem(sack,slot,id,effects=[]){
  const next=sack.slice();
- if(isWeaponGem(id)&&!isWeaponGem(next[slot])&&next.filter(isWeaponGem).length>=weaponGemLimit(effects))slot=next.findIndex(isWeaponGem);
- next[slot]=id;
- if(isWeaponGem(id)){let excess=next.filter(isWeaponGem).length-weaponGemLimit(effects);for(let i=0;i<next.length&&excess>0;i++)if(i!==slot&&isWeaponGem(next[i])){next[i]=null;excess--}}
+ if(!Number.isInteger(slot)||slot<0||slot>=next.length)return next;
+ const existing=next.indexOf(id);
+ if(existing>=0){[next[slot],next[existing]]=[next[existing],next[slot]];return next}
+ const displaced=next[slot];next[slot]=id;
+ if(isWeaponGem(id)){
+  let excess=next.filter(isWeaponGem).length-weaponGemLimit(effects),preserved=false;
+  for(let i=0;i<next.length&&excess>0;i++)if(i!==slot&&isWeaponGem(next[i])){next[i]=displaced&&!isWeaponGem(displaced)&&!preserved?displaced:null;preserved=true;excess--}
+ }
+
  return next;
 }
 const rules=Object.freeze({WEAPON_GEM_IDS,isWeaponGem,weaponGemLimit,validWeaponGems,equipGem});
