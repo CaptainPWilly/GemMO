@@ -2,7 +2,7 @@
 // geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
 const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
@@ -264,6 +264,26 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     assert.equal(await applyDataMigrations(db),true);
     r=await call('/v1/account',{token:reloginToken});assert.deepEqual(r.data.account.sack,['dagger',null,'shield',null,null]);assert(r.data.account.inventory.includes('knife'));
     assert.equal(await applyDataMigrations(db),false,'weapon migration cannot run twice');
+    // The requested test reset affects only PWilly and runs exactly once.
+    const resetUser=await seedAccount(db,{usernameNorm:'pwilly',usernameDisplay:'PWilly',passwordHash:'preserved-hash'});
+    await registerCharacter(db,resetUser,'Test Captain');
+    await db.prepare('UPDATE profiles SET xp=900,gold=777 WHERE user_id=?').run(resetUser);
+    await db.prepare("UPDATE world_state SET current_node='shrine' WHERE user_id=?").run(resetUser);
+    await db.prepare("INSERT INTO matches(id,user_id,encounter_id,started_at,settled_at,won) VALUES('reset-test',?,'rat',1,2,1)").run(resetUser);
+    await db.prepare("INSERT INTO match_stats(match_id,gems_popped,longest_cascade) VALUES('reset-test',100,5)").run();
+    const untouchedBefore=await accountSnapshot(db,weaponUser.id);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-09-30-pwilly-test-reset-v1'").run();
+    assert.equal(await applyDataMigrations(db),true);
+    const fresh=await accountSnapshot(db,resetUser);
+    assert.equal(fresh.profile.xp,0);assert.equal(fresh.profile.gold,0);assert.equal(fresh.world.currentNode,'camp');
+    assert.deepEqual(fresh.sack,['dagger',null,null,null,null]);assert.deepEqual(fresh.inventory,['dagger']);
+    assert.equal(fresh.character.name,'Test Captain');assert.equal(fresh.user.username,'PWilly');
+    assert.equal((await db.prepare('SELECT password_hash FROM users WHERE id=?').get(resetUser)).password_hash,'preserved-hash');
+    assert.equal((await db.prepare('SELECT COUNT(*) n FROM matches WHERE user_id=?').get(resetUser)).n,0);
+    assert.equal((await db.prepare("SELECT COUNT(*) n FROM match_stats WHERE match_id='reset-test'").get()).n,0);
+    assert.deepEqual(await accountSnapshot(db,weaponUser.id),untouchedBefore);
+    await db.prepare('UPDATE profiles SET gold=12 WHERE user_id=?').run(resetUser);
+    assert.equal(await applyDataMigrations(db),false);assert.equal((await accountSnapshot(db,resetUser)).profile.gold,12);
     await db.prepare('DELETE FROM app_migrations WHERE key=?').run(DATA_RESET_KEY);
     assert.equal(await applyDataMigrations(db),true,'fresh-sacks reset applies once');
     r=await call('/v1/account',{token:reloginToken});assert.equal(r.status,200,'reset preserves login sessions and account credentials');
