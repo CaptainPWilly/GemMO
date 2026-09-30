@@ -193,7 +193,7 @@ async function swapMotion(a,b,reverse=false,startProgress=0){
  const frames=(el,x,y)=>reverse?
   [{transform:'translate3d('+x+'px,'+y+'px,0)'+base(el),filter:'brightness(1.35) drop-shadow(0 0 8px #fff1b5)'},{transform:'translate3d(0,0,0)'+base(el),filter:'brightness(1)'}]:
   [{transform:'translate3d('+(x*startProgress)+'px,'+(y*startProgress)+'px,0)'+base(el),filter:'brightness(1.45) drop-shadow(0 0 9px #fff1b5)'},{transform:'translate3d('+x+'px,'+y+'px,0)'+base(el),filter:'brightness(1.25) drop-shadow(0 0 5px #ffe3a0)'}];
- try{await Promise.all([[ea,dx,dy],[eb,-dx,-dy]].map(([el,x,y])=>animate(el,frames(el,x,y),{duration:Math.max(80,MOTION.swap*(reverse?1:1-startProgress*.55)),easing:'cubic-bezier(.18,.82,.22,1)'})))}finally{ea.classList.remove('movingGem');eb.classList.remove('movingGem')}
+ try{await Promise.all([[ea,dx,dy],[eb,-dx,-dy]].map(([el,x,y])=>animate(el,frames(el,x,y).map(frame=>{if(el.classList.contains('chargedGem'))delete frame.filter;return frame}),{duration:Math.max(80,MOTION.swap*(reverse?1:1-startProgress*.55)),easing:'cubic-bezier(.18,.82,.22,1)'})))}finally{ea.classList.remove('movingGem');eb.classList.remove('movingGem')}
 }
 async function fallColumns(){
  const falling=[];for(let x=0;x<W;x++){if(x===pinColumn&&pinTurns>0){for(let y=0;y<H;y++)if(!board[y][x]){const tile=rollTile();board[y][x]=tile.type;boardBonus[y][x]=tile.bonus}continue}const kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push({type:board[y][x],bonus:boardBonus[y][x]||0,from:y});
