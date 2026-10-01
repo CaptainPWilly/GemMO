@@ -805,15 +805,41 @@ async function travelWorld(nodeId){
  }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
 }
 function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}if(accountToken&&JSON.stringify({sack,equipment})!==lastAccountSync){void syncAccountLoadout().then(ok=>{if(ok&&account)enterWorld()});return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
+let selectedSkillNode='neutral-vitality',skillBuying=false;
+function skillNodeGlyph(node){return node.effect.gain?'✦':node.effect.start?'↯':node.effect.maxHP?'♥':node.effect.startGuard?'◈':node.effect.allCap?'✧':'◇'}
+function drawSkillDetails(){
+ const node=SKILL_BY_ID[selectedSkillNode];if(!node||!account)return;
+ const purchased=account.skills?.purchased||[],rank=skillRank(node.id,purchased),points=account.skills?.availablePoints??availableSkillPointCount(),prereq=requirementMet(node.requires,purchased),maxed=rank>=node.maxRank;
+ $('skillDetailName').textContent=node.name;$('skillDetailEffect').textContent=node.desc;$('skillDetailRank').textContent='RANK '+rank+'/'+node.maxRank;
+ $('skillDetailRequirement').textContent=!prereq?'Learn '+SKILL_BY_ID[node.requires.id].name+' to reach this node.':maxed?'Fully learned.':points<1?'Gain a level to earn another skill point.':'One point here opens the next node.';
+ if(prereq&&!maxed&&points>0&&!SKILL_BRANCHES.some(branch=>branch.nodes.some(next=>next.requires?.id===node.id)))$('skillDetailRequirement').textContent='Spend a point to learn this skill.';
+ const button=$('skillLearn');button.disabled=skillBuying||maxed||!prereq||points<1;button.textContent=skillBuying?'LEARNING…':maxed?'MAX RANK':(rank?'UPGRADE':'LEARN')+' · ✦ 1';
+}
+function availableSkillPointCount(){return Math.max(0,xpProgress(account?.profile?.xp||0).level-pointsSpent(account?.skills?.purchased||[]))}
+function selectSkillNode(id){if(!SKILL_BY_ID[id])return;selectedSkillNode=id;document.querySelectorAll('.skillNode').forEach(button=>{button.classList.remove('selected');button.setAttribute('aria-pressed',String(button.dataset.skill===id));if(button.dataset.skill===id)button.classList.add('selected')});drawSkillDetails()}
 function drawSkills(){
- if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??Math.max(0,progress.level-pointsSpent(purchased));
+ if(!account)return;const progress=xpProgress(account.profile?.xp||0),purchased=account.skills?.purchased||[],points=account.skills?.availablePoints??availableSkillPointCount();
  $('skillPoints').textContent='✦ '+points;$('skillLevel').textContent='LV '+progress.level;$('skillXP').textContent='XP '+progress.current+'/'+progress.required;
- $('skillTree').innerHTML=SKILL_BRANCHES.map(branch=>{const spent=branch.nodes.reduce((sum,node)=>sum+skillRank(node.id,purchased),0),capacity=branch.nodes.reduce((sum,node)=>sum+node.maxRank,0);return '<section class="skillBranch '+branch.id+'"><div class="skillBranchHead"><b>'+branch.label+'</b><small>✦ '+spent+'/'+capacity+'</small></div><div class="skillNodes">'+branch.nodes.map(node=>{const rank=skillRank(node.id,purchased),maxed=rank>=node.maxRank,prereq=requirementMet(node.requires,purchased),locked=!maxed&&(!prereq||points<1),state=maxed?'owned':rank>0?'invested':locked?'locked':'available',type=node.kind==='notable'?'NOTABLE':'RANKED';return '<button class="skillNode uiCard '+state+'" data-skill="'+node.id+'" '+(maxed||locked?'disabled':'')+'><span class="tier">'+node.tier+'</span><span><span class="skillType">'+type+'</span><b>'+node.name+'</b><small>'+node.desc+'</small></span><span class="skillCost">'+(node.maxRank>1?rank+'/'+node.maxRank:maxed?'✓':'✦1')+'</span></button>'}).join('')+'</div></section>'}).join('');
- document.querySelectorAll('.skillNode.available,.skillNode.invested').forEach(btn=>{if(!btn.disabled)btn.onclick=()=>void buySkillClient(btn.dataset.skill)});
+ const positions=Object.fromEntries(SKILL_BRANCHES.flatMap((branch,b)=>branch.nodes.map(node=>[node.id,{x:90+b*180,y:122+(node.tier-1)*122}])));
+ let paths='',nodes='';
+ for(const [b,branch] of SKILL_BRANCHES.entries()){
+  const x=90+b*180,color=branch.id==='neutral'?'#d0b983':'var(--'+branch.id[0]+')';
+  paths+='<path class="skillTreeLink '+(skillRank(branch.nodes[0].id,purchased)?'lit':'')+'" style="--skill:'+color+'" d="M540 40 V58 H'+x+' V94"/>';
+  nodes+='<div class="skillPathLabel" style="left:'+(x-86)+'px;--skill:'+color+'">'+branch.label+'</div>';
+  for(const node of branch.nodes){
+   const pos=positions[node.id],rank=skillRank(node.id,purchased),maxed=rank>=node.maxRank,prereq=requirementMet(node.requires,purchased),state=rank?'invested':prereq&&points>0?'available':'locked';
+   if(node.requires){const from=positions[node.requires.id];paths+='<path class="skillTreeLink '+(prereq?'lit':'')+'" style="--skill:'+color+'" d="M'+from.x+' '+(from.y+28)+' L'+pos.x+' '+(pos.y-28)+'"/>'}
+   const pips=Array.from({length:node.maxRank},(_,i)=>'<i class="'+(i<rank?'filled':'')+'"></i>').join('');
+   nodes+='<button class="skillNode '+state+(maxed?' owned':'')+(selectedSkillNode===node.id?' selected':'')+'" data-skill="'+node.id+'" style="left:'+(pos.x-76)+'px;top:'+(pos.y-28)+'px;--skill:'+color+'" aria-pressed="'+(selectedSkillNode===node.id)+'" aria-label="'+node.name+', rank '+rank+' of '+node.maxRank+(prereq?'':', prerequisite not learned')+'"><span class="skillNodeOrb '+(node.kind==='notable'?'notable':'')+'"><span>'+skillNodeGlyph(node)+'</span></span><b>'+node.name+'</b><span class="skillRankPips" aria-hidden="true">'+pips+'</span></button>';
+  }
+ }
+ const tree=$('skillTree'),scrollLeft=tree.scrollLeft;
+ tree.innerHTML='<div class="skillTreeCanvas"><svg class="skillTreeEdges" viewBox="0 0 1080 580" aria-hidden="true">'+paths+'</svg><div class="skillTreeOrigin" aria-hidden="true">✦</div>'+nodes+'</div>';tree.scrollLeft=scrollLeft;
+ document.querySelectorAll('.skillNode[data-skill]').forEach(button=>button.onclick=()=>selectSkillNode(button.dataset.skill));drawSkillDetails();
 }
 function openSkills(){if(!account||worldState.currentNode!=='shrine')return;$('skillStatus').textContent='';showScreen('skills');drawSkills()}
 async function openWorldSkills(){if(!account||worldTravelRoute)return;if(worldState.currentNode!=='shrine')await travelWorld('shrine');if(worldState.currentNode==='shrine')openSkills()}
-async function buySkillClient(skillId){if(!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}}
+async function buySkillClient(skillId){if(skillBuying||!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;skillBuying=true;drawSkillDetails();$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}finally{skillBuying=false;drawSkillDetails()}}
 function shopItemData(id){const gem=itemById(id);if(gem){const stat=gemMatchStatText(gem);return {id,name:gem.item,kind:'gem',gemType:gem.gemType,sub:(gem.gemType==='weapon'?'⚔ WEAPON · ':'')+(stat?stat+' · ':'')+gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};}const gear=gearById(id);if(gear)return {id,name:gear.name,kind:'gear',sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};const c=consumableById(id);if(c)return {id,name:c.name,kind:'consumable',sub:'ONE-SHOT · COMBAT ITEM',desc:c.desc,color:null,icon:c.icon};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function shopCard(entry,owned){
@@ -1115,7 +1141,7 @@ function endWorldPointer(e,cancel=false){
 }
 $('worldViewport').addEventListener('pointerup',e=>endWorldPointer(e));$('worldViewport').addEventListener('pointercancel',e=>endWorldPointer(e,true));
 window.addEventListener?.('resize',()=>{if(screen==='world')drawWorld()});
-$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('inventoryFilter').onchange=drawInventory;$('inventorySort').onchange=drawInventory;$('emptySlot').onclick=()=>{if(sack[chosenSlot]&&sack.filter(Boolean).length<=1){$('sackSaveStatus').textContent='Keep at least one gem equipped.';return}sack[chosenSlot]=null;selectedSackGem=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
+$('skillLearn').onclick=()=>void buySkillClient(selectedSkillNode);$('colorFilter').onchange=drawSack;$('itemSearch').oninput=drawSack;$('inventoryFilter').onchange=drawInventory;$('inventorySort').onchange=drawInventory;$('emptySlot').onclick=()=>{if(sack[chosenSlot]&&sack.filter(Boolean).length<=1){$('sackSaveStatus').textContent='Keep at least one gem equipped.';return}sack[chosenSlot]=null;selectedSackGem=null;drawSack();save()};$('unequipGear').onclick=()=>{unequipGear(chosenGearSlot);save();drawInventory()};
 $('hintDelay').value=String(hintDelay);$('hintDelay').onchange=()=>{hintDelay=Number($('hintDelay').value);touchActivity();save()};
 $('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').value;applyTextSize();saveDeviceSettings()};
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
