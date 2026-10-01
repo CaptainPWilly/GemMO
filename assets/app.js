@@ -22,6 +22,7 @@ function worldPath(from,to){
 
 const {TYPES,WEIGHTS,ICON,EFFECT_LIBRARY,ITEMS,CONSUMABLES,EQUIPMENT_SLOTS,GEAR}=globalThis.GEMMO_CONTENT;
 const {comboChargeTypes,comboChargeBonus}=COMBAT_RULES;
+const COLOR_BALANCE=globalThis.GEMMO_COLOR_BALANCE;
 const {BRANCHES:SKILL_BRANCHES,SKILL_BY_ID,xpProgress,skillEffects,skillRank,requirementMet,pointsSpent}=PROGRESSION;
 const {CUTSCENES,QUESTS,NPCS,DIALOGUES}=STORY;
 const DEFAULT_EQUIPMENT={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
@@ -64,11 +65,11 @@ function gearSlotIcon(type){return GEAR_SLOT_ICON[type]||'▣'}
 function openLoadoutScreen(next,origin=screen){loadoutReturnScreen=origin==='world'?'world':'menu';showScreen(next)}
 function leaveMenuPage(){if(['sack','inventory'].includes(screen)&&loadoutReturnScreen==='world'){enterWorld();return}showScreen(account?'menu':'splash')}
 function currentSkillIds(){return account?.skills?.purchased||[]}
-function currentSkillEffects(){return skillEffects(currentSkillIds())}
+function currentSkillEffects(){return skillEffects(currentSkillIds(),screen==='fight'?(activeAuthority?.mode||'replay-v4'):'replay-v4')}
 function playerMaxHP(){return 18+gearStats().hp+currentSkillEffects().maxHP}
 function matchPower(color,loadout=sack){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return loadout.reduce((sum,id)=>{const gem=itemById(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function weaponDamage(color,loadout=sack){return GEMMO_WEAPON_GEMS.weaponMatchDamage(loadout,color,itemById)}
-function gemMatchStatText(gem){if(gem?.gemType==='weapon')return 'ATK '+Math.max(1,gem.attack||0)+(gem.defense?' · DEF '+gem.defense:'');return gem?.color==='red'?'ATK '+(gem.attack||0):gem?.color==='blue'?'DEF '+(gem.defense||0):''}
+function gemMatchStatText(gem){if(gem?.gemType==='weapon')return 'ATK '+Math.max(1,gem.attack||0)+(gem.defense?' · DEF '+gem.defense:'');return COLOR_BALANCE.ROLES[gem?.color]||''}
 function canEquipGear(slot,id){
  const def=gearSlotById(slot),g=gearById(id);if(!def||!g||!inventory.includes(id)||def.type!==g.slot)return false;
  return !Object.entries(equipment).some(([other,equipped])=>other!==slot&&equipped===id);
@@ -81,7 +82,10 @@ let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,arm
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
-const itemById=id=>ITEMS.find(i=>i.id===id);
+const combatItemById=id=>{const gem=ITEMS.find(i=>i.id===id);return gem&&activeAuthority?.mode&&activeAuthority.mode!=='replay-v4'?{...gem.legacy,gemType:gem.gemType}:gem};
+const itemById=id=>screen==='fight'?combatItemById(id):ITEMS.find(i=>i.id===id);
+let procsUsed=[];
+function colorRuleState(){return {version:activeAuthority?.mode||'replay-v4',sack,skill:currentSkillEffects(),buffs,procsUsed,charges,ec,pHP,pGuard,guardTurns}}
 function weaponGemEffects(){return [currentSkillEffects(),...Object.values(equipment).map(gearById).filter(Boolean)]}
 function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return GEMMO_WEAPON_GEMS.validWeaponGems(list,weaponGemEffects())&&equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
 function encounterSpec(id=activeEncounter){return ENCOUNTERS[id]||ENCOUNTERS.bandit}
@@ -103,7 +107,7 @@ function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
 function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
 function clearCombatJournal(){try{localStorage.removeItem(combatJournalKey())}catch{}}
-function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
+function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3','replay-v4'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
 async function flushCombatCheckpoint(){await combatCheckpointQueue;if(activeMatchId&&accountToken)return accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:activeMatchId,transcript:combatTranscript}})}
 
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
@@ -114,7 +118,7 @@ function swap(a,b){COMBAT_CORE.swap(board,a,b);COMBAT_CORE.swap(boardBonus,a,b)}
 function findMatches(){return COMBAT_CORE.findMatches(board,TYPES)}
 function reservoirCap(color){const skills=currentSkillEffects();return sack.reduce((sum,id)=>sum+(itemById(id)?.color===color?itemById(id).cap:0),0)+gearStats().caps[color]+skills.allCap+skills.caps[color]}
 function legalMoves(){return COMBAT_CORE.legalMoves(board,TYPES)}
-function damageEnemy(n){if(enemyEffects.mark&&n>0){n+=3;enemyEffects.mark=0;setLog('HUNTER’S MARK: +3 damage.')}let blocked=Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
+function damageEnemy(n,pierceGuard=false){if(enemyEffects.mark&&n>0){n+=3;enemyEffects.mark=0;setLog('HUNTER’S MARK: +3 damage.')}let blocked=pierceGuard?0:Math.min(eGuard,n);eGuard-=blocked;eHP-=n-blocked;damageFlight('e',n-blocked,blocked)}
 function damagePlayer(n){if(buffs.dodge)n=Math.ceil(n/2);let blocked=Math.min(pGuard,n),dealt=n-blocked;pGuard-=blocked;pHP-=dealt;damageFlight('p',dealt,blocked);if(buffs.reflect&&dealt>0){buffs.reflect=0;const reflected=Math.max(1,Math.ceil(dealt/2));damageEnemy(reflected);setLog('REPRISAL: reflected '+reflected+' damage.')}}
 function charge(obj,type,n,cap){obj[type]=Math.min(cap,obj[type]+n)}
 function lowestReservoir(exclude){
@@ -126,11 +130,12 @@ function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(act
  const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&overdrive&&colored?2:1;
  if(colored){const cap=reservoirCap(type),before=charges[type],gearGain=gearStats().chargeGain[type]||0,skillGain=currentSkillEffects().chargeGain[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;charges[type]=Math.min(cap,charges[type]+n*mult+matchGain);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+(matchGain?' · resonance +'+matchGain:'')+' ('+charges[type]+'/'+cap+')')}
  const legacyWeaponRule=['replay-v1','replay-v2'].includes(activeAuthority?.mode);
- const attack=legacyWeaponRule?(type==='red'?matchPower('red'):0):weaponDamage(type);if(attack){const value=n*mult*attack;damageEnemy(value);notes.push(type+' strike '+value+' · ATK '+attack)}
- if(type==='red'&&!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}
- if(type==='blue'){const defense=matchPower('blue'),value=n*mult*defense;pGuard+=value;guardTurns=2;notes.push('Guard +'+value+' · DEF '+defense);if(!comboBonus&&buffs.holdfast){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
- if(type==='green'&&!comboBonus&&buffs.aftergrowth){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
- if(type==='yellow'&&!comboBonus&&buffs.momentum){const target=lowestReservoir('yellow');if(target){const before=charges[target],cap=reservoirCap(target);charges[target]=Math.min(cap,charges[target]+2);notes.push('Momentum: '+target+' +'+(charges[target]-before))}}
+ const colorState=colorRuleState();if(!comboBonus){COLOR_BALANCE.applyColorPerk(colorState,type,n,{lookup:itemById,maxHP:playerMaxHP(),cap:reservoirCap});pHP=colorState.pHP;pGuard=colorState.pGuard;guardTurns=colorState.guardTurns;}
+ const attack=legacyWeaponRule?(type==='red'?matchPower('red'):0):weaponDamage(type);if(attack){const value=n*mult*attack+COLOR_BALANCE.strikeBonus(colorState,attack,comboBonus);damageEnemy(value);notes.push(type+' strike '+value+' · ATK '+attack)}
+ if(colorState.version!=='replay-v4'&&type==='red'&&!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}
+ if(type==='blue'){const defense=matchPower('blue'),value=n*mult*defense;pGuard+=value;if(value||colorState.version!=='replay-v4')guardTurns=2;if(value){notes.push('Guard +'+value+' · DEF '+defense);}if(COLOR_BALANCE.attuneProc(colorState,'holdfast',comboBonus)){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
+ if(type==='green'&&COLOR_BALANCE.attuneProc(colorState,'aftergrowth',comboBonus)){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
+ if(type==='yellow'&&COLOR_BALANCE.attuneProc(colorState,'momentum',comboBonus)){const target=lowestReservoir('yellow');if(target){const before=charges[target],cap=reservoirCap(target);charges[target]=Math.min(cap,charges[target]+2);notes.push('Momentum: '+target+' +'+(charges[target]-before))}}
  if(!comboBonus&&mult===2){overdrive=false;notes.push('Overdrive ×2')}
  if(type==='gold'){const before=gold,cap=activeRewardBudget?.gold??Infinity;gold=Math.min(cap,gold+n);notes.push('Gold +'+(gold-before))}
  if(type==='xp'){const before=xp,cap=activeRewardBudget?.xp??Infinity;xp=Math.min(cap,xp+n);notes.push('XP +'+(xp-before))}
@@ -251,6 +256,7 @@ function afterAction(actor,keepTurn=false){
  }else if(evadeTurns&&!--evadeTurns){eGuard=0;setLog('Enemy Evade expires.')}
  if(pHP<=0||eHP<=0){playerTurn=true;render();checkEnd();return}
  if(actor==='player'){
+  procsUsed=[];
   for(const key of ['redwake','holdfast','aftergrowth','momentum'])if(buffs[key])buffs[key]--;
   if(keepTurn){playerTurn=true;setLog('Quick effect: your turn continues.')}
   else if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}
@@ -285,10 +291,12 @@ async function applyTarget(p){
  }
  if(!mode||!commitArmedAbility())return;targetMode=null;targetKeepsTurn=false;busy=true;recordCombatAction({t:'target',x:p.x,y:p.y});let comboRoots=null;
  if(mode==='pin'){pinColumn=p.x;pinTurns=1;setLog('EARTHBIND: column '+(p.x+1)+' is pinned through the next enemy action.');busy=false;afterAction('player',keepTurn);return}
+ if(mode==='weapon_paint'){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)board[p.y][p.x]=color;}
  if(mode==='paint')board[p.y][p.x]='red';
  if(mode==='wildcraft')board[p.y][p.x]='wild';
  if(mode==='rotate'){board[p.y].unshift(board[p.y].pop());boardBonus[p.y].unshift(boardBonus[p.y].pop())}
  if(mode==='reroll'){const tile=rollTile();board[p.y][p.x]=tile.type;boardBonus[p.y][p.x]=tile.bonus}
+ if(mode==='blast'&&(activeAuthority?.mode||'replay-v4')==='replay-v4'){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+2);}
  if(['break','blast','purge'].includes(mode)){
   let cells=[];
   if(mode==='break')cells=[p];
@@ -306,9 +314,9 @@ async function applyTarget(p){
 function activate(index){
  if(screen!=='fight'||!playerTurn||busy||pHP<=0||eHP<=0)return;
  if(cancelArmedAbility(index))return;if(freeSwap||targetMode)return;
- const spec=itemById(sack[index]);if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
+ const spec=itemById(sack[index]);if(spec?.kind==='weapon_paint'&&!sack.some(GEMMO_WEAPON_GEMS.isWeaponGem)){setLog('Equip a weapon to use Flux.');return}if(!spec||charges[spec.color]<spec.cap){if(spec)setLog(spec.name+' needs '+(spec.cap-charges[spec.color])+' more charge.');return}
  if(spec.kind==='boost'&&overdrive){setLog('Overdrive is already primed. Make a colored match first.');return}
- const needsTarget=['pin','paint','wildcraft','rotate','break','blast','reroll','purge','swap'].includes(spec.kind);
+ const needsTarget=['pin','paint','weapon_paint','wildcraft','rotate','break','blast','reroll','purge','swap'].includes(spec.kind);
  touchActivity();charges[spec.color]-=spec.cap;
  if(needsTarget){
   armedAbilitySlot=index;selected=null;
@@ -316,7 +324,11 @@ function activate(index){
   setLog('Choose a '+(spec.kind==='swap'?'swap':targetMode==='rotate'?'row':targetMode==='pin'?'column':'tile')+' on the board · tap '+spec.name+' again to cancel.');render();return;
  }
  recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
- if(spec.kind==='damage')damageEnemy(spec.power);
+ if(spec.kind==='damage')damageEnemy(spec.power,spec.pierceGuard);
+ if(spec.onHitGuard)pGuard+=spec.onHitGuard;
+ if(spec.onHitHeal)pHP=Math.min(playerMaxHP(),pHP+spec.onHitHeal);
+ if(spec.onHitSilence)enemyEffects.silence=spec.onHitSilence;
+ if(spec.onHitSteal)COLOR_BALANCE.stealCharge(colorRuleState(),spec.onHitSteal,{lookup:itemById,cap:reservoirCap});
  if(spec.kind==='guard')pGuard+=spec.power;
  if(spec.kind==='heal')pHP=Math.min(playerMaxHP(),pHP+spec.power);
  if(spec.kind==='hybrid'){damageEnemy(3);pGuard+=3}
@@ -333,7 +345,7 @@ function activate(index){
  if(spec.kind==='green_attune')buffs.aftergrowth=4;
  if(spec.kind==='yellow_attune')buffs.momentum=4;
  if(spec.kind==='haste')extraTurn=true;
- if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;charges.purple=Math.min(reservoirCap('purple'),charges.purple+amount)}
+ if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;const target=(activeAuthority?.mode||'replay-v4')==='replay-v4'?itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color:'purple';if(target)charges[target]=Math.min(reservoirCap(target),charges[target]+amount)}
  if(spec.kind==='quick_damage')damageEnemy(spec.power);
  if(spec.kind==='execute')damageEnemy(eHP<=8?10:spec.power);
  if(spec.kind==='breach'){eGuard=0;damageEnemy(spec.power)}
@@ -355,7 +367,7 @@ async function startMatchTicket(){
  try{
   if(!await syncAccountLoadout())throw new Error('loadout_not_synced');
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
+  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3','replay-v4'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
  }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';if(error.message==='unfinished_match'){await refreshAccount();enterWorld()}return null}
 }
@@ -389,7 +401,7 @@ async function settleVictory(){
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
   const firstClear=!worldCleared(activeEncounter),unlockText=encounterSpec().unlockText;
   let data;
-  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
+  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3','replay-v4'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
   try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
   catch(error){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
@@ -406,7 +418,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
   if(!await ensureMatchTicket())throw new Error(lastMatchError||'match_start_failed');
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3','replay-v4'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
   const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
   $('resultText').textContent=data.settlement?.respawnNode?'You awaken at '+WORLD_NODES[data.settlement.respawnNode].name+'.':account?.world?.currentNode===account?.world?.checkpoint?'You awaken at '+WORLD_NODES[account.world.currentNode].name+'.':'No rewards earned.';
  }catch(error){lossSettlementStarted=false;$('resultText').textContent='Could not save your result. Please retry.';$('resultRetry').hidden=false}
@@ -557,6 +569,7 @@ function currentWorldEffects(){
  if(matchPower('blue'))effects.push({icon:'◇',name:'BLUE DEFENSE',detail:matchPower('blue')+' Guard per broken Blue gem from your Sack'});
  if(stats.hp||skills.maxHP)effects.push({icon:'♥',name:'MAX HP',detail:'+'+(stats.hp+skills.maxHP)+' from gear and skills'});
  if(stats.guard||skills.startGuard)effects.push({icon:'◆',name:'STARTING GUARD',detail:'+'+(stats.guard+skills.startGuard)+' at the start of combat'});
+ for(const [color,active] of Object.entries(skills.colorPerks))if(active)effects.push({icon:'✦',name:color.toUpperCase()+' · '+COLOR_BALANCE.ROLES[color],detail:SKILL_BY_ID[color+'-start'].desc.split('. ').slice(1).join('. ')});
  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'};
  for(const [color,value] of Object.entries(stats.caps)){const total=value+skills.allCap+skills.caps[color];if(total)effects.push({icon:'◇',name:labels[color]+' CAPACITY',detail:'+'+total+' reservoir capacity'})}
  for(const [color,value] of Object.entries(skills.startCharge))if(value)effects.push({icon:'✦',name:labels[color]+' OPENING CHARGE',detail:'Start combat with '+value});
@@ -676,7 +689,7 @@ function refreshWorldHud(){
  $('worldGold').textContent=String(account?.profile?.gold||0);
  $('worldLevel').textContent='LV '+progress.level+' · XP '+progress.current+'/'+progress.required;
  $('worldPlayerName').textContent=(account?.character?.name||account?.user?.username||'ADVENTURER').toUpperCase();
- $('worldPlayerStats').textContent='♥ '+playerMaxHP()+' · ⚔ '+(itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color.toUpperCase()||'—')+' · ◈ '+matchPower('blue');
+ $('worldPlayerStats').textContent='♥ '+playerMaxHP()+' · ⚔ '+(itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color.toUpperCase()||'—')+' · ◈ '+(gearStats().guard+currentSkillEffects().startGuard);
  $('worldXpFill').style.width=xpPct+'%';$('worldSkillPoints').textContent='✦ '+skillPoints;
  $('worldObjectiveTitle').textContent=objective.title;$('worldObjectiveText').textContent=objective.text;$('worldObjectiveBtn').dataset.target=objective.target||'';$('worldObjectiveBtn').dataset.state=objective.state;
  $('worldSackPip').hidden=!worldHasUnread('sack');$('worldInventoryPip').hidden=!worldHasUnread('inventory');$('worldSkillPip').hidden=skillPoints<1;
@@ -858,7 +871,8 @@ function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
  $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Roadside Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'◇ GEM SHOP':'▣ ITEM SHOP';$('shopGold').textContent='◆ '+gold;
  if(currentShop==='gem-shop'){
-  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'},order=['red','blue','green','yellow','purple'];
+  for(const [color,active] of Object.entries(skills.colorPerks))if(active)effects.push({icon:'✦',name:color.toUpperCase()+' · '+COLOR_BALANCE.ROLES[color],detail:SKILL_BY_ID[color+'-start'].desc.split('. ').slice(1).join('. ')});
+ const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'},order=['red','blue','green','yellow','purple'];
   $('shopGrid').innerHTML='<div class="shopColorCatalog">'+order.map(color=>{
    const entries=stock.filter(entry=>itemById(entry.id)?.color===color);if(!entries.length)return '';
    return '<section class="shopColorSection '+color+'"><div class="shopColorHead"><span class="shopColorDot"></span><b>'+labels[color]+'</b><small>'+entries.length+'</small></div><div class="shopColorGrid">'+entries.map(entry=>shopCard(entry,owned)).join('')+'</div></section>';
@@ -1028,16 +1042,17 @@ function openCombatGemology(){
 function closeCombatGemology(){$('combatGemologyPanel').hidden=true;resumeCombatView()}
 function combatEffectRows(){
  const rows=[
+  {side:'you',name:'Primed Strike',value:buffs.empower||0,turns:null,detail:'Your next weapon match deals +1 damage.'},
   {side:'you',name:'Guard',value:pGuard,turns:guardTurns,detail:'Absorbs incoming damage point for point. Gaining Guard refreshes its duration.'},
   {side:'enemy',name:'Evade',value:eGuard,turns:evadeTurns,detail:'Absorbs incoming damage point for point before enemy HP.'},
   {side:'you',name:'Veilstep',value:buffs.dodge,turns:buffs.dodge,detail:'Halves incoming damage, rounded up.'},
   {side:'enemy',name:'Venom',value:buffs.poison,turns:buffs.poison,detail:'Takes 2 damage after each enemy action.'},
   {side:'you',name:'Restoring Verse',value:buffs.regen,turns:buffs.regen,detail:'Heals 2 HP after each enemy action.'},
   {side:'you',name:'Resonance',value:buffs.focus,turns:buffs.focus,detail:'Adds 1 charge to every equipped color after each enemy action.'},
-  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:'Red match resolutions deal +2 bonus damage.'},
-  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:'Blue match resolutions grant +2 bonus Guard.'},
-  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:'Green match resolutions heal 2 HP.'},
-  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:'Yellow matches send +2 charge to your most depleted other color.'},
+  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:(activeAuthority?.mode||'replay-v4')==='replay-v4'?'First weapon-color match per action deals +2 damage.':'Red match resolutions deal +2 bonus damage.'},
+  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:(activeAuthority?.mode||'replay-v4')==='replay-v4'?'First Blue match per action grants +2 Guard.':'Blue match resolutions grant +2 bonus Guard.'},
+  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:(activeAuthority?.mode||'replay-v4')==='replay-v4'?'First Green match per action heals 2 HP.':'Green match resolutions heal 2 HP.'},
+  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:(activeAuthority?.mode||'replay-v4')==='replay-v4'?'First Yellow match per action sends +2 charge to your most depleted other color.':'Yellow matches send +2 charge to your most depleted other color.'},
   {side:'you',name:'Reprisal',value:buffs.reflect,turns:buffs.reflect,detail:'Reflects half of the next unblocked hit.'},
   {side:'you',name:'Overdrive',value:overdrive?1:0,turns:null,detail:'Doubles the next colored match once.'},
   {side:'you',name:'Earthbind',value:pinTurns,turns:pinTurns,detail:'The pinned column refills in place through the next enemy action.'},
@@ -1064,7 +1079,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- chargeGemLevels.clear();
+ chargeGemLevels.clear();procsUsed=[];
  if(account?.needsStarter){enterWorld();openDialogue('warden-vale');return}
  resumedArmedSpec=null;resumedConsumablePaid=false;
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
@@ -1082,8 +1097,8 @@ function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=
 function restoreCombatMatch(match){
  clearTimeout(enemyTimer);clearTimeout(hintTimer);const s=match.state;activeMatchId=match.matchId;activeEncounter=match.encounterId;activeRewardBudget=match.rewardBudget;activeAuthority=match.authority;combatTranscript=match.transcript;combatRng=makeCombatRng(activeAuthority.seed);for(let i=0;i<s.rngCalls;i++)combatRng();
  sack=s.sack.slice();equipment={...s.equipment};if(account){account.skills={...account.skills,purchased:s.skills};account.pendingMatch={matchId:match.matchId,encounterId:match.encounterId}}
- board=s.board;boardBonus=s.bonus;pHP=s.pHP;eHP=s.eHP;pGuard=s.pGuard;eGuard=s.eGuard;gold=s.gold;xp=s.xp;charges=s.charges;ec=s.ec;buffs=s.buffs;enemyEffects=s.enemyEffects;playerTurn=s.playerTurn;freeSwap=s.freeSwap;extraTurn=s.extraTurn;overdrive=s.overdrive;enemyReload=s.enemyReload;targetMode=s.targetMode;targetKeepsTurn=s.targetKeepsTurn;pinColumn=s.pinColumn;pinTurns=s.pinTurns;guardTurns=s.guardTurns;evadeTurns=s.evadeTurns;combatConsumables=s.consumables;actionNumber=s.actions+1;
- armedAbilitySlot=-1;armedConsumableId=null;resumedArmedSpec=null;resumedConsumablePaid=false;const last=match.transcript[match.transcript.length-1];if((targetMode||freeSwap)&&last?.t==='ability')resumedArmedSpec=itemById(sack[last.slot]);if(targetMode==='consumable_break'&&last?.t==='consume'){armedConsumableId=last.itemId;resumedConsumablePaid=true}
+ procsUsed=s.procsUsed||[];board=s.board;boardBonus=s.bonus;pHP=s.pHP;eHP=s.eHP;pGuard=s.pGuard;eGuard=s.eGuard;gold=s.gold;xp=s.xp;charges=s.charges;ec=s.ec;buffs=s.buffs;enemyEffects=s.enemyEffects;playerTurn=s.playerTurn;freeSwap=s.freeSwap;extraTurn=s.extraTurn;overdrive=s.overdrive;enemyReload=s.enemyReload;targetMode=s.targetMode;targetKeepsTurn=s.targetKeepsTurn;pinColumn=s.pinColumn;pinTurns=s.pinTurns;guardTurns=s.guardTurns;evadeTurns=s.evadeTurns;combatConsumables=s.consumables;actionNumber=s.actions+1;
+ armedAbilitySlot=-1;armedConsumableId=null;resumedArmedSpec=null;resumedConsumablePaid=false;const last=match.transcript[match.transcript.length-1];if((targetMode||freeSwap)&&last?.t==='ability')resumedArmedSpec=combatItemById(sack[last.slot]);if(targetMode==='consumable_break'&&last?.t==='consume'){armedConsumableId=last.itemId;resumedConsumablePaid=true}
  selected=null;busy=false;combatPaused=false;rewardsSettled=false;lossSettlementStarted=false;encounterSettling=false;matchStartPromise=null;pendingHP.p=pendingHP.e=0;shownHP.p=pHP;shownHP.e=eHP;damageAnimations=[];effectOrigin=null;renderedTurnOwner='';combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');render();setLog(targetMode||freeSwap?'MATCH RESUMED · choose your pending target.':'MATCH RESUMED','system');persistCombatJournal();checkEnd();touchActivity();
 }
 async function loadSavedMatch(){

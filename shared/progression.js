@@ -17,31 +17,31 @@ const BRANCHES=Object.freeze([
  ]),
  branch('red','RED · ASSAULT',[
   ranked('red-cap-1','Ember Vessel',1,3,'+1 Red maximum charge per rank.',{cap:{red:1}}),
-  notable('red-start','First Blood',2,'Start combat with 1 Red charge.',{start:{red:1}},{id:'red-cap-1',rank:1}),
+  notable('red-start','First Blood',2,'Start combat with 1 Red charge. Red matches prime +1 damage for your next weapon match. Once per action; requires an equipped Red gem.',{start:{red:1}},{id:'red-cap-1',rank:1}),
   ranked('red-cap-2','Deep Ember',3,2,'+1 additional Red maximum charge per rank.',{cap:{red:1}},{id:'red-start',rank:1}),
   notable('red-resonance','Ember Resonance',4,'Red matches generate +1 additional Red charge.',{gain:{red:1}},{id:'red-cap-2',rank:1})
  ]),
  branch('blue','BLUE · DEFENSE',[
   ranked('blue-cap-1','Ward Vessel',1,3,'+1 Blue maximum charge per rank.',{cap:{blue:1}}),
-  notable('blue-start','Ready Ward',2,'Start combat with 1 Blue charge.',{start:{blue:1}},{id:'blue-cap-1',rank:1}),
+  notable('blue-start','Ready Ward',2,'Start combat with 1 Blue charge. Blue matches grant +1 Guard. Once per action; requires an equipped Blue gem.',{start:{blue:1}},{id:'blue-cap-1',rank:1}),
   ranked('blue-cap-2','Deep Ward',3,2,'+1 additional Blue maximum charge per rank.',{cap:{blue:1}},{id:'blue-start',rank:1}),
   notable('blue-resonance','Ward Resonance',4,'Blue matches generate +1 additional Blue charge.',{gain:{blue:1}},{id:'blue-cap-2',rank:1})
  ]),
  branch('green','GREEN · SUSTAIN',[
   ranked('green-cap-1','Root Vessel',1,3,'+1 Green maximum charge per rank.',{cap:{green:1}}),
-  notable('green-start','Seeded Growth',2,'Start combat with 1 Green charge.',{start:{green:1}},{id:'green-cap-1',rank:1}),
+  notable('green-start','Seeded Growth',2,'Start combat with 1 Green charge. Green matches heal 1 HP. Once per action; requires an equipped Green gem.',{start:{green:1}},{id:'green-cap-1',rank:1}),
   ranked('green-cap-2','Deep Root',3,2,'+1 additional Green maximum charge per rank.',{cap:{green:1}},{id:'green-start',rank:1}),
   notable('green-resonance','Root Resonance',4,'Green matches generate +1 additional Green charge.',{gain:{green:1}},{id:'green-cap-2',rank:1})
  ]),
  branch('yellow','YELLOW · TEMPO',[
   ranked('yellow-cap-1','Tempo Vessel',1,3,'+1 Yellow maximum charge per rank.',{cap:{yellow:1}}),
-  notable('yellow-start','Head Start',2,'Start combat with 1 Yellow charge.',{start:{yellow:1}},{id:'yellow-cap-1',rank:1}),
+  notable('yellow-start','Head Start',2,'Start combat with 1 Yellow charge. Yellow matches add +1 charge to your equipped weapon color. Once per action; requires an equipped Yellow gem.',{start:{yellow:1}},{id:'yellow-cap-1',rank:1}),
   ranked('yellow-cap-2','Deep Tempo',3,2,'+1 additional Yellow maximum charge per rank.',{cap:{yellow:1}},{id:'yellow-start',rank:1}),
   notable('yellow-resonance','Tempo Resonance',4,'Yellow matches generate +1 additional Yellow charge.',{gain:{yellow:1}},{id:'yellow-cap-2',rank:1})
  ]),
  branch('purple','PURPLE · ARCANE',[
   ranked('purple-cap-1','Arcane Vessel',1,3,'+1 Purple maximum charge per rank.',{cap:{purple:1}}),
-  notable('purple-start','Residual Spark',2,'Start combat with 1 Purple charge.',{start:{purple:1}},{id:'purple-cap-1',rank:1}),
+  notable('purple-start','Residual Spark',2,'Start combat with 1 Purple charge. Purple matches steal 1 enemy charge into your weapon color, when available. Once per action; requires an equipped Purple gem.',{start:{purple:1}},{id:'purple-cap-1',rank:1}),
   ranked('purple-cap-2','Deep Arcana',3,2,'+1 additional Purple maximum charge per rank.',{cap:{purple:1}},{id:'purple-start',rank:1}),
   notable('purple-resonance','Arcane Resonance',4,'Purple matches generate +1 additional Purple charge.',{gain:{purple:1}},{id:'purple-cap-2',rank:1})
  ])
@@ -86,8 +86,9 @@ function canPurchase(skillId,purchased,level){
  if(!requirementMet(node.requires,clean))return {ok:false,reason:'skill_prerequisite'};
  const nextRank=rank+1;return {ok:true,node,rank,nextRank,token:rankToken(skillId,nextRank)};
 }
-function skillEffects(ids){
+function skillEffects(ids,version='replay-v4'){
  const ranks=rankMap(ids),out={maxHP:0,startGuard:0,allCap:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0},startCharge:{red:0,blue:0,green:0,yellow:0,purple:0},chargeGain:{red:0,blue:0,green:0,yellow:0,purple:0}};
+ out.colorPerks=Object.fromEntries(COLORS.map(c=>[c,version==='replay-v4'&&(ranks[c+'-start']||0)>0?1:0]));
  for(const node of SKILLS){const rank=ranks[node.id]||0;if(!rank)continue;const e=node.effect||{};out.maxHP+=(Number(e.maxHP)||0)*rank;out.startGuard+=(Number(e.startGuard)||0)*rank;out.allCap+=(Number(e.allCap)||0)*rank;for(const c of COLORS){out.caps[c]+=(Number(e.cap?.[c])||0)*rank;out.startCharge[c]+=(Number(e.start?.[c])||0)*rank;out.chargeGain[c]+=(Number(e.gain?.[c])||0)*rank}}
  return out;
 }

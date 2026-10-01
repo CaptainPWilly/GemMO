@@ -13,6 +13,7 @@ jobs:
         with:
           node-version: 22
       - run: node tests/abilities.cjs
+      - run: node tests/color-support.cjs
       - run: npm install --omit=dev
         working-directory: server
       - name: Smoke test Turso driver API
