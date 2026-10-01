@@ -1,4 +1,5 @@
 'use strict';
+const ENEMY_LOADOUTS=require('../shared/enemy-loadouts.js');
 const COLOR_BALANCE=require('../shared/color-balance.js');
 const {weaponMatchDamage}=require('../shared/weapon-gems.js');
 const {GEAR,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
@@ -7,6 +8,7 @@ const {skillEffects}=require('../shared/progression.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
 const GEM=Object.freeze({
+  "rat-fang":["yellow",5,"damage",3,1,1,0],
   "hand-crossbow": [
     "red",
     4,
@@ -689,7 +691,7 @@ function createCombat({encounterId='rat',seed,sack,equipment={},skills=[],consum
   encounterId,rng:makeRng(seed),seed,version,sack:sack.slice(),equipment:{...equipment},skills:Array.isArray(skills)?skills.slice():[],skill,consumables:Object.fromEntries(Object.keys(CONSUMABLES).map(id=>[id,Math.max(0,Math.floor(Number(consumables?.[id])||0))])),usedConsumables:{},rewardBudget:{gold:Number(rewardBudget.gold)||0,xp:Number(rewardBudget.xp)||0},
   procsUsed:[],board:[],bonus:[],pHP:18+gear.hp+skill.maxHP,eHP:encounter.maxHP,pGuard:gear.guard+skill.startGuard,eGuard:0,gold:0,xp:0,
   charges,ec:{red:0,blue:0,green:0,yellow:0,purple:0},
-  playerTurn:true,freeSwap:false,extraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
+  playerTurn:true,freeSwap:false,extraTurn:false,enemyExtraTurn:false,overdrive:false,enemyReload:false,targetMode:null,targetKeepsTurn:false,pinColumn:-1,pinTurns:0,guardTurns:(gear.guard+skill.startGuard)?2:0,evadeTurns:0,
   buffs:{dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects:{bleed:0,stun:0,disarm:0,silence:0,mark:0},actions:0,gemsPopped:0,longestCascade:0
  };
  for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(s,color),skill.startCharge[color]||0);
@@ -701,7 +703,7 @@ function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
 function matchPower(s,color){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return s.sack.reduce((sum,id)=>{const gem=spec(id,s.version);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills,s.version);return s.sack.reduce((n,id)=>n+(spec(id,s.version)?.color===color?spec(id,s.version).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
-function rollBonus(s){return ['replay-v2','replay-v3','replay-v4'].includes(s.version)?rollGemBonus(s.rng):0}
+function rollBonus(s){return ['replay-v2','replay-v3','replay-v4','replay-v5'].includes(s.version)?rollGemBonus(s.rng):0}
 function rollTile(s){const type=roll(s);return {type,bonus:rollBonus(s)}}
 function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]]}
 function key(x,y){return x+','+y}
@@ -721,26 +723,33 @@ function findMatches(s){
 function legalMoves(s){const out=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const a={x,y};for(const [dx,dy] of [[1,0],[0,1]]){const b={x:x+dx,y:y+dy};if(b.x>=W||b.y>=H)continue;swap(s,a,b);if(findMatches(s))out.push([a,b]);swap(s,a,b)}}return out}
 function buildBoard(s){for(let attempt=0;attempt<100;attempt++){s.board=[];s.bonus=[];for(let y=0;y<H;y++){const row=[],bonuses=[];for(let x=0;x<W;x++){let t=roll(s),tries=0;while(tries++<30&&((x>=2&&row[x-1]===t&&row[x-2]===t)||(y>=2&&s.board[y-1][x]===t&&s.board[y-2][x]===t)))t=roll(s);row.push(t);bonuses.push(rollBonus(s))}s.board.push(row);s.bonus.push(bonuses)}if(legalMoves(s).length)return}throw new Error('rat_board_generation_failed')}
 function damageEnemy(s,n,pierceGuard=false){if(s.enemyEffects.mark&&n>0){n+=3;s.enemyEffects.mark=0}const blocked=pierceGuard?0:Math.min(s.eGuard,n);s.eGuard-=blocked;s.eHP-=n-blocked}
-function damagePlayer(s,n){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
+function damagePlayer(s,n,pierceGuard=false){if(s.buffs.dodge)n=Math.ceil(n/2);const blocked=pierceGuard?0:Math.min(s.pGuard,n),dealt=n-blocked;s.pGuard-=blocked;s.pHP-=dealt;if(s.buffs.reflect&&dealt>0){s.buffs.reflect=0;damageEnemy(s,Math.max(1,Math.ceil(dealt/2)))}}
 function encounterSpec(s){return ENCOUNTERS[s.encounterId]}
-function enemyReservoir(s,type){return encounterSpec(s).reservoirs[type]}
+function usesEnemyGems(s){return s.version===ENEMY_LOADOUTS.VERSION}
+function enemyGemState(s){return {hp:s.eHP,maxHP:encounterSpec(s).maxHP,guard:s.eGuard,charge:s.ec,opponentCharge:s.charges,silenced:s.enemyEffects.silence,disarmed:s.enemyEffects.disarm}}
+function enemyReservoir(s,type){return usesEnemyGems(s)?{cap:ENEMY_LOADOUTS.cap(encounterSpec(s),type,id=>spec(id,s.version))}:encounterSpec(s).reservoirs[type]}
 function scaledEnemyValue(value,scale,min=0){return Math.max(min,Math.ceil(value*scale))}
-function enemyMoveScore(s,type){const ai=encounterSpec(s).ai;if(type==='green')return s.eHP<ai.woundedBelow?ai.greenWounded:ai.greenHealthy;return ai[type]||0}
+function enemyMoveScore(s,type){if(usesEnemyGems(s))return ENEMY_LOADOUTS.score(encounterSpec(s),type,id=>spec(id,s.version),enemyGemState(s));const ai=encounterSpec(s).ai;if(type==='green')return s.eHP<ai.woundedBelow?ai.greenWounded:ai.greenHealthy;return ai[type]||0}
 function lowestReservoir(s,exclude){let best=null,ratio=Infinity;for(const c of ['red','blue','green','yellow','purple']){if(c===exclude)continue;const cap=reservoirCap(s,c);if(!cap||s.charges[c]>=cap)continue;const r=s.charges[c]/cap;if(r<ratio){best=c;ratio=r}}return best}
 function applyColor(s,type,n,actor,comboBonus=false){
  if(actor==='player'){
   const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
   if(colored){const cap=reservoirCap(s,type),gearGain=gearStats(s.equipment).chargeGain[type]||0,skillGain=s.skill?.chargeGain?.[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;s.charges[type]=Math.min(cap,s.charges[type]+n*mult+matchGain)}
-  if(s.version==='replay-v4'&&!comboBonus)COLOR_BALANCE.applyColorPerk(s,type,n,{lookup:id=>spec(id,s.version),maxHP:playerMaxHP(s),cap:c=>reservoirCap(s,c)});
-  const weaponAttack=['replay-v3','replay-v4'].includes(s.version)?weaponMatchDamage(s.sack,type,id=>spec(id,s.version)):0;
+  if(COLOR_BALANCE.isCurrent(s.version)&&!comboBonus)COLOR_BALANCE.applyColorPerk(s,type,n,{lookup:id=>spec(id,s.version),maxHP:playerMaxHP(s),cap:c=>reservoirCap(s,c)});
+  const weaponAttack=['replay-v3','replay-v4','replay-v5'].includes(s.version)?weaponMatchDamage(s.sack,type,id=>spec(id,s.version)):0;
   if(weaponAttack)damageEnemy(s,n*mult*weaponAttack+COLOR_BALANCE.strikeBonus(s,weaponAttack,comboBonus));
-  if(type==='red'){if(!['replay-v3','replay-v4'].includes(s.version))damageEnemy(s,n*mult*matchPower(s,'red'));if(s.version!=='replay-v4'&&!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
-  if(type==='blue'){const guard=n*mult*matchPower(s,'blue');s.pGuard+=guard;if(guard||s.version!=='replay-v4')s.guardTurns=2;if(COLOR_BALANCE.attuneProc(s,'holdfast',comboBonus)){s.pGuard+=2;s.guardTurns=2}}
+  if(type==='red'){if(!['replay-v3','replay-v4','replay-v5'].includes(s.version))damageEnemy(s,n*mult*matchPower(s,'red'));if(!COLOR_BALANCE.isCurrent(s.version)&&!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
+  if(type==='blue'){const guard=n*mult*matchPower(s,'blue');s.pGuard+=guard;if(guard||!COLOR_BALANCE.isCurrent(s.version))s.guardTurns=2;if(COLOR_BALANCE.attuneProc(s,'holdfast',comboBonus)){s.pGuard+=2;s.guardTurns=2}}
   if(type==='green'&&COLOR_BALANCE.attuneProc(s,'aftergrowth',comboBonus))s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
   if(type==='yellow'&&COLOR_BALANCE.attuneProc(s,'momentum',comboBonus)){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
   if(!comboBonus&&mult===2)s.overdrive=false;
   if(type==='gold')s.gold=Math.min(s.rewardBudget.gold,s.gold+n);
   if(type==='xp')s.xp=Math.min(s.rewardBudget.xp,s.xp+n);
+ }else if(usesEnemyGems(s)){
+  const lookup=id=>spec(id,s.version),encounter=encounterSpec(s),capacity=ENEMY_LOADOUTS.cap(encounter,type,lookup);
+  if(capacity)s.ec[type]=Math.min(capacity,s.ec[type]+n);
+  const attack=weaponMatchDamage(encounter.sack,type,lookup);
+  if(attack&&!s.enemyEffects.disarm)damagePlayer(s,n*attack);
  }else{
   const reservoir=enemyReservoir(s,type);if(reservoir)s.ec[type]=Math.min(reservoir.cap,s.ec[type]+n);
   if(type==='red'){const rules=encounterSpec(s).match,raw=n+(!comboBonus&&s.enemyReload?(rules.reloadBonus||0):0);if(!comboBonus)s.enemyReload=false;if(!s.enemyEffects.disarm)damagePlayer(s,scaledEnemyValue(raw,rules.redScale,rules.redMin))}
@@ -772,6 +781,7 @@ function resolve(s,matches,actor,target,cascade=0,keepTurn=false,comboRoots=null
   for(const p of current.cells){s.board[p.y][p.x]='';s.bonus[p.y][p.x]=0}
   if(makeWild){s.board[makeWild.y][makeWild.x]='wild';s.bonus[makeWild.y][makeWild.x]=0}
   if(match4&&actor==='player')s.extraTurn=true;
+  if(match4&&actor==='enemy'&&usesEnemyGems(s))s.enemyExtraTurn=true;
   fallColumns(s);
   if(s.pHP<=0||s.eHP<=0)return;
   current=findMatches(s);currentTarget=null;cascade++;
@@ -806,7 +816,7 @@ function afterAction(s,actor,keepTurn=false){
   if(keepTurn)s.playerTurn=true;
   else if(s.extraTurn){s.extraTurn=false;s.playerTurn=true}
   else{s.playerTurn=false;enemyMove(s)}
- }else s.playerTurn=true;
+ }else if(usesEnemyGems(s)&&(keepTurn||s.enemyExtraTurn)){s.enemyExtraTurn=false;s.playerTurn=false;enemyMove(s)}else s.playerTurn=true;
 }
 
 function enemyAbilityReady(s,ability){
@@ -816,6 +826,14 @@ function enemyAbilityReady(s,ability){
  return true;
 }
 function enemyUseActive(s){
+ if(usesEnemyGems(s)){
+  const encounter=encounterSpec(s),lookup=id=>spec(id,s.version),view=enemyGemState(s),gem=ENEMY_LOADOUTS.choose(encounter,lookup,view);if(!gem)return false;
+  const before=s.eGuard,hpBefore=s.eHP;
+  ENEMY_LOADOUTS.cast(gem,view,{encounter,lookup,damage:(n,pierce)=>damagePlayer(s,n,pierce)});
+  s.eHP+=view.hp-hpBefore;
+  s.eGuard=view.guard;if(s.eGuard>before)s.evadeTurns=2;
+  afterAction(s,'enemy');return true;
+ }
  if(s.enemyEffects.silence)return false;
  const ability=encounterSpec(s).actives.find(a=>enemyAbilityReady(s,a));if(!ability)return false;
  s.ec[ability.color]=0;
@@ -840,6 +858,13 @@ function enemyMove(s){
 function activate(s,index){
  if(!s.playerTurn||s.freeSwap||s.targetMode||s.pHP<=0||s.eHP<=0||!Number.isInteger(index)||index<0||index>4)return false;
  const v=spec(s.sack[index],s.version);if(!v||s.charges[v.color]<v.cap||(v.kind==='boost'&&s.overdrive)||(v.kind==='weapon_paint'&&!COLOR_BALANCE.weaponColor(s,id=>spec(id,s.version))))return false;
+ if(usesEnemyGems(s)&&ENEMY_LOADOUTS.supports(v.kind)){
+  const view={hp:s.pHP,maxHP:playerMaxHP(s),guard:s.pGuard,charge:s.charges,opponentCharge:s.ec},before=s.pGuard;
+  ENEMY_LOADOUTS.cast(v,view,{encounter:{sack:s.sack},lookup:id=>spec(id,s.version),damage:(n,pierce)=>damageEnemy(s,n,pierce),capacity:c=>reservoirCap(s,c)});
+  s.pHP=view.hp;s.pGuard=view.guard;if(s.pGuard>before)s.guardTurns=2;
+  if(v.onHitSilence)s.enemyEffects.silence=v.onHitSilence;
+  afterAction(s,'player',v.turnCost===0);return true;
+ }
  s.charges[v.color]-=v.cap;const guardBefore=s.pGuard;
  if(v.kind==='damage')damageEnemy(s,v.power,v.pierceGuard);
  if(v.onHitGuard)s.pGuard+=v.onHitGuard;
@@ -862,7 +887,7 @@ function activate(s,index){
  if(v.kind==='green_attune')s.buffs.aftergrowth=4;
  if(v.kind==='yellow_attune')s.buffs.momentum=4;
  if(v.kind==='haste')s.extraTurn=true;
- if(v.kind==='siphon'){damageEnemy(s,2);const c=Object.keys(s.ec).sort((a,b)=>s.ec[b]-s.ec[a])[0],amount=Math.min(3,s.ec[c]);s.ec[c]-=amount;const target=s.version==='replay-v4'?COLOR_BALANCE.weaponColor(s,id=>spec(id,s.version)):'purple';if(target)s.charges[target]=Math.min(reservoirCap(s,target),s.charges[target]+amount)}
+ if(v.kind==='siphon'){damageEnemy(s,2);const c=Object.keys(s.ec).sort((a,b)=>s.ec[b]-s.ec[a])[0],amount=Math.min(3,s.ec[c]);s.ec[c]-=amount;const target=COLOR_BALANCE.isCurrent(s.version)?COLOR_BALANCE.weaponColor(s,id=>spec(id,s.version)):'purple';if(target)s.charges[target]=Math.min(reservoirCap(s,target),s.charges[target]+amount)}
  if(v.kind==='quick_damage')damageEnemy(s,v.power);
  if(v.kind==='execute')damageEnemy(s,s.eHP<=8?10:v.power);
  if(v.kind==='breach'){s.eGuard=0;damageEnemy(s,v.power)}
@@ -888,7 +913,7 @@ function target(s,x,y){
  if(mode==='wildcraft')s.board[y][x]='wild';
  if(mode==='rotate'){s.board[y].unshift(s.board[y].pop());s.bonus[y].unshift(s.bonus[y].pop())}
  if(mode==='reroll'){const tile=rollTile(s);s.board[y][x]=tile.type;s.bonus[y][x]=tile.bonus}
- if(mode==='blast'&&s.version==='replay-v4'){const color=COLOR_BALANCE.weaponColor(s,id=>spec(id,s.version));if(color)s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+2);}
+ if(mode==='blast'&&COLOR_BALANCE.isCurrent(s.version)){const color=COLOR_BALANCE.weaponColor(s,id=>spec(id,s.version));if(color)s.charges[color]=Math.min(reservoirCap(s,color),s.charges[color]+2);}
  if(['break','blast','purge','consumable_break'].includes(mode)){
   let cells=[];
   if(mode==='break'||mode==='consumable_break')cells=[{x,y}];

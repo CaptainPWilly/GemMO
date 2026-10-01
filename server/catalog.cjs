@@ -2,6 +2,7 @@
 const ENCOUNTERS=require('../shared/encounters.js');
 
 const GEM_IDS=Object.freeze([
+  "rat-fang",
   "dagger",
   "hand-crossbow",
   "longbow",

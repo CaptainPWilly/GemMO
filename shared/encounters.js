@@ -13,6 +13,7 @@ function deepFreeze(value){
 return deepFreeze({
  rat:{
   id:'rat',
+  sack:['rat-fang'],
   name:'RAT',
   maxHP:10,
   reward:{gold:[8,12],xp:[6,10]},
@@ -30,6 +31,7 @@ return deepFreeze({
  },
  bandit:{
   id:'bandit',
+  sack:['hand-crossbow','shield','poultice'],
   name:'BANDIT',
   maxHP:24,
   reward:{gold:[18,24],xp:[12,18]},
@@ -52,7 +54,7 @@ return deepFreeze({
   unlockText:''
  },
  sentinel:{
-  id:'sentinel',name:'ROAD SENTINEL',maxHP:30,
+  id:'sentinel',sack:['crystal-wand','shield','salve','relic'],name:'ROAD SENTINEL',maxHP:30,
   reward:{gold:[25,32],xp:[19,25]},
   match:{redScale:.8,redMin:1,blueScale:1,blueMin:1,reloadBonus:3},
   reservoirs:{
