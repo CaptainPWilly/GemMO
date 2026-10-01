@@ -13,7 +13,7 @@ const {legalMoves,createRatCombat,applyCombatAction,suggestCombatAction,replayCo
   await assert.rejects(startMatch(db,user,'rat'),e=>e.message==='unfinished_match');
   let seed=1,transcript,state;
   for(;seed<200;seed++){
-   state=createRatCombat({version:'replay-v3',seed,sack:['dagger',null,null,null,null],rewardBudget:match.rewardBudget});transcript=[];
+   state=createRatCombat({version:'replay-v4',seed,sack:['dagger',null,null,null,null],rewardBudget:match.rewardBudget});transcript=[];
    while(state.pHP>0&&state.eHP>0&&transcript.length<100){const action=suggestCombatAction(state);if(!action)break;transcript.push(action);applyCombatAction(state,action)}
    if(state.eHP<=0&&state.longestCascade>=2)break;
   }

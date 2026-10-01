@@ -172,3 +172,7 @@ Consumable debit and its consume intent are recorded together in one transaction
 The `unlocked` leaderboard counts distinct known gem IDs with positive owned quantity, including weapon gems. It excludes gear and consumables, includes named characters without finished matches, and breaks ties by account ID. Results include total catalog gem types for collection progress.
 
 `player_checkpoints` stores each account's active respawn node (initially `shrine`); discovered checkpoint nodes are also recorded in `world_flags`. World nodes marked `checkpoint:true` activate atomically with arrival. Server replay confirming player HP ≤ 0 triggers checkpoint respawn during loss settlement, without erasing progression; repeated settlement cannot teleport again. Surrenders do not count as death for respawn. Future shrines need the checkpoint marker; fast travel is not enabled. Skills are purchasable independent of location, outside unfinished matches.
+
+## Versioned color balance
+
+`shared/color-balance.js` defines current weapon/support gem overrides and bounded color skill triggers. Load it after weapon-gems and before content. The server applies it using the saved combat version. Original gem values and legacy skill behavior remain available for old proofs. See [COLOR_BALANCE.md](COLOR_BALANCE.md) for budgets, deterministic tests and balance-probe limitations.
