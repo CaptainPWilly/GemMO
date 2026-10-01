@@ -19,7 +19,7 @@ return deepFreeze({
   match:{redScale:.5,redMin:1,blueScale:.35,blueMin:1,reloadBonus:0},
   reservoirs:{
    red:{name:'BITE',cap:7,visible:true},
-   blue:{name:'EVADE',cap:7,visible:true},
+   blue:{name:'GUARD',cap:7,visible:true},
    green:{name:'BANDAGE',cap:6,visible:false},
    yellow:{name:'RELOAD',cap:6,visible:false},
    purple:{name:'DEADEYE',cap:10,visible:false}
@@ -36,7 +36,7 @@ return deepFreeze({
   match:{redScale:1,redMin:0,blueScale:.75,blueMin:0,reloadBonus:2},
   reservoirs:{
    red:{name:'BOLT',cap:7,visible:true},
-   blue:{name:'EVADE',cap:7,visible:true},
+   blue:{name:'GUARD',cap:7,visible:true},
    green:{name:'BANDAGE',cap:6,visible:true},
    yellow:{name:'RELOAD',cap:6,visible:true},
    purple:{name:'DEADEYE',cap:10,visible:true}
@@ -45,7 +45,7 @@ return deepFreeze({
    {color:'purple',name:'DEADEYE',kind:'damage',power:6,detail:'6 damage.'},
    {color:'green',name:'BANDAGE',kind:'heal',power:5,when:{hpAtMost:18},detail:'+5 HP.'},
    {color:'red',name:'QUICK SHOT',kind:'damage',power:5,disarmable:true,detail:'5 damage.',blockedDetail:'Disarmed — no damage.'},
-   {color:'blue',name:'SIDESTEP',kind:'guard',power:6,when:{guardAtMost:2},detail:'+6 Evade.'},
+   {color:'blue',name:'SIDESTEP',kind:'guard',power:6,when:{guardAtMost:2},detail:'+6 Guard.'},
    {color:'yellow',name:'RELOAD',kind:'reload',power:2,detail:'next Bolt +2.'}
   ],
   ai:{red:4,purple:3,greenHealthy:1,greenWounded:3,woundedBelow:18,yellow:2,blue:2,gold:0,xp:0},
@@ -63,7 +63,7 @@ return deepFreeze({
   actives:[
    {color:'purple',name:'SIPHON',kind:'drain',power:3,detail:'Drains up to 3 charge from your fullest reservoir.',intent:'−3 fullest charge'},
    {color:'red',name:'HEAVY STRIKE',kind:'damage',power:7,disarmable:true,detail:'7 damage.',blockedDetail:'Disarmed — no damage.'},
-   {color:'blue',name:'BARRIER',kind:'guard',power:7,when:{guardAtMost:3},detail:'+7 Evade.'},
+   {color:'blue',name:'BARRIER',kind:'guard',power:7,when:{guardAtMost:3},detail:'+7 Guard.'},
    {color:'yellow',name:'WINDUP',kind:'reload',power:3,detail:'Next Red match gains +3 power.'},
    {color:'green',name:'REPAIR',kind:'heal',power:4,when:{hpAtMost:20},detail:'+4 HP.'}
   ],
