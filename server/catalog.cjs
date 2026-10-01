@@ -109,6 +109,7 @@ const WORLD_NODES=Object.freeze({
 });
 const SHOP_CATALOG=Object.freeze({
   'gem-shop':Object.freeze({
+    'dagger':18,'crystal-wand':18,'thorn-whip':18,'sling':18,'ritual-dagger':18,
     'healing-potion':16,'locksmith-pick':16,'powder-bomb':22,'chaos-orb':22,
     'shield':18,'bloodstone-whet':18
   }),

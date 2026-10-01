@@ -2,7 +2,7 @@
 // geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,moveWorld,chooseStarterWeapon,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,moveWorld,buyShopItem,chooseStarterWeapon,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
 const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
@@ -316,7 +316,17 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-warden-weapon-choice-v1'").run();assert.equal(await applyDataMigrations(db),true);
     const freshMigrated=await accountSnapshot(db,freshId),established=await accountSnapshot(db,establishedId);assert.equal(freshMigrated.needsStarter,true);assert.deepEqual(freshMigrated.inventory,[]);assert.deepEqual(freshMigrated.sack,[null,null,null,null,null]);assert.equal(established.needsStarter,false);assert.equal(established.profile.xp,20);assert.deepEqual(established.inventory,['dagger']);
     assert.equal(await applyDataMigrations(db),false,'starter migration never repeats');
-    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,[],'shops sell no weapon gems');
+    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,require('../shared/weapon-gems.js').STARTER_WEAPON_IDS,'shop sells each starting weapon');
+    const shopper=await seedAccount(db,{usernameNorm:'weaponshopper',usernameDisplay:'Weapon Shopper',passwordHash:'test'});await registerCharacter(db,shopper,'Weapon Shopper');await chooseStarterWeapon(db,shopper,'dagger');
+    await db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(shopper);
+    await assert.rejects(buyShopItem(db,shopper,'gem-shop','crystal-wand'),/not_at_shop/);
+    await moveWorld(db,shopper,'gem-shop');
+    for(const weapon of shopWeapons.filter(id=>id!=='dagger'))await buyShopItem(db,shopper,'gem-shop',weapon);
+    const bought=await accountSnapshot(db,shopper);assert.equal(bought.profile.gold,28);assert.deepEqual(new Set(bought.inventory),new Set(shopWeapons));assert.deepEqual(bought.sack,['dagger',null,null,null,null],'buying leaves the equipped weapon in place');
+    await assert.rejects(buyShopItem(db,shopper,'gem-shop','crystal-wand'),/already_owned/);
+    assert.equal((await accountSnapshot(db,shopper)).profile.gold,28,'duplicate purchase spends nothing');
+    const poor=await seedAccount(db,{usernameNorm:'poorshopper',usernameDisplay:'Poor Shopper',passwordHash:'test'});await registerCharacter(db,poor,'Poor Shopper');await chooseStarterWeapon(db,poor,'sling');await moveWorld(db,poor,'gem-shop');
+    await assert.rejects(buyShopItem(db,poor,'gem-shop','dagger'),/insufficient_gold/);
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, one-time fresh reset, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 
