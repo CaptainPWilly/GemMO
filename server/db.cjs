@@ -234,6 +234,14 @@ async function registerCharacter(db,userId,value){
   });
 }
 async function levelLeaderboard(db,userId,metric='level'){
+  if(metric==='unlocked'){
+    const ids=[...GEM_SET],placeholders=ids.map(()=>'?').join(',');
+    const ranking=`SELECT c.user_id,c.name,COALESCE(g.unlocked,0) unlocked,ROW_NUMBER() OVER (ORDER BY COALESCE(g.unlocked,0) DESC,c.user_id ASC) rank FROM characters c LEFT JOIN (SELECT user_id,COUNT(DISTINCT item_id) unlocked FROM inventory WHERE kind='gem' AND qty>0 AND item_id IN (${placeholders}) GROUP BY user_id) g ON g.user_id=c.user_id`;
+    const format=r=>({rank:Number(r.rank),name:r.name,unlocked:Number(r.unlocked),totalGemTypes:ids.length,isYou:Number(r.user_id)===Number(userId)});
+    const rows=await db.prepare(`SELECT * FROM (${ranking}) ORDER BY rank LIMIT 100`).all(...ids),me=await db.prepare(`SELECT * FROM (${ranking}) WHERE user_id=?`).get(...ids,userId);
+    return {metric,entries:rows.map(format),you:me?format(me):null};
+  }
+
   if(metric!=='level'){
     const orders={wins:'wins DESC',winrate:'rate DESC,wins DESC',cascade:'cascade DESC',gems:'gems DESC'};
     if(!orders[metric])throw Object.assign(new Error('invalid_leaderboard'),{status:400});
