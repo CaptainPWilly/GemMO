@@ -12,7 +12,6 @@ const WORLD_NODES={
 };
 const SHOP_STOCK={
  'gem-shop':[
-  {id:'dagger',price:18},{id:'crystal-wand',price:18},{id:'thorn-whip',price:18},{id:'sling',price:18},{id:'ritual-dagger',price:18},
   {id:'healing-potion',price:16},{id:'locksmith-pick',price:16},{id:'powder-bomb',price:22},{id:'chaos-orb',price:22},
   {id:'shield',price:18},{id:'bloodstone-whet',price:18}
  ],

@@ -59,7 +59,7 @@ For production infrastructure, secrets, and recovery, read **[docs/DEPLOYMENT.md
 
 - Account = save file. Durable player state lives in Turso.
 - Login is remembered on the device until logout or server-session expiry. A valid remembered session opens the map after account refresh; fresh login and registration do the same.
-- New and reset accounts choose one free weapon from Warden Vale at camp. The Gem Shop sells all five starting weapons for 18 Gold each, alongside support gems, so players can unlock another damage color.
+- New and reset accounts choose one free weapon from Warden Vale at camp. The Gem Shop sells only non-weapon support gems across all five colors: Bloodstone Whet, Oak Shield, Verdant Rune, Locksmith’s Pick, Powder Bomb, and Chaos Orb.
 - The Sack supports 1–5 unique owned gems and uses a compact deck/card collection UI.
 - Board gems can naturally spawn with a visible +1 value (1 in 20 by default). The extra value follows that gem through swaps and falls, and adds to match rewards, combat power, and charge. The spawn rate is defined by `BONUS_SPAWN_DENOMINATOR` in `shared/combat-rules.js`; changing it requires a new replay version to preserve unfinished fights.
 - The Sack owns the gem collection; Inventory shows only physical gear and one-shot consumables. Server ownership records still cover all three item kinds.

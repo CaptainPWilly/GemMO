@@ -405,13 +405,14 @@ assert.equal(JSON.stringify(a.get().charges),JSON.stringify(replayPair.charges),
  await Promise.all([a.confirmStarterWeapon(),a.confirmStarterWeapon()]);assert.equal(claims,1);assert.equal(a.getAccount().needsStarter,false);assert.equal(a.get().sack[0],'crystal-wand');assert.equal(a.getStory(),null);assert.equal(a.worldCanTravel('camp','crossroads'),true);
  const gemStock=c.GEMMO_CONTENT.SHOP_STOCK['gem-shop'],serverStock=require('../server/catalog.cjs').SHOP_CATALOG['gem-shop'];
  assert.deepEqual(JSON.parse(JSON.stringify(Object.fromEntries(gemStock.map(entry=>[entry.id,entry.price])))),serverStock,'client/server gem stock and prices agree');
- assert.equal(gemStock.filter(entry=>c.GEMMO_WEAPON_GEMS.isWeaponGem(entry.id)).length,5);
+ assert(gemStock.every(entry=>!c.GEMMO_WEAPON_GEMS.isWeaponGem(entry.id)),'shop sells only non-weapon gems');
  a.setShop('gem-shop');a.drawShop();
  const shopMarkup=es.get('shopGrid').innerHTML;
- for(const id of c.GEMMO_WEAPON_GEMS.STARTER_WEAPON_IDS){assert(shopMarkup.includes('data-buy="'+id+'"'),'shop renders '+id);assert.equal(serverStock[id],18)}
+ for(const entry of gemStock)assert(shopMarkup.includes('data-buy="'+entry.id+'"'),'shop renders '+entry.id);
+ for(const id of c.GEMMO_WEAPON_GEMS.WEAPON_GEM_IDS)assert(!shopMarkup.includes('data-buy="'+id+'"'),'shop excludes '+id);
  assert.equal((shopMarkup.match(/shopColorSection /g)||[]).length,5,'shop renders every color without throwing');
- assert(shopMarkup.includes('weaponGemCard'),'shop marks weapon gems');
- a.buyShopItemClient('ritual-dagger');assert.equal(a.getPurchase().itemId,'ritual-dagger');assert.equal(a.getPurchase().price,18);a.closePurchaseConfirmation();
+ a.buyShopItemClient('bloodstone-whet');assert.equal(a.getPurchase().itemId,'bloodstone-whet');assert.equal(a.getPurchase().price,18);a.closePurchaseConfirmation();
+ a.buyShopItemClient('ritual-dagger');assert.equal(a.getPurchase(),null,'weapons cannot open a purchase');
 
  const buyer={user:{id:9,username:'Buyer'},profile:{level:1,xp:0,gold:100},skills:{purchased:[],availablePoints:1},inventory:['dagger'],inventoryItems:[{id:'dagger',kind:'gem',qty:1}],sack:['dagger',null,null,null,null],equipment:{},world:{currentNode:'item-shop',clearedEncounters:[]}};a.setTestAccount(buyer);a.setShop('item-shop');
  let purchases=0;c.fetch=async(url,options)=>{assert(url.endsWith('/v1/shop/buy'));purchases++;const body=JSON.parse(options.body);assert.equal(body.itemId,'minor-healing-draught');return {ok:true,json:async()=>({account:{...buyer,profile:{...buyer.profile,gold:90}}})}};

@@ -316,17 +316,24 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-warden-weapon-choice-v1'").run();assert.equal(await applyDataMigrations(db),true);
     const freshMigrated=await accountSnapshot(db,freshId),established=await accountSnapshot(db,establishedId);assert.equal(freshMigrated.needsStarter,true);assert.deepEqual(freshMigrated.inventory,[]);assert.deepEqual(freshMigrated.sack,[null,null,null,null,null]);assert.equal(established.needsStarter,false);assert.equal(established.profile.xp,20);assert.deepEqual(established.inventory,['dagger']);
     assert.equal(await applyDataMigrations(db),false,'starter migration never repeats');
-    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,require('../shared/weapon-gems.js').STARTER_WEAPON_IDS,'shop sells each starting weapon');
-    const shopper=await seedAccount(db,{usernameNorm:'weaponshopper',usernameDisplay:'Weapon Shopper',passwordHash:'test'});await registerCharacter(db,shopper,'Weapon Shopper');await chooseStarterWeapon(db,shopper,'dagger');
-    await db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(shopper);
-    await assert.rejects(buyShopItem(db,shopper,'gem-shop','crystal-wand'),/not_at_shop/);
-    await moveWorld(db,shopper,'gem-shop');
-    for(const weapon of shopWeapons.filter(id=>id!=='dagger'))await buyShopItem(db,shopper,'gem-shop',weapon);
-    const bought=await accountSnapshot(db,shopper);assert.equal(bought.profile.gold,28);assert.deepEqual(new Set(bought.inventory),new Set(shopWeapons));assert.deepEqual(bought.sack,['dagger',null,null,null,null],'buying leaves the equipped weapon in place');
-    await assert.rejects(buyShopItem(db,shopper,'gem-shop','crystal-wand'),/already_owned/);
-    assert.equal((await accountSnapshot(db,shopper)).profile.gold,28,'duplicate purchase spends nothing');
-    const poor=await seedAccount(db,{usernameNorm:'poorshopper',usernameDisplay:'Poor Shopper',passwordHash:'test'});await registerCharacter(db,poor,'Poor Shopper');await chooseStarterWeapon(db,poor,'sling');await moveWorld(db,poor,'gem-shop');
-    await assert.rejects(buyShopItem(db,poor,'gem-shop','dagger'),/insufficient_gold/);
+    // New owner-requested reset applies to PWilly only, clears the starter choice,
+    // and never repeats on restart.
+    await chooseStarterWeapon(db,resetUser,'sling');
+    await db.prepare('UPDATE profiles SET xp=40,gold=88 WHERE user_id=?').run(resetUser);
+    await moveWorld(db,resetUser,'crossroads');await moveWorld(db,resetUser,'shrine');
+    await db.prepare("INSERT INTO skill_unlocks(user_id,skill_id,purchased_at) VALUES(?,'red-start',1)").run(resetUser);
+    const otherBeforeReset=await accountSnapshot(db,establishedId);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-pwilly-progress-reset-v2'").run();
+    assert.equal(await applyDataMigrations(db),true);
+    const clean=await accountSnapshot(db,resetUser);
+    assert.equal(clean.profile.level,1);assert.equal(clean.profile.xp,0);assert.equal(clean.profile.gold,0);assert.equal(clean.world.currentNode,'camp');
+    assert.equal(clean.needsStarter,true);assert.deepEqual(clean.inventory,[]);assert.deepEqual(clean.sack,[null,null,null,null,null]);assert.deepEqual(clean.skills.purchased,[]);
+    assert.equal(clean.character.name,'Test Captain');assert.equal((await db.prepare('SELECT password_hash FROM users WHERE id=?').get(resetUser)).password_hash,'preserved-hash');
+    assert.deepEqual(await accountSnapshot(db,establishedId),otherBeforeReset,'other players are untouched');
+    await chooseStarterWeapon(db,resetUser,'crystal-wand');await db.prepare('UPDATE profiles SET gold=12 WHERE user_id=?').run(resetUser);
+    assert.equal(await applyDataMigrations(db),false);const afterRestart=await accountSnapshot(db,resetUser);assert.equal(afterRestart.profile.gold,12);assert.equal(afterRestart.starter,'crystal-wand');
+    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,[],'shop sells only non-weapon gems');
+    await assert.rejects(buyShopItem(db,resetUser,'gem-shop','dagger'),/item_not_sold_here/);
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, one-time fresh reset, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 
