@@ -1,4 +1,5 @@
 'use strict';
+const {weaponMatchDamage}=require('../shared/weapon-gems.js');
 const {GEAR,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {rollGemBonus,comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
 const {skillEffects}=require('../shared/progression.js');
@@ -699,7 +700,7 @@ function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
 function matchPower(s,color){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return s.sack.reduce((sum,id)=>{const gem=spec(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills);return s.sack.reduce((n,id)=>n+(spec(id)?.color===color?spec(id).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
-function rollBonus(s){return s.version==='replay-v2'?rollGemBonus(s.rng):0}
+function rollBonus(s){return ['replay-v2','replay-v3'].includes(s.version)?rollGemBonus(s.rng):0}
 function rollTile(s){const type=roll(s);return {type,bonus:rollBonus(s)}}
 function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]]}
 function key(x,y){return x+','+y}
@@ -729,7 +730,8 @@ function applyColor(s,type,n,actor,comboBonus=false){
  if(actor==='player'){
   const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
   if(colored){const cap=reservoirCap(s,type),gearGain=gearStats(s.equipment).chargeGain[type]||0,skillGain=s.skill?.chargeGain?.[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;s.charges[type]=Math.min(cap,s.charges[type]+n*mult+matchGain)}
-  if(type==='red'){damageEnemy(s,n*mult*matchPower(s,'red'));if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
+  if(s.version==='replay-v3')damageEnemy(s,n*mult*weaponMatchDamage(s.sack,type,spec));
+  if(type==='red'){if(s.version!=='replay-v3')damageEnemy(s,n*mult*matchPower(s,'red'));if(!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
   if(type==='blue'){s.pGuard+=n*mult*matchPower(s,'blue');s.guardTurns=2;if(!comboBonus&&s.buffs.holdfast){s.pGuard+=2;s.guardTurns=2}}
   if(type==='green'&&!comboBonus&&s.buffs.aftergrowth)s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
   if(type==='yellow'&&!comboBonus&&s.buffs.momentum){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
