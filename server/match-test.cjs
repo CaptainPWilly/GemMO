@@ -1,8 +1,8 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {createDb,chooseStarterWeapon,seedAccount,registerCharacter,moveWorld,startMatch,checkpointMatch,openMatch,surrenderMatch,consumeMatchItem,settleMatch,levelLeaderboard,cleanupMatches}=require('./db.cjs');
-const {createRatCombat,applyCombatAction,suggestCombatAction,replayCombatTranscript}=require('./combat.cjs');
+const {createDb,accountSnapshot,buySkill,chooseStarterWeapon,seedAccount,registerCharacter,moveWorld,startMatch,checkpointMatch,openMatch,surrenderMatch,consumeMatchItem,settleMatch,levelLeaderboard,cleanupMatches}=require('./db.cjs');
+const {legalMoves,createRatCombat,applyCombatAction,suggestCombatAction,replayCombatTranscript}=require('./combat.cjs');
 (async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gemmo-resume-')),dbPath=path.join(dir,'game.db');let db;
  try{
@@ -53,6 +53,16 @@ const {createRatCombat,applyCombatAction,suggestCombatAction,replayCombatTranscr
   await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'unknown-gem','gem',1)").run(other);
   leaders=await levelLeaderboard(db,other,'unlocked');assert.equal(leaders.entries[0].name,'Other Hero');assert.equal(leaders.you.rank,1);assert.equal(leaders.you.unlocked,2,'count distinct known owned gems, not quantities, gear or consumables');assert.equal(leaders.you.totalGemTypes,require('./catalog.cjs').GEM_IDS.length);assert(leaders.you.isYou);
   assert(!JSON.stringify(leaders).includes('otherhero'),'collection rankings expose character names only');
+  const fallen=await seedAccount(db,{usernameNorm:'fallenhero',usernameDisplay:'FallenHero',passwordHash:'test'});await registerCharacter(db,fallen,'Fallen Hero');await chooseStarterWeapon(db,fallen,'crystal-wand');
+  await buySkill(db,fallen,'blue-cap-1');assert((await accountSnapshot(db,fallen)).skills.purchased.includes('blue-cap-1'),'skills can be learned at Camp');
+  await moveWorld(db,fallen,'crossroads');await moveWorld(db,fallen,'shrine');let fallAccount=await accountSnapshot(db,fallen);assert.equal(fallAccount.world.checkpoint,'shrine');assert(fallAccount.world.discoveredCheckpoints.includes('shrine'));
+  await moveWorld(db,fallen,'crossroads');await moveWorld(db,fallen,'rat');const deathMatch=await startMatch(db,fallen,'rat');await assert.rejects(buySkill(db,fallen,'blue-cap-1'),/unfinished_match/);
+  const deathState=createRatCombat({seed:13,sack:['crystal-wand',null,null,null,null],skills:['blue-cap-1'],rewardBudget:deathMatch.rewardBudget}),deathActions=[];
+  while(deathState.pHP>0&&deathActions.length<200){const move=legalMoves(deathState)[0];assert(move);const [a,b]=move,action={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y};deathActions.push(action);assert(applyCombatAction(deathState,action))}
+  assert(deathState.pHP<=0,'legal actions reach a verified death');await db.prepare('UPDATE match_combat_proofs SET seed=13 WHERE match_id=?').run(deathMatch.matchId);
+  const beforeDeath=await accountSnapshot(db,fallen),deathResult=await settleMatch(db,fallen,{matchId:deathMatch.matchId,won:false,gold:0,xp:0,transcript:deathActions});assert.equal(deathResult.respawnNode,'shrine');fallAccount=await accountSnapshot(db,fallen);assert.equal(fallAccount.world.currentNode,'shrine');assert.equal(fallAccount.profile.xp,beforeDeath.profile.xp);assert.deepEqual(fallAccount.inventory,beforeDeath.inventory);
+  await moveWorld(db,fallen,'crossroads');await settleMatch(db,fallen,{matchId:deathMatch.matchId,won:false,gold:0,xp:0,transcript:deathActions});assert.equal((await accountSnapshot(db,fallen)).world.currentNode,'crossroads','retry must not teleport again');
+  assert.equal((await accountSnapshot(db,user)).world.currentNode,'rat','surrender does not pretend to be a verified death');
   await assert.rejects(levelLeaderboard(db,user,'unsafe SQL'),e=>e.message==='invalid_leaderboard');
   console.log('PASS: persistent match recovery, RNG state, checkpoint ownership/monotonicity, consumable recovery, idempotent statistics, win rate and all combat leaderboards.');
  }finally{db?.close();fs.rmSync(dir,{recursive:true,force:true})}

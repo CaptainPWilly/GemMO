@@ -11,6 +11,7 @@ const {QUESTS,CUTSCENES,NPCS}=require('../shared/story.js');
 const {skillEffects,levelForXp,xpProgress,availableSkillPoints,canPurchase,normalizePurchased,rankMap}=require('../shared/progression.js');
 
 const SCHEMA=[
+  "CREATE TABLE IF NOT EXISTS player_checkpoints(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,node_id TEXT NOT NULL,updated_at INTEGER NOT NULL) STRICT;",
   "CREATE TABLE IF NOT EXISTS match_checkpoints(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,transcript_json TEXT NOT NULL DEFAULT '[]',updated_at INTEGER NOT NULL) STRICT;",
   "CREATE TABLE IF NOT EXISTS match_stats(match_id TEXT PRIMARY KEY REFERENCES matches(id) ON DELETE CASCADE,gems_popped INTEGER NOT NULL DEFAULT 0,longest_cascade INTEGER NOT NULL DEFAULT 0) STRICT;",
 
@@ -210,6 +211,7 @@ async function applyDataMigrations(db){
       await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(starterKey,now);
     });changed=true;
   }
+  await db.prepare("INSERT OR IGNORE INTO player_checkpoints(user_id,node_id,updated_at) SELECT id,'shrine',? FROM users").run(now);
   return changed;
 }
 async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
@@ -218,6 +220,7 @@ async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
     await tx.prepare('INSERT INTO profiles(user_id,level,xp,gold,created_at,updated_at) VALUES(?,1,0,0,?,?)').run(userId,now,now);
     for(const slot of Object.keys(EQUIPMENT_SLOTS))await tx.prepare('INSERT INTO equipment_slots(user_id,slot,item_id) VALUES(?,?,NULL)').run(userId,slot);
     await tx.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach','camp',?)").run(userId,now);
+    await tx.prepare("INSERT INTO player_checkpoints(user_id,node_id,updated_at) VALUES(?,'shrine',?)").run(userId,now);
     await audit(tx,userId,'account_created_weapon_choice');
     return userId;
   });
@@ -262,6 +265,9 @@ async function accountSnapshot(db,userId){
   const user=await db.prepare('SELECT id,username_display,created_at FROM users WHERE id=?').get(userId);if(!user)return null;
   const character=await db.prepare('SELECT name FROM characters WHERE user_id=?').get(userId);
   const starter=await db.prepare('SELECT gem_id FROM starter_choices WHERE user_id=?').get(userId);
+  const checkpoint=await db.prepare('SELECT node_id FROM player_checkpoints WHERE user_id=?').get(userId);
+  const checkpointRows=await db.prepare("SELECT flag FROM world_flags WHERE user_id=? AND flag LIKE 'checkpoint:%'").all(userId);
+  const checkpointNode=WORLD_NODES[checkpoint?.node_id]?.checkpoint?checkpoint.node_id:'shrine';
   const pendingMatch=await db.prepare('SELECT m.id matchId,m.encounter_id encounterId FROM matches m JOIN match_checkpoints c ON c.match_id=m.id WHERE m.user_id=? AND m.settled_at IS NULL ORDER BY m.started_at DESC LIMIT 1').get(userId);
   const [profile,inventoryRows,equipmentRows,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
     db.prepare('SELECT level,xp,gold,created_at,updated_at FROM profiles WHERE user_id=?').get(userId),
@@ -278,7 +284,7 @@ async function accountSnapshot(db,userId){
   const inventory=inventoryRows.map(r=>r.item_id),inventoryItems=inventoryRows.map(r=>({id:r.item_id,kind:r.kind,qty:Number(r.qty)})),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {pendingMatch:pendingMatch||null,character:character?{name:character.name}:null,needsCharacterName:!character,user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:starter?.gem_id||null,needsStarter:!starter,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {pendingMatch:pendingMatch||null,character:character?{name:character.name}:null,needsCharacterName:!character,user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:starter?.gem_id||null,needsStarter:!starter,world:{checkpoint:checkpointNode,discoveredCheckpoints:[...new Set([checkpointNode,...checkpointRows.map(row=>row.flag.slice(11)).filter(id=>WORLD_NODES[id]?.checkpoint)])],region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -349,12 +355,18 @@ async function requireStarterWeapon(db,userId){if(!await db.prepare('SELECT 1 ok
 async function moveWorld(db,userId,nodeId){
   if(nodeId!=='camp')await requireStarterWeapon(db,userId);
   const target=WORLD_NODES[nodeId];if(!target)throw Object.assign(new Error('invalid_world_node'),{status:400});
-  const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),current=row?.current_node||'camp',from=WORLD_NODES[current];
+  return transaction(db,async tx=>{
+  const row=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),current=row?.current_node||'camp',from=WORLD_NODES[current];
   if(nodeId!==current&&!from?.neighbors.includes(nodeId))throw Object.assign(new Error('world_path_blocked'),{status:409});
-  if(nodeId!==current&&target.requires&&!(await hasWorldFlag(db,userId,'encounter:'+target.requires)))throw Object.assign(new Error('world_path_locked'),{status:409});
+  if(nodeId!==current&&target.requires&&!(await hasWorldFlag(tx,userId,'encounter:'+target.requires)))throw Object.assign(new Error('world_path_locked'),{status:409});
   const now=Date.now();
-  await db.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach',?,?) ON CONFLICT(user_id) DO UPDATE SET current_node=excluded.current_node,updated_at=excluded.updated_at").run(userId,nodeId,now);
-  await audit(db,userId,'world_moved',current+'>'+nodeId);
+  await tx.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach',?,?) ON CONFLICT(user_id) DO UPDATE SET current_node=excluded.current_node,updated_at=excluded.updated_at").run(userId,nodeId,now);
+  if(target.checkpoint){
+    await tx.prepare('INSERT INTO player_checkpoints(user_id,node_id,updated_at) VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET node_id=excluded.node_id,updated_at=excluded.updated_at').run(userId,nodeId,now);
+    await tx.prepare('INSERT OR IGNORE INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'checkpoint:'+nodeId,now);
+  }
+  await audit(tx,userId,'world_moved',current+'>'+nodeId);
+  });
 }
 async function completeEncounter(db,userId,encounterId){
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
@@ -456,8 +468,15 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
         return {alreadySettled:true,won:Boolean(settled.won),gold:Number(settled.gold),xp:Number(settled.xp),encounterId:settled.encounter_id};
       }
       if(replay)await tx.prepare('INSERT OR IGNORE INTO match_stats(match_id,gems_popped,longest_cascade) VALUES(?,?,?)').run(matchId,replay.gemsPopped||0,replay.longestCascade||0);
+      let respawnNode=null;
+      if(replay&&replay.pHP<=0){
+        const checkpoint=await tx.prepare('SELECT node_id FROM player_checkpoints WHERE user_id=?').get(userId);
+        respawnNode=WORLD_NODES[checkpoint?.node_id]?.checkpoint?checkpoint.node_id:'shrine';
+        await tx.prepare("UPDATE world_state SET region='brackenreach',current_node=?,updated_at=? WHERE user_id=?").run(respawnNode,now,userId);
+        await audit(tx,userId,'respawned',respawnNode+':'+matchId);
+      }
       await audit(tx,userId,'match_settled_loss',match.encounter_id+':'+matchId);
-      return {alreadySettled:false,won:false,gold:0,xp:0,encounterId:match.encounter_id};
+      return {alreadySettled:false,won:false,gold:0,xp:0,encounterId:match.encounter_id,respawnNode};
     }
     const row=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
     if(!node?.encounter||node.encounter!==match.encounter_id)throw Object.assign(new Error('encounter_not_here'),{status:409});
@@ -490,7 +509,7 @@ async function cleanupMatches(db,staleMs=24*60*60*1000){
 }
 async function buySkill(db,userId,skillId){
   return transaction(db,async tx=>{
-    const world=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId);if(world?.current_node!=='shrine')throw Object.assign(new Error('not_at_shrine'),{status:409});
+    if(await tx.prepare('SELECT 1 ok FROM matches WHERE user_id=? AND settled_at IS NULL').get(userId))throw Object.assign(new Error('unfinished_match'),{status:409});
     const profile=await tx.prepare('SELECT level,xp FROM profiles WHERE user_id=?').get(userId);if(!profile)throw Object.assign(new Error('profile_missing'),{status:404});
     const level=levelForXp(Number(profile.xp)),rows=await tx.prepare('SELECT skill_id FROM skill_unlocks WHERE user_id=? ORDER BY purchased_at,skill_id').all(userId),purchased=normalizePurchased(rows.map(r=>r.skill_id)),check=canPurchase(skillId,purchased,level);
     if(!check.ok)throw Object.assign(new Error(check.reason),{status:check.reason==='invalid_skill'?400:409});

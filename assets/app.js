@@ -399,12 +399,15 @@ async function settleVictory(){
  finally{encounterSettling=false;$('resultMenu').disabled=false}
 }
 async function settleDefeat(){
- if(lossSettlementStarted||!accountToken)return;
- lossSettlementStarted=true;
+ if(lossSettlementStarted||encounterSettling||!accountToken)return;
+ lossSettlementStarted=true;encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
-  if(!await ensureMatchTicket())return;
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))body.transcript=combatTranscript;const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
- }catch{}
+  if(!await ensureMatchTicket())throw new Error(lastMatchError||'match_start_failed');
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
+  const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
+  $('resultText').textContent=data.settlement?.respawnNode?'You awaken at '+WORLD_NODES[data.settlement.respawnNode].name+'.':account?.world?.currentNode===account?.world?.checkpoint?'You awaken at '+WORLD_NODES[account.world.currentNode].name+'.':'No rewards earned.';
+ }catch(error){lossSettlementStarted=false;$('resultText').textContent='Could not save your result. Please retry.';$('resultRetry').hidden=false}
+ finally{encounterSettling=false;$('resultMenu').disabled=false}
 }
 function checkEnd(){if(pHP<=0||eHP<=0)clearTimeout(hintTimer);if(screen!=='fight')return;if(eHP<=0||pHP<=0){eHP=Math.max(0,eHP);pHP=Math.max(0,pHP);const won=eHP<=0;$('resultTitle').textContent=won?'VICTORY':'DEFEAT';$('resultText').textContent=won?'SAVING…':'';$('result').classList.add('show');if(won)void settleVictory();else void settleDefeat();render()}}
 let combatHistory=[],logSequence=0,activeCombatMove=null;
@@ -734,7 +737,7 @@ function drawWorld(){
  worldHits=[];
  for(const node of Object.values(WORLD_NODES).filter(worldNodeVisible)){const p=objectPoint(node.x,node.y),current=node.id===worldState.currentNode,selected=node.id===selectedWorldNode,s=worldCamera.zoom,npc=npcAtNode(node.id);
   if(node.id==='camp'){ctx.fillStyle='#7c4c2d';ctx.beginPath();ctx.moveTo(p.x,p.y-22*s);ctx.lineTo(p.x+15*s,p.y);ctx.lineTo(p.x-15*s,p.y);ctx.closePath();ctx.fill();ctx.fillStyle='#e69245';ctx.beginPath();ctx.arc(p.x+13*s,p.y-2*s,3*s,0,Math.PI*2);ctx.fill()}
-  if(node.id==='shrine'){ctx.fillStyle='#8a897c';ctx.fillRect(p.x-5*s,p.y-23*s,10*s,22*s);ctx.fillStyle='#aaa899';ctx.fillRect(p.x-9*s,p.y-25*s,18*s,5*s)}
+  if(node.checkpoint){ctx.fillStyle='#8a897c';ctx.fillRect(p.x-5*s,p.y-23*s,10*s,22*s);ctx.fillStyle='#aaa899';ctx.fillRect(p.x-9*s,p.y-25*s,18*s,5*s)}
   if(node.kind==='shop'){ctx.fillStyle=node.id==='gem-shop'?'#654f83':'#725135';ctx.fillRect(p.x-14*s,p.y-17*s,28*s,17*s);ctx.fillStyle='#d7bb82';ctx.beginPath();ctx.moveTo(p.x-18*s,p.y-18*s);ctx.lineTo(p.x+18*s,p.y-18*s);ctx.lineTo(p.x+12*s,p.y-28*s);ctx.lineTo(p.x-12*s,p.y-28*s);ctx.closePath();ctx.fill()}
   if(node.id==='rat'){ctx.strokeStyle='#5a4031';ctx.lineWidth=2*s;ctx.beginPath();ctx.arc(p.x,p.y-18*s,6*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(p.x-4*s,p.y-24*s,2*s,0,Math.PI*2);ctx.arc(p.x+3*s,p.y-24*s,2*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x+6*s,p.y-18*s);ctx.quadraticCurveTo(p.x+17*s,p.y-24*s,p.x+18*s,p.y-14*s);ctx.stroke()}
   if(node.id==='bandit-pass'){ctx.strokeStyle='#4f3123';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-27*s);ctx.stroke();ctx.fillStyle='#9a3f32';ctx.beginPath();ctx.moveTo(p.x,p.y-27*s);ctx.lineTo(p.x+16*s,p.y-22*s);ctx.lineTo(p.x,p.y-15*s);ctx.closePath();ctx.fill()}
@@ -756,19 +759,19 @@ function worldNodeSummary(node,current,npc){
  if(npc)return npc.name+' · '+npc.title;
  if(node.id!==current.id){const route=worldPath(current.id,node.id),steps=Math.max(0,(route?.length||1)-1);return steps+' ROAD STEP'+(steps===1?'':'S')+' AWAY';}
  if(node.kind==='shop')return node.id==='gem-shop'?'Reusable gems, spells, and techniques.':'Equipment and one-shot supplies.';
- if(node.id==='shrine')return 'Spend skill points and shape your build.';
+ if(node.checkpoint)return account?.world?.checkpoint===node.id?'Your active respawn checkpoint.':'Visit this shrine to set your respawn checkpoint.';
  if(node.encounter)return worldCleared(node.encounter)?'Road cleared.':'Hostile encounter.';
  return 'Current location · select a destination on the map.';
 }
 function drawWorldCard(){
  const node=WORLD_NODES[selectedWorldNode]||WORLD_NODES[worldState.currentNode],current=WORLD_NODES[worldState.currentNode],npc=npcAtNode(node.id);
- $('worldKind').textContent=node.kind==='encounter'?'⚔':npc?'◆ '+npc.title.toUpperCase():node.kind==='shop'?'▣ SHOP':node.id==='shrine'?'✦ SHRINE':node.kind==='safe'?'⌂ SAFE':node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=worldNodeSummary(node,current,npc);$('worldNodeDesc').hidden=false;
+ $('worldKind').textContent=node.kind==='encounter'?'⚔':npc?'◆ '+npc.title.toUpperCase():node.kind==='shop'?'▣ SHOP':node.checkpoint?'✦ SHRINE':node.kind==='safe'?'⌂ SAFE':node.kind.toUpperCase();$('worldNodeName').textContent=node.name;$('worldNodeDesc').textContent=worldNodeSummary(node,current,npc);$('worldNodeDesc').hidden=false;
  const btn=$('worldAction');btn.hidden=true;btn.disabled=false;btn.dataset.action='none';delete btn.dataset.npc;
  if(worldTravelRoute){btn.hidden=false;btn.disabled=true;btn.textContent='→ …';return}
  if(node.id===current.id){
   if(node.encounter){btn.hidden=false;btn.textContent='⚔ '+node.name.toUpperCase();btn.dataset.action='fight'}
   else if(node.shop){btn.hidden=false;btn.textContent=node.shop==='gem-shop'?'▣ GEM SHOP':'▣ ITEM SHOP';btn.dataset.action='shop'}
-  else if(node.id==='shrine'){btn.hidden=false;btn.textContent='✦ ATTUNE';btn.dataset.action='skills'}
+  else if(node.checkpoint){btn.hidden=false;btn.textContent='✦ CHECKPOINT SET';btn.disabled=true;btn.dataset.action='none'}
   else if(npc){btn.hidden=false;btn.textContent='◆ '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
  }
 }
@@ -837,9 +840,10 @@ function drawSkills(){
  tree.innerHTML='<div class="skillTreeCanvas"><svg class="skillTreeEdges" viewBox="0 0 1080 580" aria-hidden="true">'+paths+'</svg><div class="skillTreeOrigin" aria-hidden="true">✦</div>'+nodes+'</div>';tree.scrollLeft=scrollLeft;
  document.querySelectorAll('.skillNode[data-skill]').forEach(button=>button.onclick=()=>selectSkillNode(button.dataset.skill));drawSkillDetails();
 }
-function openSkills(){if(!account||worldState.currentNode!=='shrine')return;$('skillStatus').textContent='';showScreen('skills');drawSkills()}
-async function openWorldSkills(){if(!account||worldTravelRoute)return;if(worldState.currentNode!=='shrine')await travelWorld('shrine');if(worldState.currentNode==='shrine')openSkills()}
-async function buySkillClient(skillId){if(skillBuying||!account||worldState.currentNode!=='shrine'||!SKILL_BY_ID[skillId])return;skillBuying=true;drawSkillDetails();$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}finally{skillBuying=false;drawSkillDetails()}}
+let skillsReturnScreen='world';
+function openSkills(){if(!account)return;if(account.pendingMatch){enterWorld();return}skillsReturnScreen=screen==='menu'?'menu':'world';$('skillStatus').textContent='';showScreen('skills');drawSkills()}
+function openWorldSkills(){openSkills()}
+async function buySkillClient(skillId){if(skillBuying||!account||account.pendingMatch||!SKILL_BY_ID[skillId])return;skillBuying=true;drawSkillDetails();$('skillStatus').textContent='Attuning…';try{const before=skillRank(skillId,account.skills?.purchased||[]),data=await accountRequest('/v1/skills/buy',{method:'POST',body:{skillId}});applyAccount(data.account);const after=skillRank(skillId,account.skills?.purchased||[]),node=SKILL_BY_ID[skillId];$('skillStatus').textContent=node.name+(node.maxRank>1?' · Rank '+after+'/'+node.maxRank:' learned.');drawSkills()}catch(error){$('skillStatus').textContent=error.message.replaceAll('_',' ');drawSkills()}finally{skillBuying=false;drawSkillDetails()}}
 function shopItemData(id){const gem=itemById(id);if(gem){const stat=gemMatchStatText(gem);return {id,name:gem.item,kind:'gem',gemType:gem.gemType,sub:(gem.gemType==='weapon'?'⚔ WEAPON · ':'')+(stat?stat+' · ':'')+gem.effectLabel+' · '+gem.name+(gem.turnCost===0?' · QUICK':''),desc:gem.desc,color:gem.color};}const gear=gearById(id);if(gear)return {id,name:gear.name,kind:'gear',sub:'LV '+gear.level+' · '+gear.slot.toUpperCase(),desc:gearBonusText(gear),color:null,slot:gear.slot,icon:gearSlotIcon(gear.slot)};const c=consumableById(id);if(c)return {id,name:c.name,kind:'consumable',sub:'ONE-SHOT · COMBAT ITEM',desc:c.desc,color:null,icon:c.icon};return null}
 function openShop(shopId){if(!account||worldState.currentNode!==shopId)return;currentShop=shopId;showScreen('shop');drawShop()}
 function shopCard(entry,owned){
@@ -1098,9 +1102,9 @@ async function loadLeaderboard(){const metric=$('leaderboardMetric').value||'lev
 $('worldLeaderboard').onclick=()=>{showScreen('leaderboard');void loadLeaderboard()};$('leaderboardMetric').onchange=()=>void loadLeaderboard();
 $('leaderboardBack').onclick=()=>{leaderboardRequest++;enterWorld()};
 $('enterBtn').onclick=async()=>{if(account){enterWorld();return}if(accountToken&&await refreshAccount()){enterWorld();return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
-document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
+document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>showScreen(skillsReturnScreen);
 $('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{if(account?.needsStarter){openDialogue('warden-vale');return}const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
-$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='skills')openSkills();if(action==='talk')openDialogue($('worldAction').dataset.npc)};
+$('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='talk')openDialogue($('worldAction').dataset.npc)};
 $('storyContinue').onclick=()=>{if(activeStory?.type!=='cutscene')return;activeStory.index++;renderCutscene()};$('storySkip').onclick=()=>{if(activeStory?.type!=='cutscene')return;const id=activeStory.id;storyHide();void markCutsceneClient(id)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}
 function worldDistance(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
@@ -1147,7 +1151,7 @@ $('textSize').value=textSize;$('textSize').onchange=()=>{textSize=$('textSize').
 $('motionToggle').checked=motionOff;$('motionToggle').onchange=()=>{motionOff=$('motionToggle').checked;save()};
 $('apiBase').value=apiBase;$('apiBase').onchange=()=>{apiBase=$('apiBase').value.trim().replace(/\/+$/,'')||'https://gemmo.onrender.com';saveDeviceSettings();$('accountStatus').textContent='Account API updated.'};
 $('loginBtn').onclick=()=>void submitAuth('login');$('registerBtn').onclick=()=>void submitAuth('register');$('logoutBtn').onclick=()=>void logoutAccount();$('syncAccountBtn').onclick=()=>{lastAccountSync='';void syncAccountLoadout()};
-$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatSacksBtn').onclick=()=>{$('combatMenuPanel').hidden=true;openCombatSacks()};$('combatItemsBtn').onclick=openCombatItems;$('closeCombatItems').onclick=closeCombatItems;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void settleVictory();$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
+$('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>void closeEffectsDrawer();$('leaveFight').onclick=openCombatMenu;$('closeCombatMenu').onclick=closeCombatMenu;$('combatSacksBtn').onclick=()=>{$('combatMenuPanel').hidden=true;openCombatSacks()};$('combatItemsBtn').onclick=openCombatItems;$('closeCombatItems').onclick=closeCombatItems;$('combatGemologyBtn').onclick=openCombatGemology;$('closeCombatGemology').onclick=closeCombatGemology;$('surrenderBtn').onclick=surrenderFight;$('resultRetry').onclick=()=>void (eHP<=0?settleVictory():settleDefeat());$('resultMenu').onclick=()=>{if(!encounterSettling)leaveFight()};
 
 function renderStatuses(){
  updateTurnCue();

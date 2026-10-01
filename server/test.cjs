@@ -175,7 +175,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,409,'cannot skip the road graph');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'crossroads');
     r=await call('/v1/world/complete-encounter',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,403,'encounter clears only through a settled victory');
-    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-cap-1'}});assert.equal(r.status,409);
+    r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'not-a-skill'}});assert.equal(r.status,400,'unknown skills are validated anywhere');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'shrine'}});assert.equal(r.status,200);
     r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-start'}});assert.equal(r.status,409);
     r=await call('/v1/skills/buy',{method:'POST',token,body:{skillId:'red-cap-1'}});assert.equal(r.status,200);assert(r.data.account.skills.purchased.includes('red-cap-1'));assert.equal(r.data.account.skills.availablePoints,0);
