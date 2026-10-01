@@ -2,6 +2,7 @@
 'use strict';
 // Weapon identity is explicit; effect kind and color do not determine it.
 const WEAPON_GEM_IDS=Object.freeze(['dagger','hand-crossbow','barbed-blade','longbow','spear','rapier','arming-sword','executioners-axe','axe','flail','halberd','warhammer','ember-rod','crystal-wand','war-pick','quarterstaff','hook-spear','swordbreaker','anchor-maul','tide-chain','binding-chain','parrying-dagger','willow-wand','druid-staff','sickle','grove-spear','woodland-club','venom-needle','hunting-bow','thorn-whip','sling','knife','twin-knives','light-crossbow','duelist-sabre','glaive','javelin','ritual-dagger','rune-blade','moon-scythe','relic-mace','echo-knife','hex-staff']);
+const STARTER_WEAPON_IDS=Object.freeze(['dagger','crystal-wand','thorn-whip','sling','ritual-dagger']);
 const weapons=new Set(WEAPON_GEM_IDS);
 const isWeaponGem=id=>weapons.has(id);
 // Effects grant additional slots explicitly. Never accept a client-supplied limit.
@@ -20,6 +21,6 @@ function equipGem(sack,slot,id,effects=[]){
 
  return next;
 }
-const rules=Object.freeze({WEAPON_GEM_IDS,isWeaponGem,weaponGemLimit,validWeaponGems,equipGem});
+const rules=Object.freeze({WEAPON_GEM_IDS,STARTER_WEAPON_IDS,isWeaponGem,weaponGemLimit,validWeaponGems,equipGem});
 if(typeof module==='object'&&module.exports)module.exports=rules;else root.GEMMO_WEAPON_GEMS=rules;
 })(globalThis);

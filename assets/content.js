@@ -12,9 +12,8 @@ const WORLD_NODES={
 };
 const SHOP_STOCK={
  'gem-shop':[
-  {id:'hand-crossbow',price:18},{id:'quarterstaff',price:18},{id:'healing-potion',price:16},{id:'knife',price:14},
-  {id:'locksmith-pick',price:16},{id:'powder-bomb',price:22},{id:'swordbreaker',price:20},{id:'hunting-bow',price:20},
-  {id:'hex-staff',price:22},{id:'chaos-orb',price:22},{id:'crystal-wand',price:18},{id:'sling',price:18}
+  {id:'healing-potion',price:16},{id:'locksmith-pick',price:16},{id:'powder-bomb',price:22},{id:'chaos-orb',price:22},
+  {id:'shield',price:18},{id:'bloodstone-whet',price:18}
  ],
  'item-shop':[
   {id:'frayed-hood',price:12},{id:'leather-cap',price:18},{id:'padded-tunic',price:20},{id:'cloth-wraps',price:12},{id:'leather-gloves',price:18},{id:'linen-trousers',price:12},{id:'hide-leggings',price:18},{id:'scuffed-boots',price:12},{id:'leather-boots',price:18},{id:'copper-pendant',price:15},{id:'bone-talisman',price:18},{id:'tin-ring',price:15},{id:'iron-band',price:15},

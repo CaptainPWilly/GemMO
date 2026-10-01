@@ -1,5 +1,5 @@
 'use strict';
-const {WEAPON_GEM_IDS,validWeaponGems}=require('../shared/weapon-gems.js');
+const {WEAPON_GEM_IDS,STARTER_WEAPON_IDS,validWeaponGems}=require('../shared/weapon-gems.js');
 const fs=require('node:fs');
 const path=require('node:path');
 const {DatabaseSync}=require('node:sqlite');
@@ -192,6 +192,24 @@ async function applyDataMigrations(db){
       await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(testResetKey,now);
     });changed=true;
   }
+  const starterKey='2026-10-01-warden-weapon-choice-v1';
+  if(!(await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(starterKey))){
+    await transaction(db,async tx=>{
+      if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(starterKey))return;
+      const users=await tx.prepare('SELECT u.id,p.xp,p.gold,w.current_node FROM users u JOIN profiles p ON p.user_id=u.id JOIN world_state w ON w.user_id=u.id WHERE NOT EXISTS(SELECT 1 FROM starter_choices c WHERE c.user_id=u.id)').all();
+      for(const user of users){
+        const inventory=await tx.prepare('SELECT item_id FROM inventory WHERE user_id=? AND qty>0').all(user.id),match=await tx.prepare('SELECT 1 ok FROM matches WHERE user_id=? LIMIT 1').get(user.id);
+        // Only untouched automatic-dagger starts become empty. Established players keep everything.
+        if(Number(user.xp)===0&&Number(user.gold)===0&&user.current_node==='camp'&&!match&&inventory.length===1&&inventory[0].item_id==='dagger'){
+          await tx.prepare('DELETE FROM sack_slots WHERE user_id=?').run(user.id);await tx.prepare('DELETE FROM inventory WHERE user_id=?').run(user.id);
+        }else{
+          const weapon=inventory.find(row=>WEAPON_GEM_IDS.includes(row.item_id));
+          await tx.prepare('INSERT INTO starter_choices(user_id,gem_id,chosen_at) VALUES(?,?,?)').run(user.id,weapon?.item_id||DEFAULT_STARTER_GEM,now);
+        }
+      }
+      await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(starterKey,now);
+    });changed=true;
+  }
   return changed;
 }
 async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
@@ -200,9 +218,7 @@ async function seedAccount(db,{usernameNorm,usernameDisplay,passwordHash}){
     await tx.prepare('INSERT INTO profiles(user_id,level,xp,gold,created_at,updated_at) VALUES(?,1,0,0,?,?)').run(userId,now,now);
     for(const slot of Object.keys(EQUIPMENT_SLOTS))await tx.prepare('INSERT INTO equipment_slots(user_id,slot,item_id) VALUES(?,?,NULL)').run(userId,slot);
     await tx.prepare("INSERT INTO world_state(user_id,region,current_node,updated_at) VALUES(?,'brackenreach','camp',?)").run(userId,now);
-    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,'gem',1)").run(userId,DEFAULT_STARTER_GEM);
-    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,?)').run(userId,DEFAULT_STARTER_GEM);
-    await audit(tx,userId,'account_created_iron_dagger',DEFAULT_STARTER_GEM);
+    await audit(tx,userId,'account_created_weapon_choice');
     return userId;
   });
 }
@@ -237,6 +253,7 @@ async function levelLeaderboard(db,userId,metric='level'){
 async function accountSnapshot(db,userId){
   const user=await db.prepare('SELECT id,username_display,created_at FROM users WHERE id=?').get(userId);if(!user)return null;
   const character=await db.prepare('SELECT name FROM characters WHERE user_id=?').get(userId);
+  const starter=await db.prepare('SELECT gem_id FROM starter_choices WHERE user_id=?').get(userId);
   const pendingMatch=await db.prepare('SELECT m.id matchId,m.encounter_id encounterId FROM matches m JOIN match_checkpoints c ON c.match_id=m.id WHERE m.user_id=? AND m.settled_at IS NULL ORDER BY m.started_at DESC LIMIT 1').get(userId);
   const [profile,inventoryRows,equipmentRows,world,clearRows,sackRows,questRows,storyRows,skillRows]=await Promise.all([
     db.prepare('SELECT level,xp,gold,created_at,updated_at FROM profiles WHERE user_id=?').get(userId),
@@ -253,7 +270,7 @@ async function accountSnapshot(db,userId){
   const inventory=inventoryRows.map(r=>r.item_id),inventoryItems=inventoryRows.map(r=>({id:r.item_id,kind:r.kind,qty:Number(r.qty)})),sack=Array(5).fill(null),equipment=Object.fromEntries(equipmentRows.map(r=>[r.slot,r.item_id])),worldRow=world||{region:'brackenreach',current_node:'camp',updated_at:user.created_at},clearedEncounters=clearRows.map(r=>r.flag.slice(10)),purchased=normalizePurchased(skillRows.map(r=>r.skill_id));
   for(const row of sackRows)sack[Number(row.slot)]=row.gem_id;
   const quests=[];for(const row of questRows){const quest=QUESTS[row.quest_id];if(!quest)continue;let status=row.status;if(status==='active'&&await questObjectiveMet(db,userId,quest))status='ready';quests.push({id:row.quest_id,status,acceptedAt:Number(row.accepted_at),completedAt:row.completed_at==null?null:Number(row.completed_at)})}
-  return {pendingMatch:pendingMatch||null,character:character?{name:character.name}:null,needsCharacterName:!character,user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:null,needsStarter:false,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
+  return {pendingMatch:pendingMatch||null,character:character?{name:character.name}:null,needsCharacterName:!character,user:{id:Number(user.id),username:user.username_display,createdAt:Number(user.created_at)},profile:{...profile,level,xp,gold:Number(profile.gold),created_at:Number(profile.created_at),updated_at:Number(profile.updated_at)},skills:{purchased,ranks:rankMap(purchased),availablePoints:availableSkillPoints(level,purchased),totalPoints:level,progress:xpProgress(xp)},sack,equipment,inventory,inventoryItems,starter:starter?.gem_id||null,needsStarter:!starter,world:{region:worldRow.region,currentNode:worldRow.current_node,updatedAt:Number(worldRow.updated_at),clearedEncounters},quests,story:{seenCutscenes:storyRows.map(r=>r.flag)}};
 }
 async function owns(db,userId,itemId){return !!(await db.prepare('SELECT 1 ok FROM inventory WHERE user_id=? AND item_id=? AND qty>0').get(userId,itemId))}
 async function updateSack(db,userId,sack){
@@ -304,7 +321,25 @@ async function markCutsceneSeen(db,userId,cutsceneId){
   await db.prepare('INSERT OR IGNORE INTO story_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,cutsceneId,Date.now());
   await audit(db,userId,'cutscene_seen',cutsceneId);
 }
+async function chooseStarterWeapon(db,userId,gemId){
+  if(!STARTER_WEAPON_IDS.includes(gemId))throw Object.assign(new Error('invalid_starter_weapon'),{status:400});
+  return transaction(db,async tx=>{
+    const choice=await tx.prepare('SELECT gem_id FROM starter_choices WHERE user_id=?').get(userId);
+    if(choice){if(choice.gem_id===gemId)return;throw Object.assign(new Error('starter_already_chosen'),{status:409})}
+    if(!await tx.prepare('SELECT 1 ok FROM characters WHERE user_id=?').get(userId))throw Object.assign(new Error('character_name_required'),{status:403});
+    const world=await tx.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId);
+    if(world?.current_node!=='camp')throw Object.assign(new Error('starter_not_at_camp'),{status:409});
+    if(await tx.prepare('SELECT 1 ok FROM matches WHERE user_id=? AND settled_at IS NULL').get(userId))throw Object.assign(new Error('unfinished_match'),{status:409});
+    await tx.prepare('INSERT INTO starter_choices(user_id,gem_id,chosen_at) VALUES(?,?,?)').run(userId,gemId,Date.now());
+    await tx.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,?,'gem',1) ON CONFLICT(user_id,item_id) DO NOTHING").run(userId,gemId);
+    await tx.prepare('DELETE FROM sack_slots WHERE user_id=?').run(userId);
+    await tx.prepare('INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,?)').run(userId,gemId);
+    await audit(tx,userId,'starter_weapon_chosen',gemId);
+  });
+}
+async function requireStarterWeapon(db,userId){if(!await db.prepare('SELECT 1 ok FROM starter_choices WHERE user_id=?').get(userId))throw Object.assign(new Error('choose_weapon_with_warden'),{status:409})}
 async function moveWorld(db,userId,nodeId){
+  if(nodeId!=='camp')await requireStarterWeapon(db,userId);
   const target=WORLD_NODES[nodeId];if(!target)throw Object.assign(new Error('invalid_world_node'),{status:400});
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),current=row?.current_node||'camp',from=WORLD_NODES[current];
   if(nodeId!==current&&!from?.neighbors.includes(nodeId))throw Object.assign(new Error('world_path_blocked'),{status:409});
@@ -354,6 +389,7 @@ async function surrenderMatch(db,userId,matchId){
   return await settleMatch(db,userId,{matchId,won:false,gold:0,xp:0,transcript:JSON.parse(row?.transcript_json||'[]')});
 }
 async function startMatch(db,userId,encounterId){
+  await requireStarterWeapon(db,userId);
   const row=await db.prepare('SELECT current_node FROM world_state WHERE user_id=?').get(userId),node=WORLD_NODES[row?.current_node||'camp'];
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
   const rewardBudget=rollRewardBudget(encounterId);if(!rewardBudget)throw Object.assign(new Error('invalid_encounter'),{status:400});
@@ -493,4 +529,4 @@ async function sessionUser(db,token){
 async function revokeSession(db,token){if(token)await db.prepare('UPDATE sessions SET revoked_at=? WHERE token_hash=? AND revoked_at IS NULL').run(Date.now(),hashToken(token))}
 async function cleanupSessions(db){await db.prepare('DELETE FROM sessions WHERE expires_at<? OR revoked_at IS NOT NULL').run(Date.now())}
 
-module.exports={checkpointMatch,openMatch,surrenderMatch,registerCharacter,levelLeaderboard,createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,consumeMatchItem,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};
+module.exports={chooseStarterWeapon,checkpointMatch,openMatch,surrenderMatch,registerCharacter,levelLeaderboard,createDb,remoteAdapter,normalizeTursoConfig,transaction,audit,applyDataMigrations,DATA_RESET_KEY,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,completeEncounter,startMatch,consumeMatchItem,settleMatch,cleanupMatches,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,questObjectiveMet,createSession,sessionUser,revokeSession,cleanupSessions};

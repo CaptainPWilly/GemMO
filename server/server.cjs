@@ -1,7 +1,7 @@
 'use strict';
 const http=require('node:http');
 const {URL}=require('node:url');
-const {checkpointMatch,openMatch,surrenderMatch,registerCharacter,levelLeaderboard,createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,startMatch,consumeMatchItem,settleMatch,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
+const {chooseStarterWeapon,checkpointMatch,openMatch,surrenderMatch,registerCharacter,levelLeaderboard,createDb,audit,seedAccount,userByName,accountSnapshot,updateSack,updateEquipment,moveWorld,startMatch,consumeMatchItem,settleMatch,buySkill,buyShopItem,storyQuestAction,markCutsceneSeen,createSession,sessionUser,revokeSession,cleanupSessions,cleanupMatches}=require('./db.cjs');
 const {validateUsername,validatePassword,hashPassword,verifyPassword,burnPassword,createSessionToken}=require('./security.cjs');
 
 const SESSION_TTL=7*24*60*60*1000;
@@ -103,7 +103,7 @@ async function createGemmoServer(options={}){
       if(['POST','PUT'].includes(req.method)&&/^\/v1\/(world\/move|skills|shop|account\/(sack|equipment))/.test(pathname)){
         const {user}=await requireUser(req);if(await db.prepare('SELECT m.id FROM matches m JOIN match_checkpoints c ON c.match_id=m.id WHERE m.user_id=? AND m.settled_at IS NULL LIMIT 1').get(user.id)){send(req,res,409,{error:'unfinished_match'});return}
       }
-      if(req.method==='POST'&&pathname==='/v1/account/starter'){await requireUser(req);send(req,res,410,{error:'starter_selection_removed',message:'Every player starts with an Iron Dagger.'});return}
+      if(req.method==='POST'&&pathname==='/v1/account/starter'){const {user}=await requireUser(req),body=await json(req);await chooseStarterWeapon(db,user.id,body.gemId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/sack'){const {user}=await requireUser(req),body=await json(req);await updateSack(db,user.id,body.sack);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='PUT'&&pathname==='/v1/account/equipment'){const {user}=await requireUser(req),body=await json(req);await updateEquipment(db,user.id,body.equipment);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
       if(req.method==='POST'&&pathname==='/v1/world/move'){const {user}=await requireUser(req),body=await json(req);await moveWorld(db,user.id,body.nodeId);send(req,res,200,{account:await accountSnapshot(db,user.id)});return}
