@@ -871,7 +871,6 @@ function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
  $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Roadside Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'◇ GEM SHOP':'▣ ITEM SHOP';$('shopGold').textContent='◆ '+gold;
  if(currentShop==='gem-shop'){
-  for(const [color,active] of Object.entries(skills.colorPerks))if(active)effects.push({icon:'✦',name:color.toUpperCase()+' · '+COLOR_BALANCE.ROLES[color],detail:SKILL_BY_ID[color+'-start'].desc.split('. ').slice(1).join('. ')});
  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'},order=['red','blue','green','yellow','purple'];
   $('shopGrid').innerHTML='<div class="shopColorCatalog">'+order.map(color=>{
    const entries=stock.filter(entry=>itemById(entry.id)?.color===color);if(!entries.length)return '';

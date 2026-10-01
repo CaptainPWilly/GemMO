@@ -211,6 +211,26 @@ async function applyDataMigrations(db){
       await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(starterKey,now);
     });changed=true;
   }
+  // Owner-requested, one-time test reset. Exact login identity; never a global wipe.
+  const requestedResetKey='2026-10-01-pwilly-progress-reset-v2';
+  if(!(await db.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(requestedResetKey))){
+    await transaction(db,async tx=>{
+      if(await tx.prepare('SELECT 1 ok FROM app_migrations WHERE key=?').get(requestedResetKey))return;
+      const user=await tx.prepare('SELECT id FROM users WHERE username_norm=?').get('pwilly');
+      if(user){
+        const userId=Number(user.id);
+        // Explicit child cleanup works with either database driver's FK settings.
+        for(const table of ['match_checkpoints','match_stats','match_reward_budgets','match_combat_proofs','match_skill_proofs','match_consumable_proofs','match_consumable_uses'])await tx.prepare('DELETE FROM '+table+' WHERE match_id IN (SELECT id FROM matches WHERE user_id=?)').run(userId);
+        for(const table of ['matches','sack_slots','starter_choices','inventory','world_flags','story_flags','quest_progress','skill_unlocks','player_checkpoints'])await tx.prepare('DELETE FROM '+table+' WHERE user_id=?').run(userId);
+        await tx.prepare('UPDATE equipment_slots SET item_id=NULL WHERE user_id=?').run(userId);
+        await tx.prepare("UPDATE world_state SET region='brackenreach',current_node='camp',updated_at=? WHERE user_id=?").run(now,userId);
+        await tx.prepare('UPDATE profiles SET level=1,xp=0,gold=0,updated_at=? WHERE user_id=?').run(now,userId);
+        await audit(tx,userId,'requested_progress_reset',requestedResetKey);
+      }
+      // Mark even if absent so a future account with this name is never reset.
+      await tx.prepare('INSERT INTO app_migrations(key,applied_at) VALUES(?,?)').run(requestedResetKey,now);
+    });changed=true;
+  }
   await db.prepare("INSERT OR IGNORE INTO player_checkpoints(user_id,node_id,updated_at) SELECT id,'shrine',? FROM users").run(now);
   return changed;
 }

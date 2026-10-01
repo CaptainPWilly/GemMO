@@ -2,7 +2,7 @@
 // geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,moveWorld,chooseStarterWeapon,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,moveWorld,buyShopItem,chooseStarterWeapon,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
 const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
@@ -316,7 +316,24 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-warden-weapon-choice-v1'").run();assert.equal(await applyDataMigrations(db),true);
     const freshMigrated=await accountSnapshot(db,freshId),established=await accountSnapshot(db,establishedId);assert.equal(freshMigrated.needsStarter,true);assert.deepEqual(freshMigrated.inventory,[]);assert.deepEqual(freshMigrated.sack,[null,null,null,null,null]);assert.equal(established.needsStarter,false);assert.equal(established.profile.xp,20);assert.deepEqual(established.inventory,['dagger']);
     assert.equal(await applyDataMigrations(db),false,'starter migration never repeats');
-    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,[],'shops sell no weapon gems');
+    // New owner-requested reset applies to PWilly only, clears the starter choice,
+    // and never repeats on restart.
+    await chooseStarterWeapon(db,resetUser,'sling');
+    await db.prepare('UPDATE profiles SET xp=40,gold=88 WHERE user_id=?').run(resetUser);
+    await moveWorld(db,resetUser,'crossroads');await moveWorld(db,resetUser,'shrine');
+    await db.prepare("INSERT INTO skill_unlocks(user_id,skill_id,purchased_at) VALUES(?,'red-start',1)").run(resetUser);
+    const otherBeforeReset=await accountSnapshot(db,establishedId);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-pwilly-progress-reset-v2'").run();
+    assert.equal(await applyDataMigrations(db),true);
+    const clean=await accountSnapshot(db,resetUser);
+    assert.equal(clean.profile.level,1);assert.equal(clean.profile.xp,0);assert.equal(clean.profile.gold,0);assert.equal(clean.world.currentNode,'camp');
+    assert.equal(clean.needsStarter,true);assert.deepEqual(clean.inventory,[]);assert.deepEqual(clean.sack,[null,null,null,null,null]);assert.deepEqual(clean.skills.purchased,[]);
+    assert.equal(clean.character.name,'Test Captain');assert.equal((await db.prepare('SELECT password_hash FROM users WHERE id=?').get(resetUser)).password_hash,'preserved-hash');
+    assert.deepEqual(await accountSnapshot(db,establishedId),otherBeforeReset,'other players are untouched');
+    await chooseStarterWeapon(db,resetUser,'crystal-wand');await db.prepare('UPDATE profiles SET gold=12 WHERE user_id=?').run(resetUser);
+    assert.equal(await applyDataMigrations(db),false);const afterRestart=await accountSnapshot(db,resetUser);assert.equal(afterRestart.profile.gold,12);assert.equal(afterRestart.starter,'crystal-wand');
+    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,[],'shop sells only non-weapon gems');
+    await assert.rejects(buyShopItem(db,resetUser,'gem-shop','dagger'),/item_not_sold_here/);
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, one-time fresh reset, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 
