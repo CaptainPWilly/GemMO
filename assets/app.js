@@ -67,7 +67,8 @@ function currentSkillIds(){return account?.skills?.purchased||[]}
 function currentSkillEffects(){return skillEffects(currentSkillIds())}
 function playerMaxHP(){return 18+gearStats().hp+currentSkillEffects().maxHP}
 function matchPower(color,loadout=sack){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return loadout.reduce((sum,id)=>{const gem=itemById(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
-function gemMatchStatText(gem){return gem?.color==='red'?'ATK '+(gem.attack||0):gem?.color==='blue'?'DEF '+(gem.defense||0):''}
+function weaponDamage(color,loadout=sack){return GEMMO_WEAPON_GEMS.weaponMatchDamage(loadout,color,itemById)}
+function gemMatchStatText(gem){if(gem?.gemType==='weapon')return 'ATK '+Math.max(1,gem.attack||0)+(gem.defense?' · DEF '+gem.defense:'');return gem?.color==='red'?'ATK '+(gem.attack||0):gem?.color==='blue'?'DEF '+(gem.defense||0):''}
 function canEquipGear(slot,id){
  const def=gearSlotById(slot),g=gearById(id);if(!def||!g||!inventory.includes(id)||def.type!==g.slot)return false;
  return !Object.entries(equipment).some(([other,equipped])=>other!==slot&&equipped===id);
@@ -102,7 +103,7 @@ function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
 function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
 function clearCombatJournal(){try{localStorage.removeItem(combatJournalKey())}catch{}}
-function recordCombatAction(action){if(!['replay-v1','replay-v2'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
+function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
 async function flushCombatCheckpoint(){await combatCheckpointQueue;if(activeMatchId&&accountToken)return accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:activeMatchId,transcript:combatTranscript}})}
 
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
@@ -124,7 +125,9 @@ function lowestReservoir(exclude){
 function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(actor==='player'){
  const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&overdrive&&colored?2:1;
  if(colored){const cap=reservoirCap(type),before=charges[type],gearGain=gearStats().chargeGain[type]||0,skillGain=currentSkillEffects().chargeGain[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;charges[type]=Math.min(cap,charges[type]+n*mult+matchGain);if(cap)notes.push(type+' reservoir +'+(charges[type]-before)+(matchGain?' · resonance +'+matchGain:'')+' ('+charges[type]+'/'+cap+')')}
- if(type==='red'){const attack=matchPower('red'),value=n*mult*attack;damageEnemy(value);notes.push('Strike '+value+' · ATK '+attack);if(!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}}
+ const legacyWeaponRule=['replay-v1','replay-v2'].includes(activeAuthority?.mode);
+ const attack=legacyWeaponRule?(type==='red'?matchPower('red'):0):weaponDamage(type);if(attack){const value=n*mult*attack;damageEnemy(value);notes.push(type+' strike '+value+' · ATK '+attack)}
+ if(type==='red'&&!comboBonus&&buffs.redwake){damageEnemy(2);notes.push('Redwake +2')}
  if(type==='blue'){const defense=matchPower('blue'),value=n*mult*defense;pGuard+=value;guardTurns=2;notes.push('Guard +'+value+' · DEF '+defense);if(!comboBonus&&buffs.holdfast){pGuard+=2;guardTurns=2;notes.push('Holdfast +2')}}
  if(type==='green'&&!comboBonus&&buffs.aftergrowth){const before=pHP;pHP=Math.min(playerMaxHP(),pHP+2);notes.push('Aftergrowth +'+(pHP-before)+' HP')}
  if(type==='yellow'&&!comboBonus&&buffs.momentum){const target=lowestReservoir('yellow');if(target){const before=charges[target],cap=reservoirCap(target);charges[target]=Math.min(cap,charges[target]+2);notes.push('Momentum: '+target+' +'+(charges[target]-before))}}
@@ -352,7 +355,7 @@ async function startMatchTicket(){
  try{
   if(!await syncAccountLoadout())throw new Error('loadout_not_synced');
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
+  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
  }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';if(error.message==='unfinished_match'){await refreshAccount();enterWorld()}return null}
 }
@@ -386,7 +389,7 @@ async function settleVictory(){
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
   const firstClear=!worldCleared(activeEncounter),unlockText=encounterSpec().unlockText;
   let data;
-  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
+  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
   try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
   catch(error){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
@@ -403,7 +406,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
   if(!await ensureMatchTicket())throw new Error(lastMatchError||'match_start_failed');
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
   const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
   $('resultText').textContent=data.settlement?.respawnNode?'You awaken at '+WORLD_NODES[data.settlement.respawnNode].name+'.':account?.world?.currentNode===account?.world?.checkpoint?'You awaken at '+WORLD_NODES[account.world.currentNode].name+'.':'No rewards earned.';
  }catch(error){lossSettlementStarted=false;$('resultText').textContent='Could not save your result. Please retry.';$('resultRetry').hidden=false}
@@ -550,7 +553,7 @@ function markWorldSeen(kind){
 }
 function currentWorldEffects(){
  const stats=gearStats(),skills=currentSkillEffects(),effects=[];
- if(matchPower('red'))effects.push({icon:'╱',name:'RED ATTACK',detail:matchPower('red')+' damage per broken Red gem from your Sack'});
+ for(const color of ['red','blue','green','yellow','purple'])if(weaponDamage(color))effects.push({icon:'⚔',name:color.toUpperCase()+' WEAPON DAMAGE',detail:weaponDamage(color)+' damage per matched '+color+' gem'});
  if(matchPower('blue'))effects.push({icon:'◇',name:'BLUE DEFENSE',detail:matchPower('blue')+' Guard per broken Blue gem from your Sack'});
  if(stats.hp||skills.maxHP)effects.push({icon:'♥',name:'MAX HP',detail:'+'+(stats.hp+skills.maxHP)+' from gear and skills'});
  if(stats.guard||skills.startGuard)effects.push({icon:'◆',name:'STARTING GUARD',detail:'+'+(stats.guard+skills.startGuard)+' at the start of combat'});
@@ -621,10 +624,10 @@ function renderStarterWeapons(){
  $('storyOverlay').classList.add('starterOffer');
  const npc=NPCS['warden-vale'],chosen=itemById(activeStory?.gemId);storyPortrait(npc);
  $('storyKicker').textContent='YOUR FIRST WEAPON';$('storyTitle').textContent=npc.name;
- $('storyText').textContent=chosen?'This one is yours if you want it. Choose carefully—you get one weapon before the road.':'Before you leave, take one weapon gem. Five colors, five ways to fight. I will fit it to your Sack.';
+ $('storyText').textContent=chosen?'This one is yours if you want it. Choose carefully—you get one weapon before the road.':'Before you leave, take one weapon gem. Your weapon makes matches of its color deal damage. Pick your damage color; I will fit it to your Sack.';
  $('storyContinue').hidden=true;$('storySkip').hidden=true;$('storyStatus').textContent='';
  const ids=chosen?[chosen.id]:GEMMO_WEAPON_GEMS.STARTER_WEAPON_IDS;
- $('storyChoices').innerHTML=ids.map(id=>{const v=itemById(id);return '<button class="starterWeaponChoice weaponGemCard" data-starter-weapon="'+id+'" style="--c:var(--'+v.color[0]+')"><span class="itemGem '+v.color+'" aria-hidden="true"></span><span><small>⚔ '+v.color.toUpperCase()+' · '+v.cap+' CHARGE</small><b>'+v.item+' · '+v.name+'</b><span>'+v.desc+'</span></span></button>'}).join('')+(chosen?'<button data-starter-confirm>Take '+chosen.item+'</button><button data-starter-back>See all five weapons</button>':'<button data-starter-later>Choose later</button>');
+ $('storyChoices').innerHTML=ids.map(id=>{const v=itemById(id);return '<button class="starterWeaponChoice weaponGemCard" data-starter-weapon="'+id+'" style="--c:var(--'+v.color[0]+')"><span class="itemGem '+v.color+'" aria-hidden="true"></span><span><small>⚔ '+v.color.toUpperCase()+' · '+v.cap+' CHARGE</small><b>'+v.item+' · '+v.name+'</b><span>Matching '+v.color+' deals '+Math.max(1,v.attack||0)+' damage per gem. '+v.desc+'</span></span></button>'}).join('')+(chosen?'<button data-starter-confirm>Take '+chosen.item+'</button><button data-starter-back>See all five weapons</button>':'<button data-starter-later>Choose later</button>');
  document.querySelectorAll('[data-starter-weapon]').forEach(b=>b.onclick=()=>{if(storyBusy)return;activeStory.gemId=b.dataset.starterWeapon;renderStarterWeapons()});
  document.querySelectorAll('[data-starter-confirm]').forEach(b=>b.onclick=()=>void confirmStarterWeapon());
  document.querySelectorAll('[data-starter-back]').forEach(b=>b.onclick=()=>{if(storyBusy)return;delete activeStory.gemId;renderStarterWeapons()});
@@ -673,7 +676,7 @@ function refreshWorldHud(){
  $('worldGold').textContent=String(account?.profile?.gold||0);
  $('worldLevel').textContent='LV '+progress.level+' · XP '+progress.current+'/'+progress.required;
  $('worldPlayerName').textContent=(account?.character?.name||account?.user?.username||'ADVENTURER').toUpperCase();
- $('worldPlayerStats').textContent='♥ '+playerMaxHP()+' · ⚔ '+matchPower('red')+' · ◈ '+matchPower('blue');
+ $('worldPlayerStats').textContent='♥ '+playerMaxHP()+' · ⚔ '+(itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color.toUpperCase()||'—')+' · ◈ '+matchPower('blue');
  $('worldXpFill').style.width=xpPct+'%';$('worldSkillPoints').textContent='✦ '+skillPoints;
  $('worldObjectiveTitle').textContent=objective.title;$('worldObjectiveText').textContent=objective.text;$('worldObjectiveBtn').dataset.target=objective.target||'';$('worldObjectiveBtn').dataset.state=objective.state;
  $('worldSackPip').hidden=!worldHasUnread('sack');$('worldInventoryPip').hidden=!worldHasUnread('inventory');$('worldSkillPip').hidden=skillPoints<1;

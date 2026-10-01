@@ -13,7 +13,7 @@ const {legalMoves,createRatCombat,applyCombatAction,suggestCombatAction,replayCo
   await assert.rejects(startMatch(db,user,'rat'),e=>e.message==='unfinished_match');
   let seed=1,transcript,state;
   for(;seed<200;seed++){
-   state=createRatCombat({seed,sack:['dagger',null,null,null,null],rewardBudget:match.rewardBudget});transcript=[];
+   state=createRatCombat({version:'replay-v3',seed,sack:['dagger',null,null,null,null],rewardBudget:match.rewardBudget});transcript=[];
    while(state.pHP>0&&state.eHP>0&&transcript.length<100){const action=suggestCombatAction(state);if(!action)break;transcript.push(action);applyCombatAction(state,action)}
    if(state.eHP<=0&&state.longestCascade>=2)break;
   }
@@ -59,7 +59,7 @@ const {legalMoves,createRatCombat,applyCombatAction,suggestCombatAction,replayCo
   await moveWorld(db,fallen,'crossroads');await moveWorld(db,fallen,'rat');const deathMatch=await startMatch(db,fallen,'rat');await assert.rejects(buySkill(db,fallen,'blue-cap-1'),/unfinished_match/);
   const deathState=createRatCombat({seed:13,sack:['crystal-wand',null,null,null,null],skills:['blue-cap-1'],rewardBudget:deathMatch.rewardBudget}),deathActions=[];
   while(deathState.pHP>0&&deathActions.length<200){const move=legalMoves(deathState)[0];assert(move);const [a,b]=move,action={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y};deathActions.push(action);assert(applyCombatAction(deathState,action))}
-  assert(deathState.pHP<=0,'legal actions reach a verified death');await db.prepare('UPDATE match_combat_proofs SET seed=13 WHERE match_id=?').run(deathMatch.matchId);
+  assert(deathState.pHP<=0,'legal actions reach a verified death');await db.prepare("UPDATE match_combat_proofs SET seed=13,version='replay-v2' WHERE match_id=?").run(deathMatch.matchId);
   const beforeDeath=await accountSnapshot(db,fallen),deathResult=await settleMatch(db,fallen,{matchId:deathMatch.matchId,won:false,gold:0,xp:0,transcript:deathActions});assert.equal(deathResult.respawnNode,'shrine');fallAccount=await accountSnapshot(db,fallen);assert.equal(fallAccount.world.currentNode,'shrine');assert.equal(fallAccount.profile.xp,beforeDeath.profile.xp);assert.deepEqual(fallAccount.inventory,beforeDeath.inventory);
   await moveWorld(db,fallen,'crossroads');await settleMatch(db,fallen,{matchId:deathMatch.matchId,won:false,gold:0,xp:0,transcript:deathActions});assert.equal((await accountSnapshot(db,fallen)).world.currentNode,'crossroads','retry must not teleport again');
   assert.equal((await accountSnapshot(db,user)).world.currentNode,'rat','surrender does not pretend to be a verified death');

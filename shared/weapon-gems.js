@@ -21,6 +21,11 @@ function equipGem(sack,slot,id,effects=[]){
 
  return next;
 }
-const rules=Object.freeze({WEAPON_GEM_IDS,STARTER_WEAPON_IDS,isWeaponGem,weaponGemLimit,validWeaponGems,equipGem});
+function weaponMatchDamage(sack,color,lookup){
+ const gems=sack.map(lookup).filter(g=>g&&g.color===color);
+ if(!gems.some(g=>isWeaponGem(g.id)))return 0;
+ return gems.reduce((sum,g)=>sum+(isWeaponGem(g.id)?Math.max(1,Number(g.attack)||0):Number(g.attack)||0),0);
+}
+const rules=Object.freeze({weaponMatchDamage,WEAPON_GEM_IDS,STARTER_WEAPON_IDS,isWeaponGem,weaponGemLimit,validWeaponGems,equipGem});
 if(typeof module==='object'&&module.exports)module.exports=rules;else root.GEMMO_WEAPON_GEMS=rules;
 })(globalThis);
