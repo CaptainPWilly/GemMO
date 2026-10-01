@@ -1553,3 +1553,27 @@ button:disabled{cursor:default}
 @media(prefers-reduced-motion:reduce){.game .slotChargeMeter i{transition:none}}
 
 @media(max-width:699px) and (max-height:730px){.game .slot.compactGemCard{grid-template-rows:16px minmax(14px,1fr) 5px 11px;gap:1px;padding-top:3px;padding-bottom:3px}.game .slotChargeMeter{height:5px}}
+
+/* Combat charge lives inside the gem, rather than a surrounding card. */
+.game #slots .liquidGemButton{height:96px;outline:none;grid-template-rows:62px 17px 12px;gap:2px;padding:0 2px;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible;filter:none;min-width:0;cursor:pointer}
+.game #slots .liquidGemButton:before,.game #slots .liquidGemButton:after{display:none}
+.liquidChargeGem{display:block;width:62px;height:62px;max-width:100%;overflow:visible;filter:drop-shadow(0 2px 3px #0009)}
+.chargeGemShell{fill:color-mix(in srgb,var(--c) 15%,#242629)}
+.chargeGemRim{fill:none;stroke:color-mix(in srgb,var(--c) 45%,#717878);stroke-width:1.5;stroke-linejoin:round}
+.gemLiquid{transform:translateY(var(--liquid-to))}
+.gemLiquid.liquidRise{animation:gemLiquidRise 340ms ease-out both}
+@keyframes gemLiquidRise{from{transform:translateY(var(--liquid-from))}to{transform:translateY(var(--liquid-to))}}
+.game #slots .liquidGemButton.weaponGemCard .chargeGemRim{stroke:#ddbc74;stroke-width:2.5}
+.chargeWeaponMark{fill:none;stroke:#fce8b6;stroke-width:2;stroke-linecap:round;filter:drop-shadow(0 1px 1px #000)}
+.game #slots .liquidGemButton.ready .liquidChargeGem{filter:drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 2px #fff9)}
+.game #slots .liquidGemButton.ready .chargeGemRim{stroke:#fff1bc}
+.game #slots .liquidGemButton.armed .liquidChargeGem{filter:drop-shadow(0 0 5px #fff0b2)}
+.game #slots .liquidGemButton.armed .chargeGemRim{stroke:#fff;stroke-width:3;stroke-dasharray:5 3}
+.game #slots .liquidGemButton .slotName{margin:0;min-height:0;font-size:10px;line-height:1.15;width:100%;white-space:nowrap;display:block;overflow:hidden;text-overflow:ellipsis;color:#dbcdb3}
+.game #slots .liquidGemButton .charge{font-size:10px;color:#ada38e}
+.game #slots .liquidGemButton.ready .charge{color:var(--c)}
+.game #slots .liquidGemButton:focus-visible{outline:2px solid #f4d58d;outline-offset:2px;border-radius:8px}
+.game #slots .liquidGemButton:active .liquidChargeGem{transform:scale(.94)}
+@media(max-width:699px){.game #slots .liquidGemButton{height:70px;grid-template-rows:44px 13px 10px;gap:1px}.liquidChargeGem{width:44px;height:44px}.game #slots .liquidGemButton .slotName{font-size:8px}.game #slots .liquidGemButton .charge{font-size:9px}.app.text-xl .game #slots .liquidGemButton{height:76px;grid-template-rows:46px 16px 11px}.app.text-xl .game #slots .liquidGemButton .slotName{font-size:10px}.app.text-xl .game #slots .liquidGemButton .charge{font-size:10px}}
+@media(max-width:699px) and (max-height:730px){.game #slots .liquidGemButton{height:64px;grid-template-rows:38px 13px 10px}.liquidChargeGem{width:38px;height:38px}.app.text-xl .game #slots .liquidGemButton{height:70px;grid-template-rows:40px 16px 11px}}
+@media(prefers-reduced-motion:reduce){.gemLiquid.liquidRise{animation:none}}
