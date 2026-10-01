@@ -1,6 +1,7 @@
 (function(root){
 'use strict';
 const VERSION='replay-v4';
+const isCurrent=version=>['replay-v4','replay-v5'].includes(version);
 const isWeaponGem=typeof module==='object'?require('./weapon-gems.js').isWeaponGem:root.GEMMO_WEAPON_GEMS.isWeaponGem;
 const ROLES=Object.freeze({red:'AMPLIFY',blue:'PROTECT',green:'RESTORE',yellow:'TEMPO',purple:'CONTROL'});
 const STARTERS=Object.freeze({
@@ -11,10 +12,11 @@ const STARTERS=Object.freeze({
  'ritual-dagger':{name:'Rift Cut',cap:7,kind:'damage',power:5,pierceGuard:true,onHitSteal:2,desc:'Deal 5 damage through enemy Guard and steal up to 2 enemy charge into your weapon color.'}
 });
 function gemSpec(base,version=VERSION){
- if(!base||version!==VERSION)return base;
+ if(!base||!isCurrent(version))return base;
  const weapon=isWeaponGem(base.id);
  const gem={...base,attack:weapon?Math.max(1,base.attack||0,base.cap>=9?2:1):0,defense:0};
  if(STARTERS[base.id])Object.assign(gem,STARTERS[base.id]);
+ if(version==='replay-v5'&&base.id==='swordbreaker')gem.desc='Disarm the enemy: weapon matches and weapon abilities deal no damage during its next action.';
  if(base.id==='bloodstone-whet')gem.desc='For your next 3 actions, the first match of your weapon color deals +2 damage. Works with every weapon color.';
  if(base.id==='bastion-sigil')gem.desc='For your next 3 actions, the first Blue match grants +2 Guard.';
  if(base.id==='heartseed')gem.desc='For your next 3 actions, the first Green match heals 2 HP.';
@@ -36,7 +38,7 @@ function stealCharge(s,amount,{lookup,cap}){
  s.ec[source]-=stolen;s.charges[target]=Math.min(cap(target),s.charges[target]+stolen);return stolen;
 }
 function applyColorPerk(s,color,n,{lookup,maxHP,cap}){
- if(s.version!==VERSION||n<3||!s.skill?.colorPerks?.[color]||!s.sack.some(id=>lookup(id)?.color===color)||!once(s,'skill:'+color))return;
+ if(!isCurrent(s.version)||n<3||!s.skill?.colorPerks?.[color]||!s.sack.some(id=>lookup(id)?.color===color)||!once(s,'skill:'+color))return;
  const weapon=weaponColor(s,lookup);
  if(color==='red')s.buffs.empower=1;
  if(color==='blue'){s.pGuard++;s.guardTurns=2}
@@ -44,12 +46,12 @@ function applyColorPerk(s,color,n,{lookup,maxHP,cap}){
  if(color==='yellow'&&weapon)s.charges[weapon]=Math.min(cap(weapon),s.charges[weapon]+1);
  if(color==='purple'&&weapon)stealCharge(s,1,{lookup,cap});
 }
-function attuneProc(s,key,comboBonus){return !comboBonus&&s.buffs[key]>0&&(s.version!==VERSION||once(s,'attune:'+key))}
+function attuneProc(s,key,comboBonus){return !comboBonus&&s.buffs[key]>0&&(!isCurrent(s.version)||once(s,'attune:'+key))}
 function strikeBonus(s,attack,comboBonus){
- if(s.version!==VERSION||!attack||comboBonus)return 0;
+ if(!isCurrent(s.version)||!attack||comboBonus)return 0;
  const empowered=s.buffs.empower||0;s.buffs.empower=0;
  return empowered+(attuneProc(s,'redwake',false)?2:0);
 }
-const rules=Object.freeze({VERSION,ROLES,STARTERS,gemSpec,weaponColor,stealCharge,applyColorPerk,attuneProc,strikeBonus});
+const rules=Object.freeze({VERSION,isCurrent,ROLES,STARTERS,gemSpec,weaponColor,stealCharge,applyColorPerk,attuneProc,strikeBonus});
 if(typeof module==='object'&&module.exports)module.exports=rules;else root.GEMMO_COLOR_BALANCE=rules;
 })(globalThis);

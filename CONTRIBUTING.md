@@ -68,6 +68,8 @@ From repository root:
 
 ```bash
 node tests/abilities.cjs
+node tests/color-support.cjs
+node tests/enemy-loadouts.cjs
 cd server
 npm test
 ```

@@ -1597,3 +1597,31 @@ button:disabled{cursor:default}
 .skillDetails h2{margin:3px 0 5px;color:#f4dfb8;font-size:21px}.skillDetails p{margin:0 0 6px;line-height:1.4}.skillDetails small{font-size:12px;color:#b5ab94}.skillDetails button{flex-shrink:0;padding:13px;border:1px solid #ad8b51;border-radius:8px;background:#443522;color:#ffe6b5;font-weight:850}.skillDetails button:disabled{opacity:.45}
 .skillTreeHint{max-width:1080px;margin:8px auto;font-size:12px;color:#ae9d7d}
 @media(max-width:699px){.skillDetails{align-items:stretch;flex-direction:column}.skillDetails button{width:100%}.skillsPage .skillHero{gap:10px}.skillSummary{min-width:90px}.skillTreeCanvas .skillNode b{font-size:13px}}
+
+/* Inspectable enemy gems share the player's crystal and charge language. */
+.game .top{flex-wrap:wrap}
+.game .enemyWeapon{display:block;max-width:100%;margin:4px 0 0 auto;padding:4px 6px;border:1px solid color-mix(in srgb,var(--c) 55%,#333);border-radius:5px;background:#111510;color:var(--c);font-family:inherit;font-weight:700;font-size:10px;line-height:1.3;text-align:right;white-space:normal;cursor:pointer}
+.game .enemyWeapon[hidden]{display:none}
+.game #enemyChargeGauges.enemyGemDock{grid-column:1/-1;flex:1 0 100%;display:flex;justify-content:flex-end;align-items:center;gap:6px;height:auto;min-height:48px;margin-top:3px}
+.enemyGemDock::before{content:'ENEMY GEMS · TAP';margin-right:auto;color:var(--muted);font-size:9px;letter-spacing:.5px}
+.game .enemyGem{display:grid;justify-items:center;grid-template-rows:32px 12px;gap:2px;min-width:44px;min-height:48px;padding:2px 4px;border:1px solid #494234;border-radius:6px;background:#11120f;color:var(--c);cursor:pointer}
+.game .enemyGem .liquidChargeGem{width:32px;height:32px}
+.game .enemyGem b{font-size:10px;line-height:12px;color:#f3e6c9;font-variant-numeric:tabular-nums}
+.game .enemyGem.ready{border-color:var(--c);box-shadow:0 0 7px color-mix(in srgb,var(--c) 25%,transparent)}
+.game .enemyGem:focus-visible,.game .enemyWeapon:focus-visible{outline:2px solid #fff;outline-offset:2px}
+#modal .modalCard{max-width:800px;margin:0 auto;max-height:100%;overflow-y:auto;overscroll-behavior:contain}
+.inspectHeader{display:flex;align-items:center;gap:12px;justify-content:space-between;position:sticky;top:-16px;background:#141610;padding:10px 0;z-index:1}
+.inspectHeader .close{width:auto;min-height:44px;margin:0;flex-shrink:0}
+.inspectHeader h2{font-size:20px}
+.inspectGem{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;border-top:1px solid #39372d;padding:12px 0;text-align:left}
+.inspectGem .itemGem{width:22px;height:25px;margin-top:3px}
+.inspectGem small{display:block;color:var(--c);font-size:11px;line-height:1.5}
+.inspectGem h4{font-size:16px;line-height:1.3;margin:3px 0;color:#f4e8cc}
+.inspectGem b{font-size:12px;line-height:1.4;color:#ded4bf}
+#modal .inspectGem p{font-size:14px;line-height:1.5;margin:5px 0 8px}
+.inspectGem.selected{background:color-mix(in srgb,var(--c) 10%,transparent);outline:1px solid var(--c);border-radius:5px;padding:12px 5px}
+@media(max-width:699px){#modal .sackGrid{grid-template-columns:1fr}.game .enemyWeapon{font-size:10px}.game #enemyChargeGauges.enemyGemDock{gap:4px}.enemyGemDock::before{font-size:8px;max-width:65px}#modal{padding:12px}}
+.game .top{flex-shrink:0}
+.game.turn-player .enemySide{opacity:1;filter:none}
+.game .enemyWeapon{color:color-mix(in srgb,var(--c) 75%,white);font-size:11px}
+.game .enemyGem.ready .liquidChargeGem{filter:brightness(1.25) drop-shadow(0 0 4px var(--c))}

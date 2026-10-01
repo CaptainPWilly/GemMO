@@ -176,3 +176,11 @@ The `unlocked` leaderboard counts distinct known gem IDs with positive owned qua
 ## Versioned color balance
 
 `shared/color-balance.js` defines current weapon/support gem overrides and bounded color skill triggers. Load it after weapon-gems and before content. The server applies it using the saved combat version. Original gem values and legacy skill behavior remain available for old proofs. See [COLOR_BALANCE.md](COLOR_BALANCE.md) for budgets, deterministic tests and balance-probe limitations.
+
+## NPC gem loadouts (replay-v5)
+
+Current encounters declare a Sack of catalog gem IDs in `shared/encounters.js`. `shared/enemy-loadouts.js` derives capacity as the sum of same-color gem costs, chooses legal useful casts, and shares immediate damage/heal/Guard/siphon execution with the player's v5 abilities in both hosts. NPCs have one weapon, no equipment bonuses or purchased skills. They receive no passive Red attack or Blue Guard exception: weapon identity determines match damage. Four-or-more matches grant either fighter an extra action; five-matches and cascade-anchor scoring are symmetric. Loot/account progression still belongs to the player.
+
+The Rat Fang is a normal Yellow weapon gem registered in both catalogs and weapon validation. Bandit and Sentinel reuse existing gems. The NPC interpreter deliberately validates its supported immediate effects; when adding an NPC loadout with another effect kind, extend the shared execution and parity tests first. AI priorities (healing, guarding, selecting matches) are decisions, not different ability values or costs.
+
+All new proofs use replay-v5; player balance remains v4. Existing replay-v1–v4 proofs retain the original enemy reservoirs, active abilities, match scaling, and extra-turn behavior. Never mutate the v5 Sack definitions, gem effects or AI policy without issuing another replay version. Save recovery replays the complete enemy response, including chained extra turns, to the next stable player input. Tests cover all three NPCs and all five starter colors in the browser and server.
