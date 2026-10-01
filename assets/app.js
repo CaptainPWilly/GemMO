@@ -4,8 +4,9 @@ const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,COMBAT_RULES=globalThis.G
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_ROAD_SENTINEL,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
-function worldNodeVisible(node){return !!node&&(!node.requires||worldCleared(node.requires)||worldState.currentNode===node.id)}
-function worldCanTravel(from,to){if(account?.needsStarter&&from!==to)return false;const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&(!target.requires||worldCleared(target.requires)))}
+function worldNodeUnlocked(node){return !!node&&(!node.requires||worldCleared(node.requires))&&(!node.requiresQuest||questStatus(node.requiresQuest)==='completed')}
+function worldNodeVisible(node){return !!node&&(worldNodeUnlocked(node)||worldState.currentNode===node.id)}
+function worldCanTravel(from,to){if(account?.needsStarter&&from!==to)return false;const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&worldNodeUnlocked(target))}
 function worldPath(from,to){
  if(!WORLD_NODES[from]||!WORLD_NODES[to]||!worldNodeVisible(WORLD_NODES[to]))return null;
  if(from===to)return [from];
@@ -65,7 +66,7 @@ function gearSlotIcon(type){return GEAR_SLOT_ICON[type]||'▣'}
 function openLoadoutScreen(next,origin=screen){loadoutReturnScreen=origin==='world'?'world':'menu';showScreen(next)}
 function leaveMenuPage(){if(['sack','inventory'].includes(screen)&&loadoutReturnScreen==='world'){enterWorld();return}showScreen(account?'menu':'splash')}
 function currentSkillIds(){return account?.skills?.purchased||[]}
-function currentSkillEffects(){return skillEffects(currentSkillIds(),screen==='fight'?(activeAuthority?.mode||'replay-v5'):'replay-v4')}
+function currentSkillEffects(){return skillEffects(currentSkillIds(),screen==='fight'?(activeAuthority?.mode||'replay-v6'):'replay-v4')}
 function playerMaxHP(){return 18+gearStats().hp+currentSkillEffects().maxHP}
 function matchPower(color,loadout=sack){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return loadout.reduce((sum,id)=>{const gem=itemById(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function weaponDamage(color,loadout=sack){return GEMMO_WEAPON_GEMS.weaponMatchDamage(loadout,color,itemById)}
@@ -85,11 +86,11 @@ function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||bu
 const combatItemById=id=>{const gem=ITEMS.find(i=>i.id===id);return gem&&activeAuthority?.mode?{...COLOR_BALANCE.gemSpec(gem.legacy,activeAuthority.mode),gemType:gem.gemType}:gem};
 const itemById=id=>screen==='fight'?combatItemById(id):ITEMS.find(i=>i.id===id);
 let procsUsed=[];
-function colorRuleState(){return {version:activeAuthority?.mode||'replay-v5',sack,skill:currentSkillEffects(),buffs,procsUsed,charges,ec,pHP,pGuard,guardTurns}}
+function colorRuleState(){return {version:activeAuthority?.mode||'replay-v6',sack,skill:currentSkillEffects(),buffs,procsUsed,charges,ec,pHP,pGuard,guardTurns}}
 function weaponGemEffects(){return [currentSkillEffects(),...Object.values(equipment).map(gearById).filter(Boolean)]}
 function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return GEMMO_WEAPON_GEMS.validWeaponGems(list,weaponGemEffects())&&equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
-function encounterSpec(id=activeEncounter){return ENCOUNTERS[id]||ENCOUNTERS.bandit}
-function usesEnemyGems(){return (activeAuthority?.mode||'replay-v5')===ENEMY_LOADOUTS.VERSION}
+function encounterSpec(id=activeEncounter){return ENCOUNTERS.forVersion(id||'bandit',activeAuthority?.mode||'replay-v6')||ENCOUNTERS.bandit}
+function usesEnemyGems(){return ENEMY_LOADOUTS.isCurrent(activeAuthority?.mode||'replay-v6')}
 function enemyGemState(){return {hp:eHP,maxHP:enemyMaxHP(),guard:eGuard,charge:ec,opponentCharge:charges,silenced:enemyEffects.silence,disarmed:enemyEffects.disarm}}
 function enemyGems(){return ENEMY_LOADOUTS.gems(encounterSpec(),combatItemById)}
 function enemyReservoir(type){return usesEnemyGems()?{name:type.toUpperCase(),cap:ENEMY_LOADOUTS.cap(encounterSpec(),type,combatItemById),visible:enemyGems().some(g=>g.color===type)}:encounterSpec().reservoirs[type]}
@@ -111,7 +112,7 @@ function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
 function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
 function clearCombatJournal(){try{localStorage.removeItem(combatJournalKey())}catch{}}
-function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
+function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
 async function flushCombatCheckpoint(){await combatCheckpointQueue;if(activeMatchId&&accountToken)return accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:activeMatchId,transcript:combatTranscript}})}
 
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
@@ -312,7 +313,7 @@ async function applyTarget(p){
  if(mode==='wildcraft')board[p.y][p.x]='wild';
  if(mode==='rotate'){board[p.y].unshift(board[p.y].pop());boardBonus[p.y].unshift(boardBonus[p.y].pop())}
  if(mode==='reroll'){const tile=rollTile();board[p.y][p.x]=tile.type;boardBonus[p.y][p.x]=tile.bonus}
- if(mode==='blast'&&COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+2);}
+ if(mode==='blast'&&COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+2);}
  if(['break','blast','purge'].includes(mode)){
   let cells=[];
   if(mode==='break')cells=[p];
@@ -367,7 +368,7 @@ function activate(index){
  if(spec.kind==='green_attune')buffs.aftergrowth=4;
  if(spec.kind==='yellow_attune')buffs.momentum=4;
  if(spec.kind==='haste')extraTurn=true;
- if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;const target=COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')?itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color:'purple';if(target)charges[target]=Math.min(reservoirCap(target),charges[target]+amount)}
+ if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;const target=COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color:'purple';if(target)charges[target]=Math.min(reservoirCap(target),charges[target]+amount)}
  if(spec.kind==='quick_damage')damageEnemy(spec.power);
  if(spec.kind==='execute')damageEnemy(eHP<=8?10:spec.power);
  if(spec.kind==='breach'){eGuard=0;damageEnemy(spec.power)}
@@ -389,7 +390,7 @@ async function startMatchTicket(){
  try{
   if(!await syncAccountLoadout())throw new Error('loadout_not_synced');
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
+  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
  }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';if(error.message==='unfinished_match'){await refreshAccount();enterWorld()}return null}
 }
@@ -423,7 +424,7 @@ async function settleVictory(){
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
   const firstClear=!worldCleared(activeEncounter),unlockText=encounterSpec().unlockText;
   let data;
-  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
+  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
   try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
   catch(error){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
@@ -440,7 +441,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
   if(!await ensureMatchTicket())throw new Error(lastMatchError||'match_start_failed');
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
   const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
   $('resultText').textContent=data.settlement?.respawnNode?'You awaken at '+WORLD_NODES[data.settlement.respawnNode].name+'.':account?.world?.currentNode===account?.world?.checkpoint?'You awaken at '+WORLD_NODES[account.world.currentNode].name+'.':'No rewards earned.';
  }catch(error){lossSettlementStarted=false;$('resultText').textContent='Could not save your result. Please retry.';$('resultRetry').hidden=false}
@@ -624,17 +625,19 @@ function renderWorldEffects(){
  $('worldEffectsList').innerHTML=effects.length?effects.map(effect=>'<div class="worldEffect"><span class="worldEffectIcon">'+effect.icon+'</span><div><b>'+effect.name+'</b><span>'+effect.detail+'</span></div></div>').join(''):'<div class="worldEffect empty">No active gear or skill effects.</div>';
 }
 function questRecord(id){return account?.quests?.find?.(q=>q.id===id)||null}
-function questStatus(id){return questRecord(id)?.status||'available'}
+function questStatus(id){const row=questRecord(id);if(row)return row.status;const q=QUESTS[id];if(q?.automatic)return account?.needsStarter?'active':'completed';return q?.requires&&questStatus(q.requires)!=='completed'?'locked':'available'}
+function dialogueForNpc(npc){const id=(npc.questIds||[]).find(id=>!['locked','completed'].includes(questStatus(id)));return DIALOGUES[id==='trouble-on-road'?'warden-vale':id]||DIALOGUES[npc.dialogue]}
+function activeDialogue(){return DIALOGUES[activeStory?.dialogueId]||dialogueForNpc(NPCS[activeStory.npcId])}
 function cutsceneSeen(id){return account?.story?.seenCutscenes?.includes?.(id)||false}
 function npcAtNode(nodeId){return Object.values(NPCS).find(npc=>npc.node===nodeId)||null}
 function npcQuestMarker(npc){
- const dialogue=npc&&DIALOGUES[npc.dialogue],status=dialogue?questStatus(dialogue.questId):'completed';
+ const dialogue=npc&&dialogueForNpc(npc),status=dialogue?questStatus(dialogue.questId):'completed';
  return status==='available'?'!':status==='ready'?'?':'';
 }
 function renderWorldQuests(){
  const rows=(account?.quests||[]).map(row=>({row,quest:QUESTS[row.id]})).filter(v=>v.quest);
  $('worldQuestList').innerHTML=rows.length?rows.map(({row,quest})=>{
-  const objective=row.status==='completed'?'Completed':row.status==='ready'?'Return to '+NPCS[quest.returnTo].name:quest.objective.label;
+  const objective=row.status==='completed'?'Completed':row.status==='ready'?'Return to '+NPCS[quest.returnTo].name:quest.objective.label+(quest.objective.count?' · '+Math.min(row.progress||0,quest.objective.count)+'/'+quest.objective.count:'');
   return '<article class="worldQuest '+row.status+'"><div class="worldQuestHead"><small>'+row.status.toUpperCase()+'</small><b>'+quest.title+'</b></div><p>'+quest.summary+'</p><strong>'+objective+'</strong><span>REWARD · '+quest.reward.gold+' ◆ · '+quest.reward.xp+' XP</span></article>';
  }).join(''):'<div class="worldEffect empty">No quests yet. Talk to people you meet.</div>';
 }
@@ -665,7 +668,7 @@ function maybeStartWorldCutscene(){
  if(scene)startCutscene(scene.id);
 }
 function renderDialogue(){
- const npc=NPCS[activeStory.npcId],dialogue=DIALOGUES[npc.dialogue],node=dialogue.nodes[activeStory.nodeId];if(!node){storyHide();return}
+ const npc=NPCS[activeStory.npcId],dialogue=activeDialogue(),node=dialogue.nodes[activeStory.nodeId];if(!node){storyHide();return}
  storyPortrait(npc);$('storyKicker').textContent=npc.title.toUpperCase();$('storyTitle').textContent=node.speaker||npc.name;$('storyText').textContent=node.text;$('storyContinue').hidden=true;$('storySkip').hidden=true;$('storyStatus').textContent='';
  $('storyChoices').innerHTML=(node.choices||[]).map((choice,i)=>'<button data-story-choice="'+i+'">'+choice.text+'</button>').join('');
  document.querySelectorAll('[data-story-choice]').forEach(button=>button.onclick=()=>void chooseDialogue(Number(button.dataset.storyChoice)));
@@ -673,8 +676,8 @@ function renderDialogue(){
 function openDialogue(npcId){
  const npc=NPCS[npcId];if(!npc||npc.node!==worldState.currentNode||activeStory)return false;
  if(npcId==='warden-vale'&&account?.needsStarter){activeStory={type:'starter',npcId};storyShow();renderStarterWeapons();return true}
- const dialogue=DIALOGUES[npc.dialogue],status=questStatus(dialogue.questId),entry=dialogue.entries[status]||dialogue.entries.available;
- activeStory={type:'dialogue',npcId,nodeId:entry};storyShow();renderDialogue();return true;
+ const dialogue=dialogueForNpc(npc),status=questStatus(dialogue.questId),entry=dialogue.entries[status]||dialogue.entries.completed;
+ activeStory={type:'dialogue',npcId,dialogueId:dialogue.id,nodeId:entry};storyShow();renderDialogue();return true;
 }
 function renderStarterWeapons(){
  $('storyOverlay').classList.add('starterOffer');
@@ -698,7 +701,7 @@ async function confirmStarterWeapon(){
 }
 async function chooseDialogue(index){
  if(storyBusy||activeStory?.type!=='dialogue')return;
- const npc=NPCS[activeStory.npcId],dialogue=DIALOGUES[npc.dialogue],node=dialogue.nodes[activeStory.nodeId],choice=node?.choices?.[index];if(!choice)return;
+ const npc=NPCS[activeStory.npcId],dialogue=activeDialogue(),node=dialogue.nodes[activeStory.nodeId],choice=node?.choices?.[index];if(!choice)return;
  if(choice.close){storyHide();return}
  if(choice.action){
   storyBusy=true;$('storyStatus').textContent='Saving…';document.querySelectorAll('[data-story-choice]').forEach(b=>b.disabled=true);
@@ -716,8 +719,8 @@ function worldObjectiveData(){
  if(row){
   const quest=QUESTS[row.id];if(quest){
    if(row.status==='ready'){const npc=NPCS[quest.returnTo];return {title:quest.title,text:'Return to '+(npc?.name||'the quest giver'),target:npc?.node||null,state:'ready'}}
-   const target=Object.values(WORLD_NODES).find(node=>node.encounter===quest.objective?.encounterId)?.id||null;
-   return {title:quest.title,text:quest.objective?.label||quest.summary,target,state:'active'};
+   const target=quest.objective?.encounterId==='troll'&&!worldCleared('sentinel')?'sentinel-gate':Object.values(WORLD_NODES).find(node=>node.encounter===quest.objective?.encounterId)?.id||quest.objective?.node||null;
+   return {title:quest.title,text:quest.objective?.encounterId==='troll'&&!worldCleared('sentinel')?'Defeat the Road Sentinel to reach the final boss.':quest.objective?.label||quest.summary,target,state:'active'};
   }
  }
  const availableNpc=Object.values(NPCS).find(npc=>npcQuestMarker(npc)==='!');
@@ -777,8 +780,14 @@ function worldIso(x,y,z,canvas){
  const tw=58*worldCamera.zoom,th=29*worldCamera.zoom,zh=15*worldCamera.zoom;
  return {x:canvas.clientWidth/2+(x-y)*tw/2+worldCamera.panX,y:92+(x+y)*th/2-z*zh+worldCamera.panY};
 }
+function frameTrollHill(){
+ if(!['troll-hill','item-shop','troll-cave'].includes(worldState.currentNode))return;
+ const canvas=$('worldCanvas'),node=WORLD_NODES[worldState.currentNode];if(!canvas?.clientWidth)return;
+ const point=worldIso(node.x,node.y,WORLD_HEIGHT[node.y][node.x],canvas);
+ worldCamera.panX+=canvas.clientWidth/2-point.x;worldCamera.panY+=canvas.clientHeight*.57-point.y;
+}
 function worldPoly(ctx,pts,fill,stroke='#0003'){ctx.beginPath();pts.forEach((p,i)=>(i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
-function worldColor(x,y,road){if(road)return ['#9a865b','#8c774e','#aa9465'][(x+y)%3];return ['#627451','#6c7e58','#71865e','#5b6d4b'][(x*3+y*5)%4]}
+function worldColor(x,y,road){if(x>=7&&y>=2&&y<=6&&!road)return ['#777456','#6a6a4e','#817856'][(x+y)%3];if(road)return ['#9a865b','#8c774e','#aa9465'][(x+y)%3];return ['#627451','#6c7e58','#71865e','#5b6d4b'][(x*3+y*5)%4]}
 function drawWorld(){
  const canvas=$('worldCanvas');if(!canvas?.getContext)return;const wrap=$('worldViewport'),rect=wrap.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
  if(canvas.width!==Math.floor(rect.width*dpr)||canvas.height!==Math.floor(rect.height*dpr)){canvas.width=Math.max(1,Math.floor(rect.width*dpr));canvas.height=Math.max(1,Math.floor(rect.height*dpr));canvas.style.width=rect.width+'px';canvas.style.height=rect.height+'px'}
@@ -800,6 +809,7 @@ function drawWorld(){
   if(node.kind==='shop'){ctx.fillStyle=node.id==='gem-shop'?'#654f83':'#725135';ctx.fillRect(p.x-14*s,p.y-17*s,28*s,17*s);ctx.fillStyle='#d7bb82';ctx.beginPath();ctx.moveTo(p.x-18*s,p.y-18*s);ctx.lineTo(p.x+18*s,p.y-18*s);ctx.lineTo(p.x+12*s,p.y-28*s);ctx.lineTo(p.x-12*s,p.y-28*s);ctx.closePath();ctx.fill()}
   if(node.id==='rat'){ctx.strokeStyle='#5a4031';ctx.lineWidth=2*s;ctx.beginPath();ctx.arc(p.x,p.y-18*s,6*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(p.x-4*s,p.y-24*s,2*s,0,Math.PI*2);ctx.arc(p.x+3*s,p.y-24*s,2*s,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x+6*s,p.y-18*s);ctx.quadraticCurveTo(p.x+17*s,p.y-24*s,p.x+18*s,p.y-14*s);ctx.stroke()}
   if(node.id==='bandit-pass'){ctx.strokeStyle='#4f3123';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x,p.y-27*s);ctx.stroke();ctx.fillStyle='#9a3f32';ctx.beginPath();ctx.moveTo(p.x,p.y-27*s);ctx.lineTo(p.x+16*s,p.y-22*s);ctx.lineTo(p.x,p.y-15*s);ctx.closePath();ctx.fill()}
+  if(node.id==='troll-cave'){ctx.fillStyle='#4b4b40';ctx.beginPath();ctx.moveTo(p.x-23*s,p.y);ctx.lineTo(p.x-15*s,p.y-32*s);ctx.lineTo(p.x+9*s,p.y-42*s);ctx.lineTo(p.x+25*s,p.y);ctx.closePath();ctx.fill();ctx.fillStyle='#090b08';ctx.beginPath();ctx.ellipse(p.x,p.y-9*s,11*s,18*s,0,Math.PI,0);ctx.fill();ctx.fillStyle='#e78044';ctx.fillRect(p.x-5*s,p.y-14*s,3*s,2*s);ctx.fillRect(p.x+3*s,p.y-14*s,3*s,2*s)}
   if(node.id==='sentinel-gate'){ctx.fillStyle='#726d61';ctx.fillRect(p.x-12*s,p.y-31*s,24*s,25*s);ctx.fillStyle='#c6a15e';ctx.fillRect(p.x-5*s,p.y-25*s,10*s,5*s);ctx.strokeStyle='#a49471';ctx.lineWidth=2*s;ctx.strokeRect(p.x-12*s,p.y-31*s,24*s,25*s)}
   if(npc){const nx=p.x-20*s,ny=p.y-8*s;ctx.strokeStyle='#292119';ctx.lineWidth=3*s;ctx.beginPath();ctx.moveTo(nx,ny);ctx.lineTo(nx,ny-14*s);ctx.stroke();ctx.fillStyle='#d1a879';ctx.beginPath();ctx.arc(nx,ny-19*s,4*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5d4732';ctx.fillRect(nx-5*s,ny-15*s,10*s,12*s);const marker=npcQuestMarker(npc);if(marker){ctx.fillStyle='#f3d477';ctx.beginPath();ctx.arc(nx,ny-34*s,8*s,0,Math.PI*2);ctx.fill();ctx.fillStyle='#211b12';ctx.font='bold '+Math.max(10,12*s)+'px Georgia';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(marker,nx,ny-34*s)}}
   ctx.beginPath();ctx.arc(p.x,p.y-5*s,(selected?11:8)*s,0,Math.PI*2);ctx.fillStyle=node.kind==='encounter'?'#a7493d':current?'#f2d68f':'#d3bf83';ctx.fill();ctx.strokeStyle=selected?'#fff1bc':'#4e432d';ctx.lineWidth=selected?3:2;ctx.stroke();
@@ -830,8 +840,8 @@ function drawWorldCard(){
  if(node.id===current.id){
   if(node.encounter){btn.hidden=false;btn.textContent='⚔ '+node.name.toUpperCase();btn.dataset.action='fight'}
   else if(node.shop){btn.hidden=false;btn.textContent=node.shop==='gem-shop'?'▣ GEM SHOP':'▣ ITEM SHOP';btn.dataset.action='shop'}
-  else if(node.checkpoint){btn.hidden=false;btn.textContent='✦ CHECKPOINT SET';btn.disabled=true;btn.dataset.action='none'}
   else if(npc){btn.hidden=false;btn.textContent='◆ '+npc.name.toUpperCase();btn.dataset.action='talk';btn.dataset.npc=npc.id}
+  else if(node.checkpoint){btn.hidden=false;btn.textContent='✦ CHECKPOINT SET';btn.disabled=true;btn.dataset.action='none'}
  }
 }
 function worldRouteMetrics(route){
@@ -864,9 +874,9 @@ async function travelWorld(nodeId){
   if(authorized.length>1)await animateWorldTravel(authorized);
   if(nextAccount!==account)applyAccount(nextAccount);
   if(travelError){$('worldNodeDesc').hidden=false;$('worldNodeDesc').textContent='Travel stopped: '+travelError.message.replaceAll('_',' ')}
- }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;drawWorld()}
+ }finally{worldTravelAnim=null;worldTravelRoute=null;selectedWorldNode=worldState.currentNode;frameTrollHill();drawWorld()}
 }
-function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}if(accountToken&&JSON.stringify({sack,equipment})!==lastAccountSync){void syncAccountLoadout().then(ok=>{if(ok&&account)enterWorld()});return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(drawWorld)}
+function enterWorld(){if(account?.needsCharacterName){showScreen('character');return}if(account?.pendingMatch){showScreen('resume');$('resumeDescription').textContent=(GEMMO_ENCOUNTERS[account.pendingMatch.encounterId]?.name||'Your fight')+' is waiting. Resume your saved fight, or surrender. Surrender counts as a loss.';return}if(accountToken&&JSON.stringify({sack,equipment})!==lastAccountSync){void syncAccountLoadout().then(ok=>{if(ok&&account)enterWorld()});return}selectedWorldNode=worldState.currentNode;refreshWorldHud();showScreen('world');requestAnimationFrame(()=>{drawWorld();frameTrollHill();drawWorld()})}
 let selectedSkillNode='neutral-vitality',skillBuying=false;
 function skillNodeGlyph(node){return node.effect.gain?'✦':node.effect.start?'↯':node.effect.maxHP?'♥':node.effect.startGuard?'◈':node.effect.allCap?'✧':'◇'}
 function drawSkillDetails(){
@@ -912,7 +922,7 @@ function shopCard(entry,owned){
 }
 function drawShop(){
  const stock=SHOP_STOCK[currentShop]||[],owned=new Set(account?.inventory||[]),gold=account?.profile?.gold||0;
- $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Roadside Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'◇ GEM SHOP':'▣ ITEM SHOP';$('shopGold').textContent='◆ '+gold;
+ $('shopTitle').textContent=currentShop==='gem-shop'?'Facet Cart':'Hill Outfitter';$('shopEyebrow').textContent=currentShop==='gem-shop'?'◇ GEM SHOP':'▣ ITEM SHOP';$('shopGold').textContent='◆ '+gold;
  if(currentShop==='gem-shop'){
  const labels={red:'RED',blue:'BLUE',green:'GREEN',yellow:'YELLOW',purple:'PURPLE'},order=['red','blue','green','yellow','purple'];
   $('shopGrid').innerHTML='<div class="shopColorCatalog">'+order.map(color=>{
@@ -1091,10 +1101,10 @@ function combatEffectRows(){
   {side:'enemy',name:'Venom',value:buffs.poison,turns:buffs.poison,detail:'Takes 2 damage after each enemy action.'},
   {side:'you',name:'Restoring Verse',value:buffs.regen,turns:buffs.regen,detail:'Heals 2 HP after each enemy action.'},
   {side:'you',name:'Resonance',value:buffs.focus,turns:buffs.focus,detail:'Adds 1 charge to every equipped color after each enemy action.'},
-  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')?'First weapon-color match per action deals +2 damage.':'Red match resolutions deal +2 bonus damage.'},
-  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')?'First Blue match per action grants +2 Guard.':'Blue match resolutions grant +2 bonus Guard.'},
-  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')?'First Green match per action heals 2 HP.':'Green match resolutions heal 2 HP.'},
-  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v5')?'First Yellow match per action sends +2 charge to your most depleted other color.':'Yellow matches send +2 charge to your most depleted other color.'},
+  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First weapon-color match per action deals +2 damage.':'Red match resolutions deal +2 bonus damage.'},
+  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Blue match per action grants +2 Guard.':'Blue match resolutions grant +2 bonus Guard.'},
+  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Green match per action heals 2 HP.':'Green match resolutions heal 2 HP.'},
+  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Yellow match per action sends +2 charge to your most depleted other color.':'Yellow matches send +2 charge to your most depleted other color.'},
   {side:'you',name:'Reprisal',value:buffs.reflect,turns:buffs.reflect,detail:'Reflects half of the next unblocked hit.'},
   {side:'you',name:'Overdrive',value:overdrive?1:0,turns:null,detail:'Doubles the next colored match once.'},
   {side:'you',name:'Earthbind',value:pinTurns,turns:pinTurns,detail:'The pinned column refills in place through the next enemy action.'},
@@ -1132,7 +1142,7 @@ function startFight(){
  encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
-  void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}board=[];boardBonus=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
+  void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}eHP=enemyMaxHP();shownHP.e=eHP;board=[];boardBonus=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}

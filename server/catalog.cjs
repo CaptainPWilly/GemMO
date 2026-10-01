@@ -2,6 +2,7 @@
 const ENCOUNTERS=require('../shared/encounters.js');
 
 const GEM_IDS=Object.freeze([
+  "troll-maul",
   "rat-fang",
   "dagger",
   "hand-crossbow",
@@ -99,14 +100,17 @@ const GEAR=Object.freeze({
 const DEFAULT_SACK=Object.freeze(['dagger','shield','salve','boots','charm']);
 const DEFAULT_STARTER_GEM='dagger';
 const WORLD_NODES=Object.freeze({
-  camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','item-shop','crossroads']},
+  camp:{id:'camp',name:'Ember Camp',kind:'safe',neighbors:['gem-shop','crossroads']},
   'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem',neighbors:['camp']},
-  'item-shop':{id:'item-shop',name:'Roadside Outfitter',kind:'shop',shop:'item',neighbors:['camp']},
+  'item-shop':{id:'item-shop',name:'Hill Outfitter',kind:'shop',shop:'item',neighbors:['troll-hill'],requiresQuest:'five-gems'},
   crossroads:{id:'crossroads',name:'Crossroads',kind:'road',neighbors:['camp','shrine','rat']},
   shrine:{id:'shrine',name:'Shrine',kind:'shrine',checkpoint:true,neighbors:['crossroads']},
   rat:{id:'rat',name:'Rat',kind:'encounter',encounter:'rat',neighbors:['crossroads','bandit-pass']},
-  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate']},
-  'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']}
+  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate','troll-hill']},
+  'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']},
+ 'troll-hill':{id:'troll-hill',name:'Troll Hill',kind:'safe',checkpoint:true,neighbors:['bandit-pass','item-shop','troll-cave'],requiresQuest:'five-gems'},
+ 'troll-cave':{id:'troll-cave',name:'Gravemaw’s Cave',kind:'encounter',encounter:'troll',neighbors:['troll-hill'],requires:'sentinel',requiresQuest:'ready-for-cave'}
+
 });
 const SHOP_CATALOG=Object.freeze({
   'gem-shop':Object.freeze({

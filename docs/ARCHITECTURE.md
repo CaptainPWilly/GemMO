@@ -57,13 +57,13 @@ A browser request cannot directly set profile wealth/progression.
 
 ### Combat authority
 
-**Rat, Bandit, and Road Sentinel are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
+**Rat, Bandit, Road Sentinel, and Gravemaw are authoritative by deterministic replay.** Every new current-encounter match snapshots the server-owned Sack/equipment, issues a server RNG seed, and the browser records only player intents (swap, activate, target). On victory the server rebuilds the same board from the seed and replays those intents. Progression and rewards are accepted only when that replay reaches a legal victory.
 
 The browser still renders and simulates the live fight for responsiveness. Its claimed HP, enemy death, Gold, and XP are not trusted at settlement; replay output decides the accepted result.
 
 Cascade-anchor charging is also replay-authoritative. The colored types present in Combo 1 become anchors; each later cascade adds its depth as extra core value (+1 on Combo 2, +2 on Combo 3, etc.). The bonus applies symmetrically to both fighters and does not retrigger one-per-match ability procs such as attunement bonuses.
 
-The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued Rat, Bandit, and Sentinel tickets use `replay-v2` regardless of local SQLite, file-backed SQLite, or Turso storage.
+The server retains a legacy budget fallback only so an already-open historical match ticket without a combat proof can still be settled safely. Newly issued encounter tickets use `replay-v6` regardless of local SQLite, file-backed SQLite, or Turso storage.
 
 Replay verification is an important trust boundary, but it is still after-the-fact verification rather than server-owned live action processing. A future multiplayer/PvP boundary can move intent processing live if latency and operating cost justify it.
 
@@ -107,16 +107,16 @@ The browser may pathfind across multiple visible/unlocked nodes, but it submits 
 
 Current progression:
 
-```text
-                 Shrine
-                   |
-Camp ─ Crossroads ─ Rat ─ Bandit ─ Sentinel
- │
- ├─ Gem Shop
- └─ Item Shop
-```
+| Route / unlock | Requirement |
+| --- | --- |
+| Camp, Facet Cart, Crossroads, Shrine, Rat | Receive a starter gem from Vale |
+| Rat → Bandit | Verified Rat clear |
+| Bandit → Road Sentinel | Verified Bandit clear |
+| Bandit → Troll Hill | Turn in Vale's five-gem quest |
+| Troll Hill → Hill Outfitter | Same five-gem gate; equipment shop relocated here |
+| Troll Hill → Gravemaw's Cave | Turn in Rhea's equipment quest and clear Sentinel |
 
-Bandit is hidden/locked until Rat is cleared. The Road Sentinel is hidden/locked until Bandit is cleared.
+The six quests are ordered: receive a gem, kill Rat, kill Bandit, own five distinct gems, equip physical equipment, kill Gravemaw. The first completes automatically on starter selection. Earlier encounter clears and existing inventory count when later quests are accepted. Hill arrival sets the respawn checkpoint, so boss deaths do not require walking from Camp. The one-time `2026-10-01-hill-outfitter-relocation-v1` migration returns old shop visitors to Camp, preserving all progression; later Hill Outfitter visits survive restart.
 
 ## Story and quest progression
 
@@ -125,7 +125,7 @@ Story presentation is browser-side, but persistent progression is account-backed
 - Seen cutscenes are stored in `story_flags` so one-time scenes survive reload/login/device changes.
 - Accepted/completed quests are stored in `quest_progress`.
 - The client may request quest acceptance or turn-in, but the server verifies the player is physically at the correct NPC node.
-- Quest readiness is derived from authoritative state. The first objective type, `encounter-clear`, checks server-owned `world_flags`.
+- Quest readiness is derived from authoritative state. `encounter-clear` checks server-owned `world_flags`; `starter-choice`, `gem-collection`, and `equipment-equipped` check the authoritative starter, unique gem inventory, and equipment slots. All six quest statuses and counts are returned without extra per-quest snapshot database round trips. Movement and match creation enforce quest gates on the server.
 - Quest Gold/XP are awarded transactionally by the server on turn-in; the browser cannot submit reward amounts.
 - Repeated acceptance/turn-in cannot duplicate progression or rewards.
 
@@ -177,10 +177,10 @@ The `unlocked` leaderboard counts distinct known gem IDs with positive owned qua
 
 `shared/color-balance.js` defines current weapon/support gem overrides and bounded color skill triggers. Load it after weapon-gems and before content. The server applies it using the saved combat version. Original gem values and legacy skill behavior remain available for old proofs. See [COLOR_BALANCE.md](COLOR_BALANCE.md) for budgets, deterministic tests and balance-probe limitations.
 
-## NPC gem loadouts (replay-v5)
+## NPC gem loadouts (replay-v5 and replay-v6)
 
-Current encounters declare a Sack of catalog gem IDs in `shared/encounters.js`. `shared/enemy-loadouts.js` derives capacity as the sum of same-color gem costs, chooses legal useful casts, and shares immediate damage/heal/Guard/siphon execution with the player's v5 abilities in both hosts. NPCs have one weapon, no equipment bonuses or purchased skills. They receive no passive Red attack or Blue Guard exception: weapon identity determines match damage. Four-or-more matches grant either fighter an extra action; five-matches and cascade-anchor scoring are symmetric. Loot/account progression still belongs to the player.
+Current encounters declare a Sack of catalog gem IDs in `shared/encounters.js`. `shared/enemy-loadouts.js` derives capacity as the sum of same-color gem costs, chooses legal useful casts, and shares immediate damage/heal/Guard/siphon execution with the player's v5/v6 abilities in both hosts. NPCs have one weapon, no equipment bonuses or purchased skills. They receive no passive Red attack or Blue Guard exception: weapon identity determines match damage. Four-or-more matches grant either fighter an extra action; five-matches and cascade-anchor scoring are symmetric. Loot/account progression still belongs to the player.
 
-The Rat Fang is a normal Yellow weapon gem registered in both catalogs and weapon validation. Bandit and Sentinel reuse existing gems. The NPC interpreter deliberately validates its supported immediate effects; when adding an NPC loadout with another effect kind, extend the shared execution and parity tests first. AI priorities (healing, guarding, selecting matches) are decisions, not different ability values or costs.
+The Rat Fang is a normal Yellow weapon gem registered in both catalogs and weapon validation. Gravemaw Maul is a registered Red weapon with 2 match damage per value and a 9-charge, 8-damage Guard-piercing cast. Its effects are identical for either combatant. Bandit and Sentinel reuse existing gems. The NPC interpreter deliberately validates its supported immediate effects; when adding an NPC loadout with another effect kind, extend the shared execution and parity tests first. AI priorities (healing, guarding, selecting matches) are decisions, not different ability values or costs.
 
-All new proofs use replay-v5; player balance remains v4. Existing replay-v1–v4 proofs retain the original enemy reservoirs, active abilities, match scaling, and extra-turn behavior. Never mutate the v5 Sack definitions, gem effects or AI policy without issuing another replay version. Save recovery replays the complete enemy response, including chained extra turns, to the next stable player input. Tests cover all three NPCs and all five starter colors in the browser and server.
+All new proofs use replay-v6; existing player color balance is preserved. Bandit has 32 HP with Dagger/Shield/Salve/Relic, Sentinel has 46 HP with Crystal Wand/Tower Shield/Salve/Relic, and Gravemaw has 80 HP with Maul/Tower Shield/Salve/Relic/Lifebloom. `ENCOUNTERS.forVersion` retains the original v5 HP and Sacks for unfinished fights. Existing replay-v1–v4 proofs retain the original enemy reservoirs, active abilities, match scaling, and extra-turn behavior. Never mutate the v5 Sack definitions, gem effects or AI policy without issuing another replay version. Save recovery replays the complete enemy response, including chained extra turns, to the next stable player input. Tests cover v5 and v6 NPCs and all five starter colors in 105 seeded browser/server parity fights. `scripts/balance-troll.cjs` probes the difficulty increase and all 75 currently purchasable full starter/support Sacks; results and limitations are recorded in `docs/troll-balance-results.json`.

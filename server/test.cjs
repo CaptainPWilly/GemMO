@@ -12,8 +12,8 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
 (async()=>{
   assert.equal(defaultDbPath({dbPath:':memory:'}),':memory:');
   assert.equal(DEFAULT_STARTER_GEM,'dagger','every account has the same Iron Dagger starter');assert.equal(Object.keys(CONSUMABLES).length,4,'four one-shot consumables exist');
-  assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit','sentinel'],'shared encounter catalog owns the current encounter set');
-  assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,24);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
+  assert.deepEqual(Object.keys(ENCOUNTERS),['rat','bandit','sentinel','troll'],'shared encounter catalog owns the current encounter set');
+  assert.equal(ENCOUNTERS.rat.maxHP,10);assert.equal(ENCOUNTERS.bandit.maxHP,32);assert.deepEqual(ENCOUNTERS.bandit.reward,{gold:[18,24],xp:[12,18]});assert.equal(ENCOUNTERS.bandit.actives.length,5);
   assert.equal(NPCS['warden-vale'].node,'camp');assert.equal(QUESTS['trouble-on-road'].objective.encounterId,'rat');assert.equal(CUTSCENES['brackenreach-arrival'].slides.length,3);
   assert.deepEqual(comboChargeTypes({red:3,gold:4,blue:3}),['red','blue']);assert.equal(comboChargeBonus(1),1);assert.equal(comboChargeBonus(2),2);assert.equal(fullestChargeColor({red:4,blue:4,purple:2}),'red');assert.equal(fullestChargeColor({red:0,blue:0}),null);
   {
@@ -72,7 +72,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
       storage:{location:'test.db'},
       transaction:async fn=>fn(matchDb),
       prepare(sql){return {
-        async get(){if(sql.includes('FROM starter_choices'))return {ok:1};return sql.includes('SELECT current_node FROM world_state')?{current_node:'bandit-pass'}:null},
+        async get(){if(sql.includes('FROM starter_choices')||sql.includes('FROM world_flags'))return {ok:1};return sql.includes('SELECT current_node FROM world_state')?{current_node:'bandit-pass'}:null},
         async all(){
           if(sql.includes('FROM sack_slots'))return [{slot:0,gem_id:'dagger'}];
           if(sql.includes('FROM equipment_slots'))return [{slot:'head',item_id:null},{slot:'chest',item_id:null},{slot:'hands',item_id:null},{slot:'legs',item_id:null},{slot:'feet',item_id:null},{slot:'necklace',item_id:null},{slot:'ring1',item_id:null},{slot:'ring2',item_id:null}];
@@ -82,7 +82,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
       }}
     };
     const match=await startMatch(matchDb,1,'bandit');
-    assert.equal(match.authority?.mode,'replay-v5','Bandit matches require replay authority in every storage mode');
+    assert.equal(match.authority?.mode,'replay-v6','Bandit matches require replay authority in every storage mode');
     assert(Number.isInteger(match.authority.seed));
   }
   {
@@ -188,34 +188,34 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:7,xp:5}});assert.equal(r.status,400,'loss cannot claim rewards');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:0,xp:0}});assert.equal(r.status,200);assert.equal(r.data.settlement.won,false);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.profile.xp,0);assert(!r.data.account.world.clearedEncounters.includes('rat'),'loss does not unlock encounter');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:lostRatMatchId,won:false,gold:0,xp:0}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true,'loss settlement is idempotent');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const ratMatchId=r.data.match.matchId,ratBudget=r.data.match.rewardBudget;assert(ratMatchId);assert.equal(r.data.match.authority?.mode,'replay-v5');assert(Number.isInteger(r.data.match.authority.seed));
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const ratMatchId=r.data.match.matchId,ratBudget=r.data.match.rewardBudget;assert(ratMatchId);assert.equal(r.data.match.authority?.mode,'replay-v6');assert(Number.isInteger(r.data.match.authority.seed));
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:[]}});assert.equal(r.status,409,'empty fake Rat victory proof is rejected');assert.equal(r.data.error,'combat_proof_failed');
     const blankEquipment={head:null,chest:null,hands:null,legs:null,feet:null,necklace:null,ring1:null,ring2:null};
     let ratProof=null;
     for(let seed=1;seed<=200&&!ratProof;seed++){
-      const state=createRatCombat({version:'replay-v5',seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:ratBudget}),transcript=[];
+      const state=createRatCombat({version:'replay-v6',seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:ratBudget}),transcript=[];
       for(let turn=0;turn<180&&state.eHP>0&&state.pHP>0;turn++){const action=suggestRatAction(state);if(!action)break;transcript.push(action);if(!applyRatAction(state,action))break}
       if(state.eHP<=0&&transcript.length<=256)ratProof={seed,state,transcript};
     }
     assert(ratProof,'test bot must find a legal deterministic Rat victory');
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(ratProof.seed,ratMatchId);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v5');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'ready','authoritative encounter clear advances quest readiness');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:999999,xp:999999,transcript:ratProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v6');assert.equal(r.data.settlement.gold,ratProof.state.gold,'Rat Gold comes from server replay');assert.equal(r.data.settlement.xp,ratProof.state.xp,'Rat XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('rat'),'verified Rat victory saves rewards and unlock');assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'ready','authoritative encounter clear advances quest readiness');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:ratMatchId,won:true,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);assert.equal(r.data.settlement.alreadySettled,true);assert.equal(r.data.account.profile.gold,ratProof.state.gold,'retry cannot double-award verified Rat gold');assert.equal(r.data.account.profile.xp,ratProof.state.xp,'retry cannot double-award verified Rat XP');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);assert.equal(r.data.account.world.currentNode,'bandit-pass');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,201);const banditMatchId=r.data.match.matchId,banditBudget=r.data.match.rewardBudget;assert(banditBudget.gold>=18&&banditBudget.gold<=24);assert(banditBudget.xp>=12&&banditBudget.xp<=18);assert.equal(r.data.match.authority?.mode,'replay-v5');assert(Number.isInteger(r.data.match.authority.seed));
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'bandit'}});assert.equal(r.status,201);const banditMatchId=r.data.match.matchId,banditBudget=r.data.match.rewardBudget;assert(banditBudget.gold>=18&&banditBudget.gold<=24);assert(banditBudget.xp>=12&&banditBudget.xp<=18);assert.equal(r.data.match.authority?.mode,'replay-v6');assert(Number.isInteger(r.data.match.authority.seed));
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:[]}});assert.equal(r.status,409,'empty fake Bandit victory proof is rejected');assert.equal(r.data.error,'combat_proof_failed');
     let banditProof=null;
     for(let seed=1;seed<=500&&!banditProof;seed++){
-      const state=createBanditCombat({version:'replay-v5',seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:banditBudget}),transcript=[];
+      const state=createBanditCombat({version:'replay-v6',seed,sack:['dagger',null,null,null,null],equipment:blankEquipment,skills:['red-cap-1'],rewardBudget:banditBudget}),transcript=[];
       for(let turn=0;turn<240&&state.eHP>0&&state.pHP>0;turn++){const action=suggestCombatAction(state);if(!action)break;transcript.push(action);if(!applyCombatAction(state,action))break}
       if(state.eHP<=0&&transcript.length<=256)banditProof={seed,state,transcript};
     }
     assert(banditProof,'test bot must find a legal deterministic Bandit victory');
     await db.prepare('UPDATE match_combat_proofs SET seed=? WHERE match_id=?').run(banditProof.seed,banditMatchId);
-    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:banditProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v5');assert.equal(r.data.settlement.gold,banditProof.state.gold,'Bandit Gold comes from server replay');assert.equal(r.data.settlement.xp,banditProof.state.xp,'Bandit XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('bandit'),'every verified encounter victory records a generic clear flag');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:banditMatchId,won:true,gold:999999,xp:999999,transcript:banditProof.transcript}});assert.equal(r.status,200);assert.equal(r.data.settlement.authority,'replay-v6');assert.equal(r.data.settlement.gold,banditProof.state.gold,'Bandit Gold comes from server replay');assert.equal(r.data.settlement.xp,banditProof.state.xp,'Bandit XP comes from server replay');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold);assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp);assert(r.data.account.world.clearedEncounters.includes('bandit'),'every verified encounter victory records a generic clear flag');
     assert(await db.prepare("SELECT 1 ok FROM audit_events WHERE type='match_result_mismatch' AND user_id=?").get(r.data.account.user.id),'replay result mismatches are audited');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'sentinel-gate'}});assert.equal(r.status,200,'verified Bandit clear unlocks the Sentinel');
-    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'sentinel'}});assert.equal(r.status,201);assert.equal(r.data.match.authority.mode,'replay-v5');const sentinelMatchId=r.data.match.matchId;
+    r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'sentinel'}});assert.equal(r.status,201);assert.equal(r.data.match.authority.mode,'replay-v6');const sentinelMatchId=r.data.match.matchId;
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:true,gold:999,xp:999,transcript:[]}});assert.equal(r.status,409,'unproved Sentinel win cannot award progression');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:sentinelMatchId,won:false,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'bandit-pass'}});assert.equal(r.status,200);
@@ -234,10 +234,37 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('shield'));assert.equal(r.data.account.profile.gold,82);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,409,'cannot buy an owned unique item');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
-    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'item-shop'}});assert.equal(r.status,200);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);
+    async function travel(...nodes){for(const nodeId of nodes){const v=await call('/v1/world/move',{method:'POST',token,body:{nodeId}});assert.equal(v.status,200,'travel to '+nodeId+': '+JSON.stringify(v.data));r=v}}
+    async function quest(action,questId,status=200){r=await call('/v1/story/quest',{method:'POST',token,body:{action,questId}});assert.equal(r.status,status,action+' '+questId+': '+JSON.stringify(r.data))}
+    await quest('accept','five-gems',409);
+    await quest('accept','break-the-bandit');await quest('turnin','break-the-bandit');await quest('accept','five-gems');await quest('turnin','five-gems',409);
+    await travel('crossroads','rat','bandit-pass');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'troll-hill'}});assert.equal(r.status,409,'hills stay locked until five-gem turn-in');
+    await travel('rat','crossroads','camp','gem-shop');
+    await db.prepare('UPDATE profiles SET gold=300 WHERE user_id=?').run(userId);
+    for(const itemId of ['healing-potion','powder-bomb','chaos-orb']){r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId}});assert.equal(r.status,200)}
+    assert.equal(r.data.account.quests.find(q=>q.id==='five-gems').progress,5);
+    await travel('camp');await quest('turnin','five-gems');await quest('turnin','five-gems',409);
+    await travel('crossroads','rat','bandit-pass','troll-hill');await quest('accept','ready-for-cave');await quest('turnin','ready-for-cave',409);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'troll-cave'}});assert.equal(r.status,409,'unequipped players cannot enter cave');
+    await travel('item-shop');
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'frayed-hood'}});assert.equal(r.status,200);
+    r=await call('/v1/account/equipment',{method:'PUT',token,body:{equipment}});assert.equal(r.status,200);
+    await travel('troll-hill');await quest('turnin','ready-for-cave');await quest('accept','gravemaw');await quest('turnin','gravemaw',409);
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'troll-cave'}});assert.equal(r.status,409,'Sentinel remains a final prerequisite');
+    await db.prepare('INSERT INTO world_flags(user_id,flag,created_at) VALUES(?,?,?)').run(userId,'encounter:sentinel',Date.now());
+    await travel('troll-cave');r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'troll'}});assert.equal(r.status,201);const trollMatchId=r.data.match.matchId;assert.equal(r.data.match.authority.mode,'replay-v6');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:trollMatchId,won:true,gold:0,xp:0,transcript:[]}});assert.equal(r.status,409,'boss rewards require a verified win');
+    r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:trollMatchId,won:false,gold:0,xp:0,transcript:[]}});assert.equal(r.status,200);
+    await travel('troll-hill','item-shop');
+    r=await call('/v1/account/equipment',{method:'PUT',token,body:{equipment:blankEquipment}});assert.equal(r.status,200);
+    await db.prepare('UPDATE profiles SET gold=82 WHERE user_id=?').run(userId);
+    const progressionXP=ratProof.state.xp+banditProof.state.xp+32;
+
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,2,'consumables stack on repeat purchase');
-    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'rat'}});assert.equal(r.status,200);
+    await travel('troll-hill','bandit-pass','rat');
     r=await call('/v1/matches/start',{method:'POST',token,body:{encounterId:'rat'}});assert.equal(r.status,201);const consumableMatchId=r.data.match.matchId;
     r=await call('/v1/matches/consume',{method:'POST',token,body:{matchId:consumableMatchId,itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'using a one-shot immediately decrements its stack');
     r=await call('/v1/matches/settle',{method:'POST',token,body:{matchId:consumableMatchId,won:false,gold:0,xp:0,transcript:[{t:'consume',itemId:'minor-healing-draught'}]}});assert.equal(r.status,200);assert.equal(r.data.settlement.won,false,'consumable use verifies during loss settlement');
@@ -252,12 +279,20 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
     assert(r.data.account.inventory.includes('shield'),'inventory survives logout/login');
-    assert.equal(r.data.account.profile.gold,66,'gold survives logout/login after consumable purchases');assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'remaining consumable stack survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'battle and quest XP survive logout/login');
+    assert.equal(r.data.account.profile.gold,66,'gold survives logout/login after consumable purchases');assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'remaining consumable stack survives logout/login');assert.equal(r.data.account.profile.xp,progressionXP,'battle and quest XP survive logout/login');
     assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','quest state survives logout/login');assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'cutscene state survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'Sack survives logout/login');
 
     const reloginToken=r.data.token;
+    const migrationBefore=await accountSnapshot(db,userId);
+    await db.prepare("UPDATE world_state SET current_node='item-shop' WHERE user_id=?").run(userId);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-hill-outfitter-relocation-v1'").run();
+    assert.equal(await applyDataMigrations(db),true,'old equipment-shop visitors relocate once');
+    const migrationAfter=await accountSnapshot(db,userId);assert.equal(migrationAfter.world.currentNode,'camp');assert.deepEqual(migrationAfter.inventory,migrationBefore.inventory);assert.deepEqual(migrationAfter.quests,migrationBefore.quests);assert.deepEqual(migrationAfter.profile,migrationBefore.profile);
+    await db.prepare("UPDATE world_state SET current_node='item-shop' WHERE user_id=?").run(userId);
+    assert.equal(await applyDataMigrations(db),false);assert.equal((await accountSnapshot(db,userId)).world.currentNode,'item-shop','later shop visits survive restart');
+
     // New weapon rule removes only excess equipment, preserving ownership and regular gems.
     const weaponUser=await db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get();
     await db.prepare("INSERT OR IGNORE INTO inventory(user_id,item_id,kind,qty) VALUES(?,'knife','gem',1)").run(weaponUser.id);
@@ -297,7 +332,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     assert.equal(r.data.account.needsStarter,true,'historical reset clears starter choice');
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
-    assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.skills.purchased,[],'reset clears skill progression');assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
+    assert(r.data.account.quests.every(q=>['available','active','locked'].includes(q.status)),'reset clears quest progression');assert.deepEqual(r.data.account.skills.purchased,[],'reset clears skill progression');assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
     assert(Object.values(r.data.account.equipment).every(v=>v===null),'reset unequips physical gear');
     assert.equal(await applyDataMigrations(db),false,'fresh-sacks reset cannot run twice');
 

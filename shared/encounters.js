@@ -10,7 +10,7 @@ function deepFreeze(value){
  for(const child of Object.values(value))deepFreeze(child);
  return Object.freeze(value);
 }
-return deepFreeze({
+const legacy=deepFreeze({
  rat:{
   id:'rat',
   sack:['rat-fang'],
@@ -73,4 +73,10 @@ return deepFreeze({
   unlockText:''
  }
 });
+const current=deepFreeze({...legacy,
+ bandit:{...legacy.bandit,maxHP:32,sack:['dagger','shield','salve','relic']},
+ sentinel:{...legacy.sentinel,maxHP:46,sack:['crystal-wand','tower-shield','salve','relic']},
+ troll:{id:'troll',name:'GRAVEMAW',maxHP:80,boss:true,sack:['troll-maul','tower-shield','salve','relic','healing-potion'],reward:{gold:[70,90],xp:[55,70]},unlockText:'GRAVEMAW DEFEATED',reservoirs:{},actives:[],match:{},ai:{}}
+});
+const exported={...current};Object.defineProperty(exported,'forVersion',{value:(id,version)=>version==='replay-v6'?current[id]:legacy[id]});return Object.freeze(exported);
 });
