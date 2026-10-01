@@ -494,11 +494,11 @@ async function loadCaptchaConfig(){
  captchaConfigPromise=(async()=>{try{const data=await accountRequest('/v1/config');captchaConfig=data.captcha||{enabled:false};return captchaConfig}catch{captchaConfig={enabled:false};return captchaConfig}finally{captchaConfigPromise=null}})();
  return captchaConfigPromise;
 }
-function resetCaptcha(){captchaToken='';if(captchaConfig?.enabled&&$('captchaHint'))$('captchaHint').textContent='Checking human verification…';if(captchaWidgetId!==null&&window.turnstile){try{window.turnstile.reset(captchaWidgetId)}catch{}}}
+function resetCaptcha(){captchaToken='';if(captchaConfig?.enabled&&$('captchaHint'))$('captchaHint').textContent='Verifying…';if(captchaWidgetId!==null&&window.turnstile){try{window.turnstile.reset(captchaWidgetId)}catch{}}}
 async function renderCaptcha(){
  const config=await loadCaptchaConfig(),wrap=$('captchaWrap');if(!wrap)return;
  if(!config?.enabled||account){wrap.hidden=true;return}
- wrap.hidden=false;$('captchaHint').textContent=captchaToken?'Human check ready.':'Checking human verification…';
+ wrap.hidden=false;$('captchaHint').textContent=captchaToken?'Human check ready.':'Verifying…';
  const mount=()=>{
   if(account||!captchaConfig?.enabled)return;
   if(!window.turnstile){setTimeout(mount,120);return}
@@ -507,7 +507,7 @@ async function renderCaptcha(){
    sitekey:captchaConfig.siteKey,theme:'dark',appearance:'always',size:'flexible',action:'auth',
    callback:token=>{captchaToken=token;$('captchaHint').textContent='Human check ready.'},
    'expired-callback':()=>{captchaToken='';$('captchaHint').textContent='Human check expired — checking again…'},
-   'error-callback':()=>{captchaToken='';$('captchaHint').textContent='Human check unavailable — retrying…'}
+   'error-callback':()=>{captchaToken='';$('captchaHint').textContent='Verification unavailable — retrying…'}
   });
  };
  mount();
@@ -692,7 +692,7 @@ function syncAccountLoadout(){
     loadoutSyncStatus('Saving…');await accountRequest('/v1/account/sack',{method:'PUT',body:{sack:desired.sack}});
     if(accountToken!==token)return false;
     const data=await accountRequest('/v1/account/equipment',{method:'PUT',body:{equipment:desired.equipment}});if(accountToken!==token)return false;
-    account=data.account||account;lastAccountSync=signature;loadoutSyncStatus('Saved');$('accountStatus').textContent='Account loadout synced.';
+    account=data.account||account;lastAccountSync=signature;loadoutSyncStatus('Saved');$('accountStatus').textContent='Loadout saved.';
    }
    return !accountToken;
   }catch(error){loadoutSyncStatus('Not saved · '+error.message.replaceAll('_',' '));if(error.status===401){clearAccountSession();$('accountStatus').textContent='Session expired. Log in again.'}else $('accountStatus').textContent='Sync failed: '+error.message;return false}
@@ -849,7 +849,7 @@ function refreshAccount(){
  const token=accountToken;
  accountRefreshPromise=(async()=>{
   try{const data=await accountRequest('/v1/account');if(accountToken!==token)return false;applyAccount(data.account);return true}
-  catch(error){if(accountToken!==token)return false;if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Account server unavailable.';return false}
+  catch(error){if(accountToken!==token)return false;if(error.status===401)clearAccountSession();else $('accountStatus').textContent='Could not connect. Please try again.';return false}
  })().finally(()=>{accountRefreshPromise=null});
  return accountRefreshPromise;
 }
@@ -870,7 +870,7 @@ async function submitAuth(mode){
  setAuthBusy(true);$('accountStatus').textContent=mode==='register'?'Creating account…':'Logging in…';
  try{
   const data=await accountRequest('/v1/auth/'+mode,{method:'POST',body:{username,password,captchaToken}});
-  rememberAccountToken(data.token);$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Account secure and synced.';enterWorld();
+  rememberAccountToken(data.token);$('accountPassword').value='';applyAccount(data.account);$('accountStatus').textContent='Signed in.';enterWorld();
  }catch(error){
   const message={
    invalid_username_or_password:'Invalid username or password.',
