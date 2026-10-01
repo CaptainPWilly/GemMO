@@ -10,7 +10,7 @@ function action(s){
  if(s.targetMode){let best={t:'target',x:0,y:0},high=-Infinity;for(let y=0;y<8;y++)for(let x=0;x<8;x++){let score=0;const old=s.board[y][x];if(s.targetMode==='weapon_paint'||s.targetMode==='paint'||s.targetMode==='wildcraft'){s.board[y][x]=s.targetMode==='weapon_paint'?gem(s.sack[0],s.version).color:s.targetMode==='paint'?'red':'wild';score=scoreMatches(s);s.board[y][x]=old;}else score=old===gem(s.sack[0],s.version).color?3:old==='red'?2:1;if(score>high){high=score;best={t:'target',x,y}}}return best}
  if(s.freeSwap)return {t:'swap',ax:0,ay:0,bx:1,by:0};
  for(let i=0;i<5;i++){const g=gem(s.sack[i],s.version);if(!g||s.charges[g.color]<g.cap)continue;
-  if(g.kind==='heal'&&18-s.pHP<g.power)continue;
+  if(g.kind==='heal'&&(s.probeMaxHP||18)-s.pHP<g.power)continue;
   if(g.kind==='guard'&&s.pGuard>=g.power/2)continue;
   if(g.kind==='red_attune'&&s.buffs.redwake)continue;
   if(g.kind==='boost'&&s.overdrive)continue;
@@ -18,6 +18,8 @@ function action(s){
  }
  let best=null,high=-Infinity;for(const [a,b] of engine.legalMoves(s)){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]];const score=scoreMatches(s);[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]];if(score>high){high=score;best={t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y}}}return best;
 }
+module.exports={action};
+if(require.main===module){
 const rows=[];
 for(const version of (process.env.GEMMO_BALANCE_VERSIONS||'replay-v3,replay-v4').split(','))for(const profile of ['starter','mixed'])for(const id of (process.env.GEMMO_BALANCE_WEAPONS?process.env.GEMMO_BALANCE_WEAPONS.split(','):weapons.STARTER_WEAPON_IDS)){
  const color=gem(id,version).color,sack=profile==='starter'?[id,null,null,null,null]:[id,'bloodstone-whet','shield','healing-potion','chaos-orb'];
@@ -35,3 +37,5 @@ for(const version of (process.env.GEMMO_BALANCE_VERSIONS||'replay-v3,replay-v4')
 const output=path.join(__dirname,'../docs/color-balance-results.json');
 if(process.env.GEMMO_BALANCE_MERGE&&fs.existsSync(output)){const previous=JSON.parse(fs.readFileSync(output,'utf8'));if(previous.samples!==samples)throw new Error('Cannot merge probes with different sample counts');const key=r=>[r.version,r.profile,r.weapon,r.encounter].join(':');const replaced=new Set(rows.map(key));rows.unshift(...previous.rows.filter(r=>!replaced.has(key(r))));}
 fs.writeFileSync(output,JSON.stringify({method:'Same seeds and weapon-aware greedy policy; PvE probe, not competitive proof. Mixed profile uses four shop support gems and two weapon-color skill points.',samples,rows},null,2)+'\n');
+
+}

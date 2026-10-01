@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 const VERSION='replay-v4';
-const isCurrent=version=>['replay-v4','replay-v5'].includes(version);
+const isCurrent=version=>['replay-v4','replay-v5','replay-v6'].includes(version);
 const isWeaponGem=typeof module==='object'?require('./weapon-gems.js').isWeaponGem:root.GEMMO_WEAPON_GEMS.isWeaponGem;
 const ROLES=Object.freeze({red:'AMPLIFY',blue:'PROTECT',green:'RESTORE',yellow:'TEMPO',purple:'CONTROL'});
 const STARTERS=Object.freeze({
@@ -14,9 +14,10 @@ const STARTERS=Object.freeze({
 function gemSpec(base,version=VERSION){
  if(!base||!isCurrent(version))return base;
  const weapon=isWeaponGem(base.id);
+ if(base.id==='troll-maul')return {...base,attack:2,defense:0,pierceGuard:true};
  const gem={...base,attack:weapon?Math.max(1,base.attack||0,base.cap>=9?2:1):0,defense:0};
  if(STARTERS[base.id])Object.assign(gem,STARTERS[base.id]);
- if(version==='replay-v5'&&base.id==='swordbreaker')gem.desc='Disarm the enemy: weapon matches and weapon abilities deal no damage during its next action.';
+ if(['replay-v5','replay-v6'].includes(version)&&base.id==='swordbreaker')gem.desc='Disarm the enemy: weapon matches and weapon abilities deal no damage during its next action.';
  if(base.id==='bloodstone-whet')gem.desc='For your next 3 actions, the first match of your weapon color deals +2 damage. Works with every weapon color.';
  if(base.id==='bastion-sigil')gem.desc='For your next 3 actions, the first Blue match grants +2 Guard.';
  if(base.id==='heartseed')gem.desc='For your next 3 actions, the first Green match heals 2 HP.';

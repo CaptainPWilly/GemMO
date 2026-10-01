@@ -88,7 +88,7 @@ function canPurchase(skillId,purchased,level){
 }
 function skillEffects(ids,version='replay-v4'){
  const ranks=rankMap(ids),out={maxHP:0,startGuard:0,allCap:0,caps:{red:0,blue:0,green:0,yellow:0,purple:0},startCharge:{red:0,blue:0,green:0,yellow:0,purple:0},chargeGain:{red:0,blue:0,green:0,yellow:0,purple:0}};
- out.colorPerks=Object.fromEntries(COLORS.map(c=>[c,['replay-v4','replay-v5'].includes(version)&&(ranks[c+'-start']||0)>0?1:0]));
+ out.colorPerks=Object.fromEntries(COLORS.map(c=>[c,['replay-v4','replay-v5','replay-v6'].includes(version)&&(ranks[c+'-start']||0)>0?1:0]));
  for(const node of SKILLS){const rank=ranks[node.id]||0;if(!rank)continue;const e=node.effect||{};out.maxHP+=(Number(e.maxHP)||0)*rank;out.startGuard+=(Number(e.startGuard)||0)*rank;out.allCap+=(Number(e.allCap)||0)*rank;for(const c of COLORS){out.caps[c]+=(Number(e.cap?.[c])||0)*rank;out.startCharge[c]+=(Number(e.start?.[c])||0)*rank;out.chargeGain[c]+=(Number(e.gain?.[c])||0)*rank}}
  return out;
 }
