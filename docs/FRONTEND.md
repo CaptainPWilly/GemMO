@@ -122,3 +122,5 @@ Select a collection gem, then activate its destination slot, or drag the gem ico
 Equipment effects stay visible without mobile hiding or clipping in shops and Inventory. Shop activation opens a native confirmation dialog showing effects, price, and balance. Cancel spends nothing; only explicit Buy sends a purchase, with duplicate activation blocked while the request is pending.
 
 Warden Vale offers the initial weapon through the story overlay, with five color choices, full effects/charge costs, and a second confirmation step. Before choosing, travel attempts open the offer and the map objective points to the Warden. The offer scrolls at all text sizes; failed saves retain the selection for retry.
+
+Combat omits empty Sack slots and preserves each equipped card's original slot index for activation. Cards show the actual colored gem, color name, charge/cost numbers and a fill bar even when ready or targeting. The dock adapts its column count to equipped gems; weapon fittings remain distinct.
