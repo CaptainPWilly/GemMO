@@ -142,7 +142,7 @@ function applyColor(type,n,actor,cascade=0,comboBonus=false){let notes=[];if(act
  }else{
  const reservoir=enemyReservoir(type);if(reservoir)charge(ec,type,n,reservoir.cap);
  if(type==='red'){const rules=encounterSpec().match,raw=n+(!comboBonus&&enemyReload?(rules.reloadBonus||0):0),dm=scaledEnemyValue(raw,rules.redScale,rules.redMin);if(!comboBonus)enemyReload=false;if(enemyEffects.disarm){notes.push('Disarmed: Red damage prevented')}else{damagePlayer(dm);notes.push('Hit '+dm)}}
- if(type==='blue'){const rules=encounterSpec().match,v=scaledEnemyValue(n,rules.blueScale,rules.blueMin);eGuard+=v;evadeTurns=2;notes.push('Evade +'+v)}
+ if(type==='blue'){const rules=encounterSpec().match,v=scaledEnemyValue(n,rules.blueScale,rules.blueMin);eGuard+=v;evadeTurns=2;notes.push('Guard +'+v)}
  }
  if(cascade>0&&notes.length&&!comboBonus)notes.push('Cascade '+cascade);
  if(notes.length&&!comboBonus)setLog((actor==='player'?'You':enemyLabel())+': '+notes.join(' • '));
@@ -172,7 +172,7 @@ function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
 const MOTION={swap:170,pop:190,flight:340,settle:440};
 const shownHP={p:18,e:24},pendingHP={p:0,e:0};
-function syncHealth(side){const hp=shownHP[side],max=side==='p'?playerMaxHP():enemyMaxHP();$(side+'fill').style.transform='scaleX('+Math.max(0,hp)/max+')';$(side+'health').setAttribute('aria-valuenow',Math.max(0,hp));$(side+'health').setAttribute('aria-valuemax',max);$(side+'stats').textContent=(side==='p'?Math.max(0,hp)+'/'+max:Math.max(0,hp))+' HP · '+(side==='p'?pGuard+' GUARD':eGuard+' EVADE')}
+function syncHealth(side){const hp=shownHP[side],max=side==='p'?playerMaxHP():enemyMaxHP();$(side+'fill').style.transform='scaleX('+Math.max(0,hp)/max+')';$(side+'health').setAttribute('aria-valuenow',Math.max(0,hp));$(side+'health').setAttribute('aria-valuemax',max);$(side+'stats').textContent=(side==='p'?Math.max(0,hp)+'/'+max:Math.max(0,hp))+' HP · '+(side==='p'?pGuard+' GUARD':eGuard+' GUARD')}
 function animate(el,frames,options){
  if(reducedMotion())return Promise.resolve();
  const animation=el.animate(frames,options);
@@ -253,7 +253,7 @@ function afterAction(actor,keepTurn=false){
   if(enemyEffects.disarm)enemyEffects.disarm--;
   if(pinTurns&&!--pinTurns){pinColumn=-1;setLog('EARTHBIND ends: columns fall normally again.')}
   if(guardTurns&&!--guardTurns){pGuard=0;setLog('Your Guard expires.')}
- }else if(evadeTurns&&!--evadeTurns){eGuard=0;setLog('Enemy Evade expires.')}
+ }else if(evadeTurns&&!--evadeTurns){eGuard=0;setLog('Enemy Guard expires.')}
  if(pHP<=0||eHP<=0){playerTurn=true;render();checkEnd();return}
  if(actor==='player'){
   procsUsed=[];
@@ -1043,7 +1043,7 @@ function combatEffectRows(){
  const rows=[
   {side:'you',name:'Primed Strike',value:buffs.empower||0,turns:null,detail:'Your next weapon match deals +1 damage.'},
   {side:'you',name:'Guard',value:pGuard,turns:guardTurns,detail:'Absorbs incoming damage point for point. Gaining Guard refreshes its duration.'},
-  {side:'enemy',name:'Evade',value:eGuard,turns:evadeTurns,detail:'Absorbs incoming damage point for point before enemy HP.'},
+  {side:'enemy',name:'Guard',value:eGuard,turns:evadeTurns,detail:'Absorbs incoming damage point for point before enemy HP.'},
   {side:'you',name:'Veilstep',value:buffs.dodge,turns:buffs.dodge,detail:'Halves incoming damage, rounded up.'},
   {side:'enemy',name:'Venom',value:buffs.poison,turns:buffs.poison,detail:'Takes 2 damage after each enemy action.'},
   {side:'you',name:'Restoring Verse',value:buffs.regen,turns:buffs.regen,detail:'Heals 2 HP after each enemy action.'},
@@ -1067,7 +1067,7 @@ function combatEffectRows(){
 function drawCombatEffects(){
  const rows=combatEffectRows(),section=side=>{
   const items=rows.filter(row=>row.side===side);
-  return '<section class="combatEffectsGroup"><div class="combatEffectsGroupHead"><small>'+(side==='you'?'YOU':enemyLabel())+'</small><b>'+items.length+' ACTIVE</b></div>'+(items.length?items.map(row=>'<article class="combatEffectCard '+side+'"><div><strong>'+row.name+'</strong><p>'+row.detail+'</p></div><span>'+(row.name==='Guard'||row.name==='Evade'?row.value+(row.turns?' · '+row.turns+'T':''):row.turns!=null?row.turns+'T':'READY')+'</span></article>').join(''):'<div class="combatEffectsEmpty uiEmpty">No active effects.</div>')+'</section>';
+  return '<section class="combatEffectsGroup"><div class="combatEffectsGroupHead"><small>'+(side==='you'?'YOU':enemyLabel())+'</small><b>'+items.length+' ACTIVE</b></div>'+(items.length?items.map(row=>'<article class="combatEffectCard '+side+'"><div><strong>'+row.name+'</strong><p>'+row.detail+'</p></div><span>'+(row.name==='Guard'?row.value+(row.turns?' · '+row.turns+'T':''):row.turns!=null?row.turns+'T':'READY')+'</span></article>').join(''):'<div class="combatEffectsEmpty uiEmpty">No active effects.</div>')+'</section>';
  };
  $('combatEffectsContent').innerHTML=section('you')+section('enemy');
 }
@@ -1173,7 +1173,7 @@ $('effectsBtn').onclick=openEffectsDrawer;$('closeEffectsDrawer').onclick=()=>vo
 function renderStatuses(){
  updateTurnCue();
  const rows=combatEffectRows();
- $('statusTags').innerHTML=rows.slice(0,6).map(row=>'<button class="statusTag '+row.side+'" title="'+row.detail+'" data-help="'+row.detail+'">'+row.name+' '+(row.name==='Guard'||row.name==='Evade'?row.value+' · ':'')+(row.turns!=null?row.turns+'T':'')+'</button>').join('');
+ $('statusTags').innerHTML=rows.slice(0,6).map(row=>'<button class="statusTag '+row.side+'" title="'+row.detail+'" data-help="'+row.detail+'">'+row.name+' '+(row.name==='Guard'?row.value+' · ':'')+(row.turns!=null?row.turns+'T':'')+'</button>').join('');
  document.querySelectorAll('.statusTag').forEach(b=>b.onclick=()=>setLog(b.dataset.help,'system'));
  if(!$('effectsDrawer').hidden)drawCombatEffects();
 }
