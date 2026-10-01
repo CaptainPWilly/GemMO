@@ -102,7 +102,7 @@ const WORLD_NODES=Object.freeze({
   'gem-shop':{id:'gem-shop',name:'Facet Cart',kind:'shop',shop:'gem',neighbors:['camp']},
   'item-shop':{id:'item-shop',name:'Roadside Outfitter',kind:'shop',shop:'item',neighbors:['camp']},
   crossroads:{id:'crossroads',name:'Crossroads',kind:'road',neighbors:['camp','shrine','rat']},
-  shrine:{id:'shrine',name:'Shrine',kind:'landmark',neighbors:['crossroads']},
+  shrine:{id:'shrine',name:'Shrine',kind:'shrine',checkpoint:true,neighbors:['crossroads']},
   rat:{id:'rat',name:'Rat',kind:'encounter',encounter:'rat',neighbors:['crossroads','bandit-pass']},
   'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate']},
   'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']}

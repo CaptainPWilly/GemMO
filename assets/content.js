@@ -5,7 +5,7 @@ const WORLD_NODES={
  'gem-shop':{id:'gem-shop',name:'Gem Shop',kind:'shop',shop:'gem-shop',x:0,y:6,desc:'',neighbors:['camp']},
  'item-shop':{id:'item-shop',name:'Item Shop',kind:'shop',shop:'item-shop',x:3,y:8,desc:'',neighbors:['camp']},
  crossroads:{id:'crossroads',name:'Crossroads',kind:'road',x:3,y:5,desc:'',neighbors:['camp','shrine','rat']},
- shrine:{id:'shrine',name:'Shrine',kind:'landmark',x:1,y:3,desc:'',neighbors:['crossroads']},
+ shrine:{id:'shrine',name:'Shrine',kind:'shrine',checkpoint:true,x:1,y:3,desc:'',neighbors:['crossroads']},
  rat:{id:'rat',name:'Rat',kind:'encounter',x:4,y:4,desc:'',encounter:'rat',neighbors:['crossroads','bandit-pass']},
  'bandit-pass':{id:'bandit-pass',name:'Bandit',kind:'encounter',x:6,y:2,desc:'',encounter:'bandit',requires:'rat',neighbors:['rat','sentinel-gate']},
  'sentinel-gate':{id:'sentinel-gate',name:'Sentinel',kind:'encounter',x:7,y:0,desc:'',encounter:'sentinel',requires:'bandit',neighbors:['bandit-pass']}
