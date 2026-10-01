@@ -109,9 +109,8 @@ const WORLD_NODES=Object.freeze({
 });
 const SHOP_CATALOG=Object.freeze({
   'gem-shop':Object.freeze({
-    'hand-crossbow':18,'quarterstaff':18,'healing-potion':16,'knife':14,
-    'locksmith-pick':16,'powder-bomb':22,'swordbreaker':20,'hunting-bow':20,
-    'hex-staff':22,'chaos-orb':22,'crystal-wand':18,'sling':18
+    'healing-potion':16,'locksmith-pick':16,'powder-bomb':22,'chaos-orb':22,
+    'shield':18,'bloodstone-whet':18
   }),
   'item-shop':Object.freeze({
     'frayed-hood':12,'leather-cap':18,'padded-tunic':20,'cloth-wraps':12,'leather-gloves':18,'linen-trousers':12,'hide-leggings':18,'scuffed-boots':12,'leather-boots':18,'copper-pendant':15,'bone-talisman':18,'tin-ring':15,'iron-band':15,

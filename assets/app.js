@@ -5,7 +5,7 @@ const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_RO
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
 function worldNodeVisible(node){return !!node&&(!node.requires||worldCleared(node.requires)||worldState.currentNode===node.id)}
-function worldCanTravel(from,to){const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&(!target.requires||worldCleared(target.requires)))}
+function worldCanTravel(from,to){if(account?.needsStarter&&from!==to)return false;const target=WORLD_NODES[to];return from===to||!!(target&&WORLD_NODES[from]?.neighbors.includes(to)&&worldNodeVisible(target)&&(!target.requires||worldCleared(target.requires)))}
 function worldPath(from,to){
  if(!WORLD_NODES[from]||!WORLD_NODES[to]||!worldNodeVisible(WORLD_NODES[to]))return null;
  if(from===to)return [from];
@@ -74,7 +74,7 @@ function canEquipGear(slot,id){
 }
 function equipGear(slot,id){if(!canEquipGear(slot,id))return false;equipment[slot]=id;return true}
 function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=null;return true}
-const DEFAULT_SACK=['dagger',null,null,null,null];
+const DEFAULT_SACK=[null,null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false,textSize='large';
 let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,armedConsumableId=null,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
 let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
@@ -565,7 +565,7 @@ function renderWorldQuests(){
  }).join(''):'<div class="worldEffect empty">No quests yet. Talk to people you meet.</div>';
 }
 function storyShow(){const overlay=$('storyOverlay');overlay.hidden=false;overlay.classList.add('open')}
-function storyHide(){const overlay=$('storyOverlay');overlay.classList.remove('open');overlay.hidden=true;activeStory=null;storyBusy=false;$('storyStatus').textContent=''}
+function storyHide(){const overlay=$('storyOverlay');overlay.classList.remove('open');overlay.classList.remove('starterOffer');overlay.hidden=true;activeStory=null;storyBusy=false;$('storyStatus').textContent=''}
 function storyPortrait(npc){
  const el=$('storyPortrait');if(!npc){el.hidden=true;el.textContent='';return}
  el.hidden=false;el.textContent=npc.mark||npc.name.slice(0,1);el.setAttribute('aria-label',npc.name);
@@ -598,8 +598,29 @@ function renderDialogue(){
 }
 function openDialogue(npcId){
  const npc=NPCS[npcId];if(!npc||npc.node!==worldState.currentNode||activeStory)return false;
+ if(npcId==='warden-vale'&&account?.needsStarter){activeStory={type:'starter',npcId};storyShow();renderStarterWeapons();return true}
  const dialogue=DIALOGUES[npc.dialogue],status=questStatus(dialogue.questId),entry=dialogue.entries[status]||dialogue.entries.available;
  activeStory={type:'dialogue',npcId,nodeId:entry};storyShow();renderDialogue();return true;
+}
+function renderStarterWeapons(){
+ $('storyOverlay').classList.add('starterOffer');
+ const npc=NPCS['warden-vale'],chosen=itemById(activeStory?.gemId);storyPortrait(npc);
+ $('storyKicker').textContent='YOUR FIRST WEAPON';$('storyTitle').textContent=npc.name;
+ $('storyText').textContent=chosen?'This one is yours if you want it. Choose carefully—you get one weapon before the road.':'Before you leave, take one weapon gem. Five colors, five ways to fight. I will fit it to your Sack.';
+ $('storyContinue').hidden=true;$('storySkip').hidden=true;$('storyStatus').textContent='';
+ const ids=chosen?[chosen.id]:GEMMO_WEAPON_GEMS.STARTER_WEAPON_IDS;
+ $('storyChoices').innerHTML=ids.map(id=>{const v=itemById(id);return '<button class="starterWeaponChoice weaponGemCard" data-starter-weapon="'+id+'" style="--c:var(--'+v.color[0]+')"><span class="itemGem '+v.color+'" aria-hidden="true"></span><span><small>⚔ '+v.color.toUpperCase()+' · '+v.cap+' CHARGE</small><b>'+v.item+' · '+v.name+'</b><span>'+v.desc+'</span></span></button>'}).join('')+(chosen?'<button data-starter-confirm>Take '+chosen.item+'</button><button data-starter-back>See all five weapons</button>':'<button data-starter-later>Choose later</button>');
+ document.querySelectorAll('[data-starter-weapon]').forEach(b=>b.onclick=()=>{if(storyBusy)return;activeStory.gemId=b.dataset.starterWeapon;renderStarterWeapons()});
+ document.querySelectorAll('[data-starter-confirm]').forEach(b=>b.onclick=()=>void confirmStarterWeapon());
+ document.querySelectorAll('[data-starter-back]').forEach(b=>b.onclick=()=>{if(storyBusy)return;delete activeStory.gemId;renderStarterWeapons()});
+ document.querySelectorAll('[data-starter-later]').forEach(b=>b.onclick=()=>{if(!storyBusy)storyHide()});
+}
+async function confirmStarterWeapon(){
+ if(storyBusy||activeStory?.type!=='starter'||!GEMMO_WEAPON_GEMS.STARTER_WEAPON_IDS.includes(activeStory.gemId))return;
+ storyBusy=true;const id=activeStory.gemId;$('storyStatus').textContent='Equipping your weapon…';document.querySelectorAll('#storyChoices button').forEach(b=>b.disabled=true);
+ try{const data=await accountRequest('/v1/account/starter',{method:'POST',body:{gemId:id}});applyAccount(data.account);storyHide();drawWorld()}
+ catch(error){$('storyStatus').textContent=error.message.replaceAll('_',' ');document.querySelectorAll('#storyChoices button').forEach(b=>b.disabled=false)}
+ finally{storyBusy=false}
 }
 async function chooseDialogue(index){
  if(storyBusy||activeStory?.type!=='dialogue')return;
@@ -616,6 +637,7 @@ async function chooseDialogue(index){
  if(choice.next){activeStory.nodeId=choice.next;renderDialogue()}else storyHide();
 }
 function worldObjectiveData(){
+ if(account?.needsStarter)return {title:'Choose your first weapon',text:'Talk to Warden Vale before leaving camp.',target:'camp',state:'weapon'};
  const quests=account?.quests||[],row=quests.find(q=>q.status==='ready')||quests.find(q=>q.status==='active');
  if(row){
   const quest=QUESTS[row.id];if(quest){
@@ -757,6 +779,7 @@ function animateWorldTravel(route){
 }
 async function travelWorld(nodeId){
  if(!account||!accountToken||worldTravelRoute)return;
+ if(account.needsStarter&&nodeId!==worldState.currentNode){selectedWorldNode=worldState.currentNode;drawWorld();openDialogue('warden-vale');return}
  const route=worldPath(worldState.currentNode,nodeId);if(!route||route.length<2){selectedWorldNode=nodeId;drawWorld();return}
  const destination=nodeId,authorized=[route[0]];let nextAccount=account,travelError=null;worldTravelRoute=route.slice();selectedWorldNode=destination;drawWorld();
  try{
@@ -996,6 +1019,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
+ if(account?.needsStarter){enterWorld();openDialogue('warden-vale');return}
  resumedArmedSpec=null;resumedConsumablePaid=false;
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
  if(!sackIsValid())return;
@@ -1036,7 +1060,7 @@ $('worldLeaderboard').onclick=()=>{showScreen('leaderboard');void loadLeaderboar
 $('leaderboardBack').onclick=()=>{leaderboardRequest++;enterWorld()};
 $('enterBtn').onclick=async()=>{if(account){enterWorld();return}if(accountToken&&await refreshAccount()){enterWorld();return}showScreen('account')};$('playBtn').onclick=()=>enterWorld();$('openSack').onclick=()=>openLoadoutScreen('sack','menu');$('openInventory').onclick=()=>openLoadoutScreen('inventory','menu');$('openAccount').onclick=()=>showScreen('account');$('openGemology').onclick=()=>showScreen('gemology');$('openSettings').onclick=()=>showScreen('settings');
 document.querySelectorAll('.menuBack').forEach(b=>b.onclick=leaveMenuPage);$('shopBack').onclick=()=>enterWorld();$('skillsBack').onclick=()=>enterWorld();
-$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
+$('worldCamp').onclick=()=>showScreen('menu');$('worldSackBtn').onclick=()=>openLoadoutScreen('sack','world');$('worldInventoryBtn').onclick=()=>openLoadoutScreen('inventory','world');$('worldSkillsBtn').onclick=()=>void openWorldSkills();$('worldStatusBtn').onclick=()=>{const panel=$('worldEffectsPanel');$('worldQuestPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldEffects()};$('worldEffectsClose').onclick=()=>$('worldEffectsPanel').hidden=true;$('worldObjectiveBtn').onclick=()=>{if(account?.needsStarter){openDialogue('warden-vale');return}const target=$('worldObjectiveBtn').dataset.target;if(target&&WORLD_NODES[target]&&worldNodeVisible(WORLD_NODES[target])){selectedWorldNode=target;drawWorld()}else{$('worldQuestPanel').hidden=false;$('worldEffectsPanel').hidden=true;renderWorldQuests()}};$('worldQuestsBtn').onclick=()=>{const panel=$('worldQuestPanel');$('worldEffectsPanel').hidden=true;panel.hidden=!panel.hidden;if(!panel.hidden)renderWorldQuests()};$('worldQuestsClose').onclick=()=>$('worldQuestPanel').hidden=true;
 $('worldAction').onclick=()=>{const action=$('worldAction').dataset.action;if(action==='fight'){activeEncounter=WORLD_NODES[selectedWorldNode].encounter;startFight()}if(action==='shop')openShop(WORLD_NODES[selectedWorldNode].shop);if(action==='skills')openSkills();if(action==='talk')openDialogue($('worldAction').dataset.npc)};
 $('storyContinue').onclick=()=>{if(activeStory?.type!=='cutscene')return;activeStory.index++;renderCutscene()};$('storySkip').onclick=()=>{if(activeStory?.type!=='cutscene')return;const id=activeStory.id;storyHide();void markCutsceneClient(id)};
 function worldPair(){const p=[...worldPointers.values()];return p.length>=2?[p[0],p[1]]:null}

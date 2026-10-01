@@ -1,14 +1,14 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
-const {createDb,seedAccount,registerCharacter,moveWorld,startMatch,checkpointMatch,openMatch,surrenderMatch,consumeMatchItem,settleMatch,levelLeaderboard,cleanupMatches}=require('./db.cjs');
+const {createDb,chooseStarterWeapon,seedAccount,registerCharacter,moveWorld,startMatch,checkpointMatch,openMatch,surrenderMatch,consumeMatchItem,settleMatch,levelLeaderboard,cleanupMatches}=require('./db.cjs');
 const {createRatCombat,applyCombatAction,suggestCombatAction,replayCombatTranscript}=require('./combat.cjs');
 (async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gemmo-resume-')),dbPath=path.join(dir,'game.db');let db;
  try{
   db=await createDb({dbPath,forceLocal:true});
   const user=await seedAccount(db,{usernameNorm:'resumehero',usernameDisplay:'ResumeHero',passwordHash:'test'}),other=await seedAccount(db,{usernameNorm:'otherhero',usernameDisplay:'OtherHero',passwordHash:'test'});
-  await registerCharacter(db,user,'Resume Hero');await registerCharacter(db,other,'Other Hero');await moveWorld(db,user,'crossroads');await moveWorld(db,user,'rat');
+  await registerCharacter(db,user,'Resume Hero');await registerCharacter(db,other,'Other Hero');await chooseStarterWeapon(db,user,'dagger');await chooseStarterWeapon(db,other,'dagger');await moveWorld(db,user,'crossroads');await moveWorld(db,user,'rat');
   const match=await startMatch(db,user,'rat');
   await assert.rejects(startMatch(db,user,'rat'),e=>e.message==='unfinished_match');
   let seed=1,transcript,state;

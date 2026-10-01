@@ -2,7 +2,7 @@
 // geMMO server regression suite.
 const assert=require('node:assert/strict');
 const {createGemmoServer,defaultDbPath}=require('./server.cjs');
-const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
+const {normalizeTursoConfig,remoteAdapter,applyDataMigrations,DATA_RESET_KEY,startMatch,moveWorld,chooseStarterWeapon,seedAccount,accountSnapshot,registerCharacter}=require('./db.cjs');
 const {DEFAULT_STARTER_GEM,CONSUMABLES,ENCOUNTERS}=require('./catalog.cjs');
 const {QUESTS,NPCS,CUTSCENES}=require('../shared/story.js');
 const {comboChargeTypes,comboChargeBonus,fullestChargeColor}=require('../shared/combat-rules.js');
@@ -71,7 +71,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
       storage:{location:'test.db'},
       transaction:async fn=>fn(matchDb),
       prepare(sql){return {
-        async get(){return sql.includes('SELECT current_node FROM world_state')?{current_node:'bandit-pass'}:null},
+        async get(){if(sql.includes('FROM starter_choices'))return {ok:1};return sql.includes('SELECT current_node FROM world_state')?{current_node:'bandit-pass'}:null},
         async all(){
           if(sql.includes('FROM sack_slots'))return [{slot:0,gem_id:'dagger'}];
           if(sql.includes('FROM equipment_slots'))return [{slot:'head',item_id:null},{slot:'chest',item_id:null},{slot:'hands',item_id:null},{slot:'legs',item_id:null},{slot:'feet',item_id:null},{slot:'necklace',item_id:null},{slot:'ring1',item_id:null},{slot:'ring2',item_id:null}];
@@ -152,9 +152,13 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     assert.equal((await call('/v1/account',{token})).data.account.character.name,'Perevan Wrenault','character name persists in account snapshots');
 
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.skills.purchased,[]);
-    assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);assert.equal(r.data.account.needsStarter,false,'new accounts start ready with the Iron Dagger');
+    assert.deepEqual(r.data.account.inventory,[]);assert.deepEqual(r.data.account.sack,[null,null,null,null,null]);assert.equal(r.data.account.needsStarter,true,'new accounts must choose a weapon with the Warden');
     r=await call('/v1/account',{token});assert.equal(r.status,200);assert.equal(r.data.account.user.username,'LevelOneHero');
-    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}});assert.equal(r.status,410,'starter selection endpoint is retired');
+    r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'crossroads'}});assert.equal(r.status,409,'cannot depart without a weapon choice');
+    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'longbow'}});assert.equal(r.status,400,'only the five starter weapons are allowed');
+    r=await call('/v1/account/starter',{method:'POST',token,body:{gemId:'dagger'}});assert.equal(r.status,200);assert.equal(r.data.account.needsStarter,false);assert.equal(r.data.account.starter,'dagger');assert.deepEqual(r.data.account.inventory,['dagger']);assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null]);
+    assert.equal((await call('/v1/account/starter',{method:'POST',token,body:{gemId:'dagger'}})).status,200,'retry is idempotent');
+    assert.equal((await call('/v1/account/starter',{method:'POST',token,body:{gemId:'sling'}})).status,409,'cannot claim a second weapon');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger',null,null,null,null]}});assert.equal(r.status,200);
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','knife',null,null,null]}});assert.equal(r.status,400);assert.equal(r.data.error,'weapon_gem_limit');
     r=await call('/v1/account/sack',{method:'PUT',token,body:{sack:['dagger','shield',null,null,null]}});assert.equal(r.status,403,'cannot equip gems not owned');
@@ -220,14 +224,14 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);
     r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,200);assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','ready quest can be turned in at its NPC');assert.equal(r.data.account.profile.gold,ratProof.state.gold+banditProof.state.gold+12,'quest Gold reward is server-issued');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'quest XP reward is server-issued');assert.equal(r.data.account.profile.level,levelForXp(r.data.account.profile.xp));
     r=await call('/v1/story/quest',{method:'POST',token,body:{action:'turnin',questId:'trouble-on-road'}});assert.equal(r.status,409,'completed quest cannot pay twice');
-    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'must physically travel to the shop');
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,409,'must physically travel to the shop');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'gem-shop'}});assert.equal(r.status,200);
     const userId=(await db.prepare("SELECT id FROM users WHERE username_norm='levelonehero'").get()).id;
     await db.prepare('UPDATE profiles SET gold=0 WHERE user_id=?').run(userId);
-    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'zero-gold player cannot buy');
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,409,'zero-gold player cannot buy');
     await db.prepare('UPDATE profiles SET gold=100 WHERE user_id=?').run(userId);
-    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('hand-crossbow'));assert.equal(r.data.account.profile.gold,82);
-    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'hand-crossbow'}});assert.equal(r.status,409,'cannot buy an owned unique item');
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,200);assert(r.data.account.inventory.includes('shield'));assert.equal(r.data.account.profile.gold,82);
+    r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'shield'}});assert.equal(r.status,409,'cannot buy an owned unique item');
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'gem-shop',itemId:'frayed-hood'}});assert.equal(r.status,400,'shop stock is server-defined');
     r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'camp'}});assert.equal(r.status,200);r=await call('/v1/world/move',{method:'POST',token,body:{nodeId:'item-shop'}});assert.equal(r.status,200);
     r=await call('/v1/shop/buy',{method:'POST',token,body:{shopId:'item-shop',itemId:'minor-healing-draught'}});assert.equal(r.status,200);assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1);
@@ -246,7 +250,7 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/account',{token});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'wrong-password'}});assert.equal(r.status,401);
     r=await call('/v1/auth/login',{method:'POST',body:{username:'LevelOneHero',password:'abc123'}});assert.equal(r.status,200);
-    assert(r.data.account.inventory.includes('hand-crossbow'),'inventory survives logout/login');
+    assert(r.data.account.inventory.includes('shield'),'inventory survives logout/login');
     assert.equal(r.data.account.profile.gold,66,'gold survives logout/login after consumable purchases');assert.equal(r.data.account.inventoryItems.find(v=>v.id==='minor-healing-draught')?.qty,1,'remaining consumable stack survives logout/login');assert.equal(r.data.account.profile.xp,ratProof.state.xp+banditProof.state.xp+4,'battle and quest XP survive logout/login');
     assert.equal(r.data.account.quests.find(q=>q.id==='trouble-on-road')?.status,'completed','quest state survives logout/login');assert(r.data.account.story.seenCutscenes.includes('brackenreach-arrival'),'cutscene state survives logout/login');
     assert.equal(r.data.account.world.currentNode,'gem-shop','world position survives logout/login');assert(r.data.account.world.clearedEncounters.includes('rat'),'rat clear survives logout/login');
@@ -289,13 +293,29 @@ const {createRatCombat,createBanditCombat,createCombat,applyRatAction,suggestRat
     r=await call('/v1/account',{token:reloginToken});assert.equal(r.status,200,'reset preserves login sessions and account credentials');
     assert.deepEqual(r.data.account.inventory,['dagger'],'reset wipes collected inventory and reseeds only the Iron Dagger');
     assert.deepEqual(r.data.account.sack,['dagger',null,null,null,null],'reset equips the Iron Dagger in Sack slot 1');
-    assert.equal(r.data.account.needsStarter,false,'reset removes starter selection entirely');
+    assert.equal(r.data.account.needsStarter,true,'historical reset clears starter choice');
     assert.equal(r.data.account.profile.level,1);assert.equal(r.data.account.profile.xp,0);assert.equal(r.data.account.profile.gold,0);
     assert.equal(r.data.account.world.currentNode,'camp');assert.deepEqual(r.data.account.world.clearedEncounters,[]);
     assert.deepEqual(r.data.account.quests,[],'reset clears quest progression');assert.deepEqual(r.data.account.skills.purchased,[],'reset clears skill progression');assert.equal(r.data.account.skills.availablePoints,1);assert.deepEqual(r.data.account.story.seenCutscenes,[],'reset clears story flags');
     assert(Object.values(r.data.account.equipment).every(v=>v===null),'reset unequips physical gear');
     assert.equal(await applyDataMigrations(db),false,'fresh-sacks reset cannot run twice');
 
+    for(const gemId of require('../shared/weapon-gems.js').STARTER_WEAPON_IDS){
+      const id=await seedAccount(db,{usernameNorm:'starter-'+gemId,usernameDisplay:'Starter '+gemId,passwordHash:'test'});await registerCharacter(db,id,'Test '+gemId.replaceAll('-',' '));
+      await assert.rejects(startMatch(db,id,'rat'),/choose_weapon_with_warden/);
+      await chooseStarterWeapon(db,id,gemId);await chooseStarterWeapon(db,id,gemId);
+      const chosen=await accountSnapshot(db,id);assert.deepEqual(chosen.inventory,[gemId]);assert.deepEqual(chosen.sack,[gemId,null,null,null,null]);assert.equal(chosen.needsStarter,false);
+      await assert.rejects(chooseStarterWeapon(db,id,gemId==='dagger'?'sling':'dagger'),/starter_already_chosen/);
+      await moveWorld(db,id,'crossroads');
+    }
+    const freshId=await seedAccount(db,{usernameNorm:'legacyfresh',usernameDisplay:'Legacy Fresh',passwordHash:'test'});
+    await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'dagger','gem',1)").run(freshId);await db.prepare("INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,'dagger')").run(freshId);
+    const establishedId=await seedAccount(db,{usernameNorm:'legacyplayed',usernameDisplay:'Legacy Played',passwordHash:'test'});
+    await db.prepare('UPDATE profiles SET xp=20 WHERE user_id=?').run(establishedId);await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'dagger','gem',1)").run(establishedId);await db.prepare("INSERT INTO sack_slots(user_id,slot,gem_id) VALUES(?,0,'dagger')").run(establishedId);
+    await db.prepare("DELETE FROM app_migrations WHERE key='2026-10-01-warden-weapon-choice-v1'").run();assert.equal(await applyDataMigrations(db),true);
+    const freshMigrated=await accountSnapshot(db,freshId),established=await accountSnapshot(db,establishedId);assert.equal(freshMigrated.needsStarter,true);assert.deepEqual(freshMigrated.inventory,[]);assert.deepEqual(freshMigrated.sack,[null,null,null,null,null]);assert.equal(established.needsStarter,false);assert.equal(established.profile.xp,20);assert.deepEqual(established.inventory,['dagger']);
+    assert.equal(await applyDataMigrations(db),false,'starter migration never repeats');
+    const shopWeapons=Object.keys(require('./catalog.cjs').SHOP_CATALOG['gem-shop']).filter(require('../shared/weapon-gems.js').isWeaponGem);assert.deepEqual(shopWeapons,[],'shops sell no weapon gems');
     console.log('PASS: account registration/login, persistent profile, secure sessions, loadout validation, one-time fresh reset, CORS and client-write anti-cheat boundaries.');
   }finally{await new Promise(resolve=>server.close(resolve))}
 

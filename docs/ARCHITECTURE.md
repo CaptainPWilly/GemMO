@@ -86,7 +86,7 @@ The September 26, 2026 fresh-start release keeps user credentials and login sess
 
 The migration clears inventory, Sack slots, equipment, starter choice, world clears, open/settled matches, Gold and XP, then returns every account to Camp with an empty Sack. The migration records itself in `app_migrations`; normal restarts and redeploys do not repeat it.
 
-Current new and reset accounts receive an Iron Dagger in the first Sack slot; starter selection has been removed in a later release.
+New accounts begin with an empty Sack at Ember Camp. Warden Vale offers one weapon from five colors (shared `STARTER_WEAPON_IDS`); confirmation atomically records ownership and equips slot 1. The server rejects departure and match starts until the choice is recorded. Same-choice retries are idempotent; a different second choice is rejected. The one-time migration converts untouched automatic-dagger accounts to this flow and preserves established players and active fights. Shops currently sell no weapon gems; client stock and server catalogs must agree.
 
 ## Authentication
 
