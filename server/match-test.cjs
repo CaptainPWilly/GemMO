@@ -45,6 +45,14 @@ const {createRatCombat,applyCombatAction,suggestCombatAction,replayCombatTranscr
   await surrenderMatch(db,user,second.matchId);await surrenderMatch(db,user,second.matchId);
   leaders=await levelLeaderboard(db,user,'winrate');assert.equal(leaders.you.played,2);assert.equal(leaders.you.wins,1);assert.equal(leaders.you.winrate,50,'surrender counts as exactly one loss');
   assert.equal((await levelLeaderboard(db,user,'gems')).you.gems,state.gemsPopped+bombTarget.state.gemsPopped);
+  leaders=await levelLeaderboard(db,other,'unlocked');assert.equal(leaders.entries[0].name,'Resume Hero','equal collections use stable account order');assert.equal(leaders.you.unlocked,1,'starter weapon counts before playing any match');
+  await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'salve','gem',7)").run(other);
+  await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'shield','gem',0)").run(other);
+  await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'frayed-hood','gear',1)").run(other);
+  await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'cherry-bomb','consumable',4)").run(other);
+  await db.prepare("INSERT INTO inventory(user_id,item_id,kind,qty) VALUES(?,'unknown-gem','gem',1)").run(other);
+  leaders=await levelLeaderboard(db,other,'unlocked');assert.equal(leaders.entries[0].name,'Other Hero');assert.equal(leaders.you.rank,1);assert.equal(leaders.you.unlocked,2,'count distinct known owned gems, not quantities, gear or consumables');assert.equal(leaders.you.totalGemTypes,require('./catalog.cjs').GEM_IDS.length);assert(leaders.you.isYou);
+  assert(!JSON.stringify(leaders).includes('otherhero'),'collection rankings expose character names only');
   await assert.rejects(levelLeaderboard(db,user,'unsafe SQL'),e=>e.message==='invalid_leaderboard');
   console.log('PASS: persistent match recovery, RNG state, checkpoint ownership/monotonicity, consumable recovery, idempotent statistics, win rate and all combat leaderboards.');
  }finally{db?.close();fs.rmSync(dir,{recursive:true,force:true})}
