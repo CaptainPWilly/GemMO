@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#090a08">
+<meta name="description" content="Choose your weapon, build your gem Sack, and battle your way through geMMO, a puzzle RPG.">
 <title>geMMO</title>
 <link rel="stylesheet" href="assets/styles.css">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
@@ -13,8 +14,7 @@
 <section class="page splashPage" id="splashPage">
   <div class="splashSigil" aria-hidden="true"><span>◆</span></div>
   <div class="splashBrand"><h1>geMMO</h1></div>
-  <button class="primary splashEnter" id="enterBtn"><span>◆ ENTER</span><small>ACCOUNT = SAVE</small></button>
-  <div class="splashFooter"><span>PUZZLE RPG</span><i></i><span>LIVE WORLD</span></div>
+  <button class="primary splashEnter" id="enterBtn"><span>PLAY</span></button>
 </section>
 <section class="page menuPage" id="menuPage" hidden>
   <div class="menuBrand"><span class="eyebrow">BRACKENREACH</span><h1>geMMO</h1><p>Choose where to go next.</p></div>
@@ -23,7 +23,7 @@
     <button class="primary secondary" id="openSack"><span class="menuIcon">◇</span><span class="menuButtonCopy"><b>SACK</b><small>5-GEM LOADOUT</small></span><span class="menuArrow">›</span></button>
     <button class="primary secondary" id="openInventory"><span class="menuIcon">▣</span><span class="menuButtonCopy"><b>INVENTORY</b><small>GEAR · ITEMS · STATS</small></span><span class="menuArrow">›</span></button>
     <button class="primary secondary" id="openGemology"><span class="menuIcon">✦</span><span class="menuButtonCopy"><b>GEMOLOGY</b><small>RULES · COLORS · COMBOS</small></span><span class="menuArrow">›</span></button>
-    <button class="primary secondary" id="openAccount"><span class="menuIcon">◎</span><span class="menuButtonCopy"><b>ACCOUNT</b><small>SAVE · SESSION</small></span><span class="menuArrow">›</span></button>
+    <button class="primary secondary" id="openAccount"><span class="menuIcon">◎</span><span class="menuButtonCopy"><b>ACCOUNT</b><small>PROFILE · SIGN OUT</small></span><span class="menuArrow">›</span></button>
     <button class="primary secondary" id="openSettings"><span class="menuIcon">⚙</span><span class="menuButtonCopy"><b>SETTINGS</b><small>TEXT · MOTION · HINTS</small></span><span class="menuArrow">›</span></button>
   </nav>
   <div class="menuSnapshot"><div><small>SACK</small><b id="sackSummary"></b></div><div><small>GEAR</small><b id="gearSummary"></b></div></div>
@@ -112,19 +112,19 @@
 </section>
 <section class="page accountPage uiScreen" id="accountPage" hidden>
 <header class="pageTopbar uiTopbar"><button class="menuBack chromeIconButton" aria-label="Back" title="Back">←</button><span class="eyebrow">◎ PLAYER</span></header>
-<div class="pageHero compact uiHero"><small>ACCOUNT</small><h1>Your Save</h1><p>Your account carries your world, inventory, quests, and progression.</p></div>
+<div class="pageHero compact uiHero"><small>ACCOUNT</small><h1>Your Account</h1></div>
 <p class="accountSecurity" hidden></p>
 <div id="accountLoggedOut" class="accountBox uiPanel">
   <label for="accountUsername">USERNAME</label><input id="accountUsername" autocomplete="username" maxlength="20">
   <label for="accountPassword">PASSWORD · 6+ CHARACTERS</label><input id="accountPassword" type="password" autocomplete="current-password" minlength="6" maxlength="128">
-  <div class="captchaWrap" id="captchaWrap" hidden><div id="turnstileWidget"></div><small id="captchaHint">Human check</small></div>
-  <div class="accountActions"><button id="loginBtn">LOG IN</button><button id="registerBtn">CREATE ACCOUNT</button></div><small class="loginMemory">You stay signed in on this device until you log out or the session expires.</small>
+  <div class="captchaWrap" id="captchaWrap" hidden><div id="turnstileWidget"></div><small id="captchaHint">Verifying…</small></div>
+  <div class="accountActions"><button id="loginBtn">LOG IN</button><button id="registerBtn">CREATE ACCOUNT</button></div><small class="loginMemory">Sign-in is remembered on this device.</small>
 </div>
 <div id="accountLoggedIn" class="accountBox uiPanel" hidden>
   <small>LOGGED IN AS</small><h2 id="accountName"></h2>
   <div class="accountStats"><b id="accountLevel"></b><b id="accountXP"></b><b id="accountGold"></b></div>
   <p hidden></p>
-  <button class="accountButton" id="syncAccountBtn">↻ SYNC</button>
+  <button class="accountButton" id="syncAccountBtn" hidden>↻ SAVE PROGRESS</button>
   <button class="accountButton" id="logoutBtn">↪ LOG OUT</button>
 </div>
 <p class="accountDanger" hidden></p>
@@ -239,7 +239,7 @@
 <section id="combatMenuPanel" class="combatOverlay uiOverlay" hidden><header><h2>Combat</h2><button id="closeCombatMenu" class="chromeIconButton" aria-label="Close combat menu">×</button></header><div class="combatMenuActions"><button id="combatSacksBtn">◇ SACKS</button><button id="combatItemsBtn">● ITEMS</button><button id="combatGemologyBtn">✦ RULES</button><button id="surrenderBtn" class="danger">⚑ SURRENDER</button></div><p id="combatMenuStatus"></p></section>
 <section id="combatItemsPanel" class="combatOverlay uiOverlay" hidden><header><h2>● Items</h2><button id="closeCombatItems" class="chromeIconButton" aria-label="Back">←</button></header><p class="combatItemsHint">One-shot physical resources. Potions and tonics act immediately, while gem abilities are reusable once recharged.</p><div id="combatItemsList" class="combatItemsList"></div><p id="combatItemsStatus" class="shopStatus" role="status"></p></section>
 <section id="combatGemologyPanel" class="combatOverlay uiOverlay" hidden><header><h2>✦ Gemology</h2><button id="closeCombatGemology" class="chromeIconButton" aria-label="Back to fight">←</button></header><div id="combatGemologyContent" class="combatGemologyScroll"></div></section>
-<section id="effectsDrawer" class="effectsDrawer uiSheet" hidden><header><div><small>✦ LIVE STATE</small><h2>Effects</h2></div><button id="closeEffectsDrawer" class="chromeIconButton" aria-label="Close effects">×</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
+<section id="effectsDrawer" class="effectsDrawer uiSheet" hidden><header><div><small>✦ IN EFFECT</small><h2>Effects</h2></div><button id="closeEffectsDrawer" class="chromeIconButton" aria-label="Close effects">×</button></header><div id="combatEffectsContent"></div></section><div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
 <div class="modal" id="modal"><div class="modalCard uiModal"><h2>Combat Sacks</h2><div class="sackGrid"><div class="sack"><h3>YOUR SACK</h3><div class="line" style="--c:var(--r)"><b></b>Red — Sack ATK × broken</div><div class="line" style="--c:var(--b)"><b></b>Blue — Sack DEF × broken</div><div class="line" style="--c:var(--g)"><b></b>Green — Mend</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Quickstep</div><div class="line" style="--c:var(--p)"><b></b>Purple — Overdrive</div></div><div class="sack"><h3>ENEMY</h3><div class="line" style="--c:var(--r)"><b></b>Red — Bolt</div><div class="line" style="--c:var(--b)"><b></b>Blue — Evade</div><div class="line" style="--c:var(--g)"><b></b>Green — Bandage</div><div class="line" style="--c:var(--y)"><b></b>Yellow — Reload</div><div class="line" style="--c:var(--p)"><b></b>Purple — Deadeye</div></div></div><button class="close" id="closeModal">← FIGHT</button></div></div>
 <div class="result" id="result"><div><h1 id="resultTitle">VICTORY</h1><p id="resultText"></p><button class="close" id="resultRetry" hidden>↻ SAVE</button><button class="close" id="resultMenu">← WORLD</button></div></div>
 
