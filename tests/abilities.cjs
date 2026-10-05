@@ -128,6 +128,10 @@ assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(pref
 assert(src.includes('MOTION.cascadeBeat')&&src.includes('MOTION.turnHandoff')&&src.includes('MOTION.fallBase'),'combat motion budget includes cascade rhythm, weighted falls, and readable turn handoff');
 assert(!src.includes("otherBase=targetEl.classList.contains('gold')?'':' rotate(45deg)'"),'cut-gem silhouettes are not rotated by legacy swipe motion');
 assert(styles.includes('/* PRESTIGE PUZZLE BOARD')&&styles.includes('conic-gradient(from 45deg at 50% 50%'),'board keeps static crystal faceting without runtime relighting');
+assert(styles.includes('MOBILE ORIGINAL-FIDELITY BOARD'),'coarse-pointer devices use the original-fidelity mobile board layer');
+assert(styles.includes('linear-gradient(135deg,#49636a 0%,#263740 12%,#0b121c 45%,#26363c 86%,#5c6451 100%)'),'mobile frame restores the original mineral palette');
+assert(styles.includes('width:64%')&&styles.includes('--crystal:#ff7b96;--crystal-deep:#a21846'),'mobile gems restore original proportions and crystal palette');
+assert(!styles.includes('filter:brightness(calc(1 + var(--surface-energy,0)))'),'original look stays detached from runtime lighting filters');
 assert(!styles.includes('--surface-light'),'runtime board-light variables stay removed');
 assert(styles.includes('.game .board .red{')&&styles.includes('clip-path:none!important'),'core colored gems return to the consistent classic silhouette');
 assert(styles.includes('.game .cell.hintCell{\n animation:prestigeHint')&&styles.includes('.game .board .chargedGem{'),'selection, hints and enhanced gems retain premium readable states');
