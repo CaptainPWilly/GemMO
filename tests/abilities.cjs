@@ -14,9 +14,9 @@ const progressionDefs=fs.readFileSync(path.join(root,'shared','progression.js'),
 const storyDefs=fs.readFileSync(path.join(root,'shared','story.js'),'utf8');
 const combatCore=fs.readFileSync(path.join(root,'assets','combat-core.js'),'utf8');
 let src=fs.readFileSync(path.join(root,'assets','app.js'),'utf8');
-assert(html.includes('href="assets/styles.css"'),'production shell must load the canonical stylesheet');
+assert(/href="assets\/styles\.css(?:\?[^"]+)?" /.test(html.replace('>',' >'))||/href="assets\/styles\.css(?:\?[^"]+)?"/.test(html),'production shell must load the canonical stylesheet');
 assert(html.includes('src="assets/content.js"')&&html.includes('src="shared/encounters.js"')&&html.includes('src="shared/combat-rules.js"')&&html.includes('src="shared/progression.js"')&&html.includes('src="shared/story.js"')&&html.includes('src="assets/combat-core.js"')&&html.indexOf('assets/content.js')<html.indexOf('shared/encounters.js')&&html.indexOf('shared/encounters.js')<html.indexOf('shared/combat-rules.js')&&html.indexOf('shared/combat-rules.js')<html.indexOf('shared/progression.js')&&html.indexOf('shared/progression.js')<html.indexOf('shared/story.js')&&html.indexOf('shared/story.js')<html.indexOf('assets/combat-core.js')&&html.indexOf('assets/combat-core.js')<html.indexOf('assets/app.js'),'production shell must load content, shared encounter/combat/story rules, combat core, then runtime');
-assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
+assert(/src="assets\/app\.js(?:\?[^"]+)?"/.test(html),'production shell must load the canonical runtime');
 assert(/<div class="worldEffectsPanel uiSheet" id="worldEffectsPanel" hidden>/.test(html)&&/<div class="worldQuestPanel uiSheet" id="worldQuestPanel" hidden>/.test(html),'world drawers have real DOM IDs so map setup can open');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
 assert(!content.includes("'env'")&&!html.includes('ENVIRONMENT · RIFT')&&!src.includes("type==='env'"),'standalone Environment gem rules stay removed');
