@@ -127,6 +127,10 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches")&&src.includes('const performanceMode=()=>mobilePerformance')&&src.includes('const luxuryFX=()=>!mobilePerformance&&!reducedMotion()'),'mobile performance and accessibility motion are separate policies');
 assert(src.includes('MOTION.cascadeBeat')&&src.includes('MOTION.turnHandoff')&&src.includes('MOTION.fallBase'),'combat motion budget includes cascade rhythm, weighted falls, and readable turn handoff');
 assert(!src.includes("otherBase=targetEl.classList.contains('gold')?'':' rotate(45deg)'"),'cut-gem silhouettes are not rotated by legacy swipe motion');
+assert(!src.includes('rotate('),'combat runtime never rotates gems or FX during interaction motion');
+assert(styles.includes('.game .board .gem{transform:none}')&&styles.includes('.game .board .gem:after{transform:none}'),'canonical combat gems and symbols rest upright');
+assert(styles.includes('@keyframes socketMatchPulse')&&styles.includes('.game .cell.matchPulse:before'),'matches use a semantic socket pulse instead of rotating or glowing the gem');
+assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('0%{transform:scale(.975);opacity:.78}'),'turn feedback is transform/opacity based rather than brightness-filter animation');
 assert(styles.includes('.liquidChargeGem.readyPulse')&&styles.includes('.game .healthFill{transition:transform 280ms'),'mobile combat retains charge-ready and health response motion');
 assert(html.includes('id="moveHistory" class="moveHistory"')&&html.includes('id="effectsBtn"')&&html.includes('id="effectsDrawer"'),'combat shell exposes visual move history and current effects');
 assert(!html.includes('id="abilityBanner"')&&src.includes('activeCombatMove.ability={name,description,color}'),'abilities share the compact combat-history cards instead of a separate banner');
