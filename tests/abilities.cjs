@@ -126,6 +126,10 @@ assert(styles.includes('.game.turn-player .playerSide')&&styles.includes('.game.
 assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefers-reduced-motion:reduce)'),'turn change pulse respects reduced-motion preferences');
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
+assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types have distinct one-shot pop definitions');
+assert(src.includes("budget=Math.max(1,Math.floor(30/Math.max(1,points.length)))"),'pop shards are globally budgeted so large cascades stay mobile-safe');
+assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
+assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
 assert(src.includes("function render(){renderStatuses();boardEl.innerHTML='';"),'actual old board render path is restored');
 assert(src.includes('async function fightEntrance(){}'),'later 64-gem fight entrance is removed');
