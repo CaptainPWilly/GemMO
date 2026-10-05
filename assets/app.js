@@ -561,7 +561,7 @@ function renderEnemyChargeGauges(){
   badge.hidden=false;badge.style.setProperty('--c','var(--'+weapon.color[0]+')');badge.textContent='⚔ '+weapon.color.toUpperCase()+' · '+weapon.item;badge.setAttribute('aria-label','Inspect '+enemyLabel()+' loadout. '+weapon.color+' weapon: '+weapon.item);
   dock.classList.add('enemyGemDock');
   const html=gems.map((g,i)=>'<button class="enemyGem '+(ec[g.color]>=g.cap?'ready':'')+'" data-enemy-gem="'+g.id+'" style="--c:var(--'+g.color[0]+')" aria-label="Inspect '+g.item+', '+g.color+', '+ec[g.color]+' charge, costs '+g.cap+'">'+liquidChargeGem(g,'enemy'+i,Math.min(100,ec[g.color]/g.cap*100))+'<b>'+ec[g.color]+'/'+g.cap+'</b></button>').join('');
-  if(html!==enemyDockRenderKey){enemyDockRenderKey=html;dock.innerHTML=html;dock.querySelectorAll('[data-enemy-gem]').forEach(b=>b.onclick=()=>openCombatSacks(b.dataset.enemyGem))}return;
+  if(html!==enemyDockRenderKey){enemyDockRenderKey=html;dock.innerHTML=html;dock.querySelectorAll?.('[data-enemy-gem]')?.forEach(b=>b.onclick=()=>openCombatSacks(b.dataset.enemyGem))}return;
  }
  $('enemyWeapon').hidden=true;dock.classList.remove('enemyGemDock');
  const colors=['red','blue','green','yellow','purple'],enemy=encounterSpec();
@@ -611,7 +611,7 @@ function renderSlots(){
   const armed=i===armedAbilitySlot&&(!!targetMode||freeSwap),ready=charges[v.color]>=v.cap,fill=v.cap?Math.max(0,Math.min(100,charges[v.color]/v.cap*100)):0;
   return '<button class="slot compactGemCard liquidGemButton '+(v.gemType==='weapon'?'weaponGemCard ':'')+(armed?'armed ':ready?'ready ':'')+'" data-slot="'+i+'" style="--c:var(--'+v.color[0]+');--charge-fill:'+fill+'%" title="'+v.item+' · '+v.color.toUpperCase()+' · '+v.name+' — '+v.desc+'" aria-label="'+(v.gemType==='weapon'?'Weapon gem, ':'')+v.color+', '+v.name+', '+charges[v.color]+' charge, costs '+v.cap+(armed?', cancel targeting':ready?', ready to cast':'')+'">'+liquidChargeGem(v,i,fill)+'<span class="slotName">'+v.name+'</span><span class="charge"><b>'+charges[v.color]+'/'+v.cap+'</b>'+(armed?'<span class="chargeAction" title="Cancel targeting">×</span>':ready?'<span class="chargeAction">✦</span>':'')+'</span></button>';
  }).join('');
- if(html!==slotsRenderKey){slotsRenderKey=html;slots.innerHTML=html;slots.querySelectorAll('.slot:not(:disabled)').forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)))}
+ if(html!==slotsRenderKey){slotsRenderKey=html;slots.innerHTML=html;slots.querySelectorAll?.('.slot:not(:disabled)')?.forEach(b=>b.onclick=()=>activate(Number(b.dataset.slot)))}
 }
 function sackGemDetails(g,charge,capacity,selected=false){
  return '<article class="inspectGem '+(selected?'selected':'')+'" style="--c:var(--'+g.color[0]+')"><span class="itemGem '+g.color+'"></span><div><small>'+g.color.toUpperCase()+' · '+(g.gemType==='weapon'?'⚔ WEAPON · '+g.attack+' DAMAGE / VALUE':'SUPPORT')+'</small><h4>'+g.item+'</h4><b>'+g.name+' · costs '+g.cap+'</b><p>'+g.desc+'</p><small>'+charge+' / '+capacity+' SHARED CHARGE</small></div></article>';
