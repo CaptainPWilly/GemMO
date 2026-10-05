@@ -127,6 +127,10 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches")&&src.includes('const performanceMode=()=>mobilePerformance')&&src.includes('const luxuryFX=()=>!mobilePerformance&&!reducedMotion()'),'mobile performance and accessibility motion are separate policies');
 assert(src.includes('MOTION.cascadeBeat')&&src.includes('MOTION.turnHandoff')&&src.includes('MOTION.fallBase'),'combat motion budget includes cascade rhythm, weighted falls, and readable turn handoff');
 assert(!src.includes("otherBase=targetEl.classList.contains('gold')?'':' rotate(45deg)'"),'cut-gem silhouettes are not rotated by legacy swipe motion');
+assert(styles.includes('/* PRESTIGE PUZZLE BOARD')&&styles.includes('conic-gradient(from 45deg at 50% 50%'),'board keeps static crystal faceting without runtime relighting');
+assert(!styles.includes('--surface-light'),'runtime board-light variables stay removed');
+assert(styles.includes('.game .board .red{')&&styles.includes('clip-path:none!important'),'core colored gems return to the consistent classic silhouette');
+assert(styles.includes('.game .cell.hintCell{\n animation:prestigeHint')&&styles.includes('.game .board .chargedGem{'),'selection, hints and enhanced gems retain premium readable states');
 assert(styles.includes('rotate:45deg')&&styles.includes('rotate:-45deg'),'gem orientation is fixed in CSS instead of baked into animated transform');
 assert(!src.includes("const base=el.classList.contains('gold')?'':' rotate(45deg)'"),'fight entrance never changes gem angle');
 assert(styles.includes('.liquidChargeGem.readyPulse')&&styles.includes('.game .healthFill{transition:transform 280ms'),'mobile combat retains charge-ready and health response motion');
