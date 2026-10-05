@@ -570,20 +570,20 @@ function renderEnemyChargeGauges(){
 }
 function ensureBoardCells(){
  if(boardEl.children.length===W*H)return;
- const fragment=document.createDocumentFragment();
+ const fragment=document.createDocumentFragment?.();if(!fragment)boardEl.innerHTML='';
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
   const cell=document.createElement('button'),gem=document.createElement('span');
   cell.type='button';cell.className='cell';cell.dataset.x=x;cell.dataset.y=y;
   gem.className='gem';gem.hidden=true;cell.appendChild(gem);
   cell.addEventListener('click',event=>{if(event.detail===0||Date.now()>suppressClickUntil)tapCell(x,y)});
-  fragment.appendChild(cell);
+  if(fragment)fragment.appendChild(cell);else boardEl.appendChild(cell);
  }
- boardEl.replaceChildren(fragment);
+ if(fragment){if(boardEl.replaceChildren)boardEl.replaceChildren(fragment);else{boardEl.innerHTML='';for(const cell of Array.from(fragment.children||[]))boardEl.appendChild(cell)}}
 }
 function renderBoard(){
  ensureBoardCells();
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-  const type=board[y]?.[x]||'',bonus=boardBonus[y]?.[x]||0,cell=boardEl.children[y*W+x],gem=cell.firstElementChild;
+  const type=board[y]?.[x]||'',bonus=boardBonus[y]?.[x]||0,cell=boardEl.children[y*W+x],gem=cell.firstElementChild||cell.children?.[0];if(!gem)continue;
   const cellClass='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'')+(x===pinColumn&&pinTurns?' pinnedCell':'');
   if(cell.className!==cellClass)cell.className=cellClass;
   const label=(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'')+', row '+(y+1)+', column '+(x+1);if(cell.getAttribute('aria-label')!==label)cell.setAttribute('aria-label',label);
