@@ -1147,7 +1147,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- chargeGemLevels.clear();visualStats.p=visualStats.e=null;procsUsed=[];
+ chargeGemLevels.clear();procsUsed=[];
  if(account?.needsStarter){enterWorld();openDialogue('warden-vale');return}
  resumedArmedSpec=null;resumedConsumablePaid=false;
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
