@@ -1764,8 +1764,11 @@ button:disabled{cursor:default}
 .chargeGemShell{fill:#141815;stroke:#4d524b;stroke-width:1.5}
 .chargeGemRim{fill:none;stroke:color-mix(in srgb,var(--c) 72%,#9a9483);stroke-width:2;stroke-linejoin:round}
 .gemLiquid{transform:translateY(var(--liquid-to))}
-.gemLiquid.liquidRise{animation:gemLiquidRise 260ms ease-out both}
+.gemLiquid.liquidRise{animation:gemLiquidRise 220ms cubic-bezier(.2,.75,.25,1) both}
+.liquidChargeGem{transform-origin:50% 58%}
+.liquidChargeGem.readyPulse{animation:chargeReadyPulse 340ms cubic-bezier(.2,.75,.25,1)}
 @keyframes gemLiquidRise{from{transform:translateY(var(--liquid-from))}to{transform:translateY(var(--liquid-to))}}
+@keyframes chargeReadyPulse{0%{transform:scale(1)}45%{transform:scale(1.1)}72%{transform:scale(.985)}100%{transform:scale(1)}}
 .chargeWeaponMark{fill:none;stroke:#f1d89b;stroke-width:2;stroke-linecap:round;filter:none!important}
 .game #slots .liquidGemButton{
  background:none!important;border:0!important;box-shadow:none!important;filter:none!important;
@@ -1807,16 +1810,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 @media(pointer:coarse){
  .chromeIconButton,.primary,.accountButton,.storyContinue,.storyChoices button,.worldQuickButton,.worldAction,.effectsBtn,.close{min-height:44px}
  input,select{min-height:44px}
- .turnBadge.turnPulse,.worldNodePulse,.gemLiquid.liquidRise,.flash.go{animation:none!important}
- .healthFill,.healthTrail,.enemyChargeTrack i,.slotChargeMeter i,
- .combatant,.turn #turnText,.turnBadge,.cell,.slot,.worldQuickButton,.worldAction{transition:none!important}
- .gem.draggingGem,.gem.movingGem{will-change:auto!important}
+ /* Performance mode preserves meaningful combat motion and removes only decorative continuous work. */
+ .worldNodePulse,.flash.go{animation:none!important}
+ .enemyChargeTrack i,.slotChargeMeter i,.combatant,.worldQuickButton,.worldAction{transition:none!important}
+ .gem.draggingGem,.gem.movingGem{will-change:transform!important}
  .damageSpark,.shard,.particleLight,.combatHalo{display:none!important}
 }
 @media(prefers-reduced-motion:reduce){
  .comboAnchor{transform:none!important}.combatHalo,.particleLight,.litShard,.fightArrival{display:none!important}
  .healthTrail,.healthFill{transition:none!important}.gem.draggingGem,.gem.movingGem{will-change:auto}
- .gemLiquid.liquidRise,.worldNodePulse{animation:none!important}
+ .gemLiquid.liquidRise,.liquidChargeGem.readyPulse,.worldNodePulse{animation:none!important}
 }
 @media(prefers-reduced-transparency:reduce){
  .top,.worldHud,.worldCard,.uiPanel,.uiSheet,.combatOverlay,.effectsDrawer{background:#11120f!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
@@ -1831,4 +1834,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
  button,input,select,.cell,.uiPanel,.uiCard,.uiSheet{border:1px solid CanvasText}
  .cell.sel,.cell.hintCell,.cell.freeTarget{outline:3px solid Highlight!important}
  .gem:after{color:CanvasText!important}
+}
+
+
+/* Weighted interaction polish: short compositor-only responses, no runtime lighting. */
+.game .board .gem.draggingGem{z-index:5}
+.game .board .gem.dragNeighbor{z-index:3}
+.game .board .gem.movingGem{z-index:5}
+.game .healthFill,.game .healthTrail{will-change:transform}
+.turnBadge.turnPulse{will-change:transform,opacity}
+@media(pointer:coarse){
+ .game .healthFill{transition:transform 280ms cubic-bezier(.2,.75,.25,1)!important}
+ .game .healthTrail{transition:transform 430ms cubic-bezier(.25,.65,.25,1) 70ms!important}
+ .turnBadge.turnPulse{animation-duration:360ms!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .game .healthFill,.game .healthTrail{will-change:auto}
+ .turnBadge.turnPulse{will-change:auto}
 }
