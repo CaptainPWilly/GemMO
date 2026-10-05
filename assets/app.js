@@ -3,8 +3,17 @@
 const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,COMBAT_RULES=globalThis.GEMMO_COMBAT_RULES,PROGRESSION=globalThis.GEMMO_PROGRESSION,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS,STORY=globalThis.GEMMO_STORY;if(!COMBAT_CORE||!COMBAT_RULES||!PROGRESSION||!ENCOUNTERS||!STORY)throw new Error('geMMO runtime dependencies missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_ROAD_SENTINEL,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
-let worldDrawFrame=0;
-function scheduleWorldDraw(){if(worldDrawFrame||screen!=='world')return;worldDrawFrame=requestAnimationFrame(()=>{worldDrawFrame=0;if(screen==='world')drawWorld()})}
+let worldDrawFrame=0,worldLastDraw=0;
+const coarsePointer=!!window.matchMedia?.('(pointer:coarse)').matches;
+const mobilePerformance=coarsePointer||!!navigator.connection?.saveData||(Number(navigator.deviceMemory)||8)<=4;
+function scheduleWorldDraw(){
+ if(worldDrawFrame||screen!=='world')return;
+ worldDrawFrame=requestAnimationFrame(now=>{
+  worldDrawFrame=0;if(screen!=='world')return;
+  if(mobilePerformance&&now-worldLastDraw<30){setTimeout(scheduleWorldDraw,Math.max(0,30-(now-worldLastDraw)));return}
+  worldLastDraw=now;drawWorld();
+ })
+}
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
 function worldNodeUnlocked(node){return !!node&&(!node.requires||worldCleared(node.requires))&&(!node.requiresQuest||questStatus(node.requiresQuest)==='completed')}
 function worldNodeVisible(node){return !!node&&(worldNodeUnlocked(node)||worldState.currentNode===node.id)}
@@ -185,10 +194,11 @@ function enemyUseActive(){
  announceAbility(enemyLabel(),ability.name,detail,ability.color);afterAction('enemy');checkEnd();return true;
 }
 
-const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reducedMotion=()=>motionOff||mobilePerformance||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 let effectOrigin=null,damageAnimations=[];
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
+function effectCenter(el){return reducedMotion()?null:center(el)}
 const MOTION={swap:180,pop:240,flight:360,settle:440};
 const visualStats={p:null,e:null};
 function statMotion(side,hp,guard){
@@ -231,11 +241,13 @@ function burst(origin,color,count=5){
  }
 }
 async function popCells(cells){
+ if(reducedMotion()){for(const p of cells){const el=cellAt(p)?.firstElementChild;if(el)el.style.opacity='0'}return}
  const points=cells.map(p=>({el:cellAt(p).firstElementChild,type:board[p.y][p.x],origin:center(cellAt(p)),color:{red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'}[board[p.y][p.x]]}));
  await Promise.all(points.map(async({el,type,origin,color},i)=>{burst(origin,color,Math.min(3,Math.max(1,Math.ceil(10/points.length))));await animate(el,gemPopFrames(type),{duration:MOTION.pop,delay:i%3*10,easing:'ease-out'});el.style.opacity='0'}))
 }
 function damageFlight(side,amount,blocked){
- const destination=center($(side+'health')),origin=effectOrigin||center(boardEl),targetHP=side==='p'?pHP:eHP;pendingHP[side]++;
+ const targetHP=side==='p'?pHP:eHP;if(reducedMotion()){shownHP[side]=Math.max(0,targetHP);syncHealth(side);return}
+ const destination=center($(side+'health')),origin=effectOrigin||center(boardEl);pendingHP[side]++;
  const work=(async()=>{
  const dx=destination.x-origin.x,dy=destination.y-origin.y,curve=(side==='p'?-1:1)*Math.min(80,Math.abs(dy)*.3);
  const path=Array.from({length:15},(_,i)=>{const t=i/14;return {transform:'translate3d('+(dx*t+curve*4*t*(1-t)-6)+'px,'+(dy*t-6)+'px,0) rotate('+(t*270)+'deg) scale('+(1-.4*t)+')',opacity:t<.1?t*10:1,offset:t}});
@@ -247,6 +259,7 @@ function damageFlight(side,amount,blocked){
  })();damageAnimations.push(work);
 }
 async function swapMotion(a,b,reverse=false,startProgress=0){
+ if(reducedMotion())return;
  const ea=cellAt(a).firstElementChild,eb=cellAt(b).firstElementChild;if(!ea||!eb)return;
  const ra=cellAt(a).getBoundingClientRect(),rb=cellAt(b).getBoundingClientRect(),dx=rb.left-ra.left,dy=rb.top-ra.top;
  const base=el=>el.classList.contains('gold')?'':' rotate(45deg)';
@@ -259,14 +272,14 @@ async function swapMotion(a,b,reverse=false,startProgress=0){
 async function fallColumns(){
  const falling=[];for(let x=0;x<W;x++){if(x===pinColumn&&pinTurns>0){for(let y=0;y<H;y++)if(!board[y][x]){const tile=rollTile();board[y][x]=tile.type;boardBonus[y][x]=tile.bonus}continue}const kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push({type:board[y][x],bonus:boardBonus[y][x]||0,from:y});
  const missing=H-kept.length;for(let y=H-1,i=0;y>=0;y--,i++){const entry=kept[i];const tile=entry||rollTile();board[y][x]=tile.type;boardBonus[y][x]=tile.bonus;const from=entry?entry.from:y-missing;if(from!==y)falling.push({x,y,from})}}
- render();const step=cellAt({x:0,y:1}).getBoundingClientRect().top-cellAt({x:0,y:0}).getBoundingClientRect().top;
- await Promise.all(falling.map(p=>{const el=cellAt(p).firstElementChild,rotation=el.classList.contains('gold')?'':' rotate(45deg)';return animate(el,[{transform:'translate3d(0,'+((p.from-p.y)*step)+'px,0)'+rotation,opacity:p.from<0?0:1},{transform:'translate3d(0,4px,0)'+rotation+' scale(1.09,.91)',opacity:1,offset:.78},{transform:'translate3d(0,-2px,0)'+rotation,opacity:1,offset:.9},{transform:'translate3d(0,0,0)'+rotation,opacity:1}],{duration:240+Math.sqrt(p.y-p.from)*50,delay:p.x*7,easing:'cubic-bezier(.32,0,.66,1)'})}));
+ render();if(!reducedMotion()){const step=cellAt({x:0,y:1}).getBoundingClientRect().top-cellAt({x:0,y:0}).getBoundingClientRect().top;
+ await Promise.all(falling.map(p=>{const el=cellAt(p).firstElementChild,rotation=el.classList.contains('gold')?'':' rotate(45deg)';return animate(el,[{transform:'translate3d(0,'+((p.from-p.y)*step)+'px,0)'+rotation,opacity:p.from<0?0:1},{transform:'translate3d(0,4px,0)'+rotation+' scale(1.09,.91)',opacity:1,offset:.78},{transform:'translate3d(0,-2px,0)'+rotation,opacity:1,offset:.9},{transform:'translate3d(0,0,0)'+rotation,opacity:1}],{duration:240+Math.sqrt(p.y-p.from)*50,delay:p.x*7,easing:'cubic-bezier(.32,0,.66,1)'})}));}
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
 async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;const value=1+(boardBonus[p.y]?.[p.x]||0);counts[type]=(counts[type]||0)+value;broken[actual]=(broken[actual]||0)+value}if(!comboRoots)comboRoots=comboChargeTypes(counts);recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
- for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
+ for(const [type,n] of Object.entries(counts)){effectOrigin=effectCenter(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  if(cascade>0){const bonus=comboChargeBonus(cascade);for(const type of comboRoots)applyColor(type,bonus,actor,cascade,true);recordComboCharge(comboRoots,bonus,cascade+1)}
  for(const p of matches.cells){board[p.y][p.x]='';boardBonus[p.y][p.x]=0}if(makeWild){board[makeWild.y][makeWild.x]='wild';boardBonus[makeWild.y][makeWild.x]=0;setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='enemy'&&usesEnemyGems())enemyExtraTurn=true;if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
  await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}busy=false;afterAction(actor,keepTurn)}
@@ -315,7 +328,7 @@ function afterAction(actor,keepTurn=false){
 function commitArmedAbility(){
  if(resumedArmedSpec){const spec=resumedArmedSpec;resumedArmedSpec=null;return spec}
  const index=armedAbilitySlot;if(index<0)return null;const spec=itemById(sack[index]);if(!spec)return null;
- armedAbilitySlot=-1;recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);effectOrigin=center($('slots').children[index]);
+ armedAbilitySlot=-1;recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);effectOrigin=effectCenter($('slots').children[index]);
  announceAbility('You',spec.name,spec.desc+' Spent '+spec.cap+' '+spec.color+' charge.',spec.color);effectOrigin=null;return spec;
 }
 function cancelArmedAbility(index){
@@ -331,7 +344,7 @@ async function applyTarget(p){
   try{
    if(!resumedConsumablePaid){await flushCombatCheckpoint();const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId:item.id}});combatConsumables[item.id]--;applyAccount(data.account);recordCombatAction({t:'consume',itemId:item.id})}resumedConsumablePaid=false;
    recordCombatAction({t:'target',x:p.x,y:p.y});beginCombatMove('player','ITEM · '+item.name);const type=board[p.y][p.x];if(type)recordBrokenGems({[type]:1+(boardBonus[p.y]?.[p.x]||0)});
-   targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=center(cellAt(p));await popCells([p]);effectOrigin=null;board[p.y][p.x]='';boardBonus[p.y][p.x]=0;await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
+   targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=effectCenter(cellAt(p));await popCells([p]);effectOrigin=null;board[p.y][p.x]='';boardBonus[p.y][p.x]=0;await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
    render();const m=findMatches();if(m)await resolve(m,'player',p,0,false,null);else{busy=false;afterAction('player',false)}
   }catch(error){busy=false;targetMode=null;targetKeepsTurn=false;armedConsumableId=null;setLog('Cherry Bomb failed: '+error.message.replaceAll('_',' '),'system');render();touchActivity()}
   return;
@@ -351,7 +364,7 @@ async function applyTarget(p){
   if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
   if(cells.length){
    const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1+(boardBonus[q.y]?.[q.x]||0)}recordBrokenGems(broken);comboRoots=comboChargeTypes(broken);
-   if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=center(cellAt(p));applyColor(type,1+(boardBonus[p.y]?.[p.x]||0),'player');effectOrigin=null}}
+   if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=effectCenter(cellAt(p));applyColor(type,1+(boardBonus[p.y]?.[p.x]||0),'player');effectOrigin=null}}
    await popCells(cells);for(const q of cells){board[q.y][q.x]='';boardBonus[q.y][q.x]=0}await fallColumns();
   }
  }
@@ -370,7 +383,7 @@ function activate(index){
   if(spec.kind==='swap')freeSwap=true;else{targetMode=spec.kind;targetKeepsTurn=spec.turnCost===0}
   setLog('Choose a '+(spec.kind==='swap'?'swap':targetMode==='rotate'?'row':targetMode==='pin'?'column':'tile')+' on the board · tap '+spec.name+' again to cancel.');render();return;
  }
- recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);const guardBefore=pGuard;effectOrigin=center($('slots').children[index]);
+ recordCombatAction({t:'ability',slot:index});beginCombatMove('player',spec.name);const guardBefore=pGuard;effectOrigin=effectCenter($('slots').children[index]);
  if(usesEnemyGems()&&ENEMY_LOADOUTS.supports(spec.kind)){
   const view={hp:pHP,maxHP:playerMaxHP(),guard:pGuard,charge:charges,opponentCharge:ec};
   ENEMY_LOADOUTS.cast(spec,view,{encounter:{sack},lookup:itemById,damage:damageEnemy,capacity:reservoirCap,paid:true});
@@ -850,7 +863,7 @@ function frameTrollHill(){
 function worldPoly(ctx,pts,fill,stroke='#0003'){ctx.beginPath();pts.forEach((p,i)=>(i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y)));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}}
 function worldColor(x,y,road){if(x>=7&&y>=2&&y<=6&&!road)return ['#777456','#6a6a4e','#817856'][(x+y)%3];if(road)return ['#9a865b','#8c774e','#aa9465'][(x+y)%3];return ['#627451','#6c7e58','#71865e','#5b6d4b'][(x*3+y*5)%4]}
 function drawWorld(){
- const canvas=$('worldCanvas');if(!canvas?.getContext)return;const wrap=$('worldViewport'),rect=wrap.getBoundingClientRect(),dpr=Math.min(window.matchMedia?.('(pointer:coarse)').matches?1.5:2,window.devicePixelRatio||1);
+ const canvas=$('worldCanvas');if(!canvas?.getContext)return;const wrap=$('worldViewport'),rect=wrap.getBoundingClientRect(),dpr=Math.min(mobilePerformance?1:2,window.devicePixelRatio||1);
  if(canvas.width!==Math.floor(rect.width*dpr)||canvas.height!==Math.floor(rect.height*dpr)){canvas.width=Math.max(1,Math.floor(rect.width*dpr));canvas.height=Math.max(1,Math.floor(rect.height*dpr));canvas.style.width=rect.width+'px';canvas.style.height=rect.height+'px'}
  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,rect.width,rect.height);
  const tw=58*worldCamera.zoom,th=29*worldCamera.zoom,zh=15*worldCamera.zoom;
@@ -920,7 +933,7 @@ function worldRoutePoint(route,progress){
 function animateWorldTravel(route){
  if(reducedMotion()||!Array.isArray(route)||route.length<2)return Promise.resolve();
  const legs=route.length-1,duration=Math.min(2200,480+Math.max(0,legs-1)*360);
- return new Promise(resolve=>{const start=performance.now();worldTravelAnim={route:route.slice(),progress:0};const step=now=>{const raw=Math.min(1,(now-start)/duration),smooth=raw*raw*(3-2*raw);worldTravelAnim.progress=smooth;drawWorld();if(raw<1)requestAnimationFrame(step);else{worldTravelAnim=null;resolve()}};requestAnimationFrame(step)})
+ return new Promise(resolve=>{const start=performance.now();worldTravelAnim={route:route.slice(),progress:0};const step=now=>{const raw=Math.min(1,(now-start)/duration),smooth=raw*raw*(3-2*raw);worldTravelAnim.progress=smooth;scheduleWorldDraw();if(raw<1)requestAnimationFrame(step);else{worldTravelAnim=null;drawWorld();resolve()}};requestAnimationFrame(step)})
 }
 async function travelWorld(nodeId){
  if(!account||!accountToken||worldTravelRoute)return;
