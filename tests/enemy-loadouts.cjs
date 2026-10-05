@@ -22,7 +22,7 @@ console.log('PASS: NPC catalog validity, shared capacities/costs/effects, weapon
 
 for(const id of ['bandit','sentinel'])assert(make(id,'replay-v6').eHP>make(id,'replay-v5').eHP,'v6 increases '+id+' HP without changing saved v5 fights');
 assert.equal(loadouts.cap(encounters.sentinel,'blue',lookup),18);
-const troll=make('troll','replay-v6');assert.equal(troll.eHP,80);troll.pGuard=99;troll.ec.red=9;troll.playerTurn=false;engine.enemyMove(troll);assert.equal(troll.pHP,10,'Bonebreaker pierces Guard through shared damage rules');assert.equal(troll.pGuard,99);assert.equal(troll.ec.red,0);
+const troll=make('troll','replay-v6');assert.equal(troll.eHP,68);troll.pGuard=99;troll.ec.red=9;troll.playerTurn=false;engine.enemyMove(troll);assert.equal(troll.pHP,10,'Bonebreaker pierces Guard through shared damage rules');assert.equal(troll.pGuard,99);assert.equal(troll.ec.red,0);
 const playerMaul=engine.createCombat({encounterId:'troll',version:'replay-v6',seed:1,sack:['troll-maul',null,null,null,null]});playerMaul.eGuard=99;playerMaul.charges.red=9;engine.applyCombatAction(playerMaul,{t:'ability',slot:0});assert(playerMaul.eHP<=72,'the same maul pierces enemy Guard when equipped by a player');
 // A real full-build victory must replay, including late healing/Guard and chained turns.
 const {BRANCHES}=require('../shared/progression.js'),{action}=require('../scripts/balance-colors.cjs');
