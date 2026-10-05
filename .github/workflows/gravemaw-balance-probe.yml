@@ -1,0 +1,37 @@
+name: Gravemaw Balance Probe
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  balance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/balance-troll.cjs
+      - name: Print aggregate balance
+        run: |
+          node - <<'NODE'
+          const r=require('./docs/troll-balance-results.json');
+          const rows=r.boss;
+          const wins=rows.reduce((n,x)=>n+x.wins,0);
+          const runs=rows.reduce((n,x)=>n+x.samples,0);
+          const zero=rows.filter(x=>x.wins===0).length;
+          const by={};
+          for(const x of rows){
+            const w=x.sack[0];
+            by[w]??={wins:0,runs:0,min:Infinity,max:-Infinity};
+            by[w].wins+=x.wins; by[w].runs+=x.samples;
+            by[w].min=Math.min(by[w].min,x.wins); by[w].max=Math.max(by[w].max,x.wins);
+          }
+          console.log('AGGREGATE', wins+'/'+runs, (100*wins/runs).toFixed(1)+'%');
+          console.log('ZERO_WIN_BUILDS', zero+'/'+rows.length);
+          for(const [w,v] of Object.entries(by)) console.log('WEAPON',w,v.wins+'/'+v.runs,(100*v.wins/v.runs).toFixed(1)+'%','range',v.min+'-'+v.max+'/10');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gravemaw-balance-results
+          path: docs/troll-balance-results.json
