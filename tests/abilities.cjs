@@ -124,6 +124,10 @@ assert(html.includes('id="turnBadge" class="turnBadge turn-player" role="status"
 assert(src.includes("game.classList.remove('turn-player','turn-enemy')")&&src.includes("badge.textContent=owner==='player'?'✦ YOUR TURN"),'runtime derives turn ownership classes and explicit banner copy');
 assert(styles.includes('.game.turn-player .playerSide')&&styles.includes('.game.turn-enemy .enemySide')&&styles.includes('.game.turn-enemy .board{filter:'),'turn styling highlights the active combatant and subdues the board during enemy actions');
 assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefers-reduced-motion:reduce)'),'turn change pulse respects reduced-motion preferences');
+assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches")&&src.includes('const performanceMode=()=>mobilePerformance')&&src.includes('const luxuryFX=()=>!mobilePerformance&&!reducedMotion()'),'mobile performance and accessibility motion are separate policies');
+assert(src.includes('MOTION.cascadeBeat')&&src.includes('MOTION.turnHandoff')&&src.includes('MOTION.fallBase'),'combat motion budget includes cascade rhythm, weighted falls, and readable turn handoff');
+assert(!src.includes("otherBase=targetEl.classList.contains('gold')?'':' rotate(45deg)'"),'cut-gem silhouettes are not rotated by legacy swipe motion');
+assert(styles.includes('.liquidChargeGem.readyPulse')&&styles.includes('.game .healthFill{transition:transform 280ms'),'mobile combat retains charge-ready and health response motion');
 assert(html.includes('id="moveHistory" class="moveHistory"')&&html.includes('id="effectsBtn"')&&html.includes('id="effectsDrawer"'),'combat shell exposes visual move history and current effects');
 assert(!html.includes('id="abilityBanner"')&&src.includes('activeCombatMove.ability={name,description,color}'),'abilities share the compact combat-history cards instead of a separate banner');
 assert(!html.includes('id="historyEntries"')&&!html.includes('id="equipDrawer"'),'legacy text history and combat equipment drawer are removed');
