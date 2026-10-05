@@ -5,7 +5,7 @@ if(typeof module==='object'&&module.exports)module.exports=rules;else root.GEMMO
 })(globalThis,function(){
 'use strict';
 // This policy is shared by replay-v5/v6. Encounter HP and Sacks are versioned separately.
-const VERSION='replay-v6',COLORS=['red','blue','green','yellow','purple'];
+const VERSION='replay-v7',COLORS=['red','blue','green','yellow','purple'];
 const supported=new Set(['damage','heal','guard','siphon']);
 function gems(encounter,lookup){return (encounter.sack||[]).map(lookup).filter(Boolean)}
 function cap(encounter,color,lookup){return gems(encounter,lookup).reduce((sum,g)=>sum+(g.color===color?g.cap:0),0)}
@@ -49,5 +49,5 @@ function cast(g,s,{encounter,lookup,damage,capacity=color=>cap(encounter,color,l
  return true;
 }
 
-return Object.freeze({VERSION,isCurrent:version=>['replay-v5','replay-v6'].includes(version),supports:kind=>supported.has(kind),gems,cap,weapon,ready,choose,score,cast});
+return Object.freeze({VERSION,isCurrent:version=>['replay-v5','replay-v6','replay-v7'].includes(version),supports:kind=>supported.has(kind),gems,cap,weapon,ready,choose,score,cast});
 });

@@ -469,7 +469,7 @@ async function startMatch(db,userId,encounterId){
   if(!node?.encounter||node.encounter!==encounterId)throw Object.assign(new Error('encounter_not_here'),{status:409});
   if(!await nodeUnlocked(db,userId,node))throw Object.assign(new Error('world_path_locked'),{status:409});
   const rewardBudget=rollRewardBudget(encounterId);if(!rewardBudget)throw Object.assign(new Error('invalid_encounter'),{status:400});
-  const id=randomUUID(),now=Date.now(),authority={mode:'replay-v6',seed:randomInt(0,0x100000000)};
+  const id=randomUUID(),now=Date.now(),authority={mode:'replay-v7',seed:randomInt(0,0x100000000)};
   await transaction(db,async tx=>{
     const pending=await tx.prepare('SELECT m.id FROM matches m JOIN match_checkpoints c ON c.match_id=m.id WHERE m.user_id=? AND m.settled_at IS NULL LIMIT 1').get(userId);if(pending)throw Object.assign(new Error('unfinished_match'),{status:409});
     await tx.prepare('INSERT INTO matches(id,user_id,encounter_id,started_at) VALUES(?,?,?,?)').run(id,userId,encounterId,now);
@@ -511,7 +511,7 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     if(match.settled_at!==null&&match.settled_at!==undefined)return {alreadySettled:true,won:Boolean(match.won),gold:Number(match.gold),xp:Number(match.xp),encounterId:match.encounter_id};
     const savedCheckpoint=await tx.prepare('SELECT transcript_json FROM match_checkpoints WHERE match_id=?').get(matchId);if(savedCheckpoint&&Array.isArray(transcript)){const saved=JSON.parse(savedCheckpoint.transcript_json);if(transcript.length<saved.length||saved.some((a,i)=>JSON.stringify(a)!==JSON.stringify(transcript[i])))throw Object.assign(new Error('checkpoint_conflict'),{status:409})}
     const now=Date.now(),proof=await tx.prepare('SELECT version,seed,sack_json,equipment_json FROM match_combat_proofs WHERE match_id=?').get(matchId),useRows=await tx.prepare('SELECT item_id,qty FROM match_consumable_uses WHERE match_id=?').all(matchId),recordedUses=Object.fromEntries(useRows.map(r=>[r.item_id,Number(r.qty)]));let replay=null;
-    if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(proof?.version)&&(won||useRows.length||Array.isArray(transcript))){
+    if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(proof?.version)&&(won||useRows.length||Array.isArray(transcript))){
       const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]),consumableProof=await tx.prepare('SELECT consumables_json FROM match_consumable_proofs WHERE match_id=?').get(matchId),consumables=consumableProof?JSON.parse(consumableProof.consumables_json):{},stored=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId),policy0=ENCOUNTERS[match.encounter_id]?.reward,budget0=stored?{gold:Number(stored.gold_cap),xp:Number(stored.xp_cap)}:{gold:policy0?.gold?.[1]||0,xp:policy0?.xp?.[1]||0};
       if(!Array.isArray(transcript))throw Object.assign(new Error('invalid_combat_proof'),{status:400});
       replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,consumables,rewardBudget:budget0,transcript,version:proof.version});
@@ -540,7 +540,7 @@ async function settleMatch(db,userId,{matchId,won,gold,xp,transcript}){
     const storedBudget=await tx.prepare('SELECT gold_cap,xp_cap FROM match_reward_budgets WHERE match_id=?').get(matchId);
     const rewardBudget=storedBudget?{gold:Number(storedBudget.gold_cap),xp:Number(storedBudget.xp_cap)}:{gold:policy.gold[1],xp:policy.xp[1]};
     let awardGold=Math.min(gold,rewardBudget.gold),awardXp=Math.min(xp,rewardBudget.xp),authority='legacy-budget';
-    if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(proof?.version)){
+    if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(proof?.version)){
       if(!replay){const skillProof=await tx.prepare('SELECT skills_json FROM match_skill_proofs WHERE match_id=?').get(matchId),skills=normalizePurchased(skillProof?JSON.parse(skillProof.skills_json):[]),consumableProof=await tx.prepare('SELECT consumables_json FROM match_consumable_proofs WHERE match_id=?').get(matchId),consumables=consumableProof?JSON.parse(consumableProof.consumables_json):{};replay=verifyCombatTranscript({encounterId:match.encounter_id,seed:Number(proof.seed),sack:JSON.parse(proof.sack_json),equipment:JSON.parse(proof.equipment_json),skills,consumables,rewardBudget,transcript,version:proof.version})}
       if(!replay.won)throw Object.assign(new Error('combat_proof_failed'),{status:409});
       awardGold=replay.gold;awardXp=replay.xp;authority=proof.version;

@@ -1625,3 +1625,49 @@ button:disabled{cursor:default}
 .game.turn-player .enemySide{opacity:1;filter:none}
 .game .enemyWeapon{color:color-mix(in srgb,var(--c) 75%,white);font-size:11px}
 .game .enemyGem.ready .liquidChargeGem{filter:brightness(1.25) drop-shadow(0 0 4px var(--c))}
+
+/* Cascade anchors retain their accumulated size across history redraws. */
+.moveBreak.comboAnchor{transform:scale(var(--anchor-scale,1));transform-origin:center;z-index:2}
+.comboAnchor .historyGemVisual{filter:brightness(1.2) drop-shadow(0 0 var(--anchor-glow,6px) var(--c))}
+.comboAnchor>b{border-color:var(--c);color:#fff;box-shadow:0 0 7px color-mix(in srgb,var(--c) 55%,transparent)}
+.moveBreaks{gap:6px;padding:3px 4px;overflow:visible}
+.combatHalo{position:absolute;pointer-events:none;display:grid;place-items:center;width:72px;height:44px;border:2px solid var(--c);border-radius:50%;color:var(--c);font-size:12px;font-weight:900;text-shadow:0 0 8px var(--c);box-shadow:0 0 16px color-mix(in srgb,var(--c) 45%,transparent)}
+.combatHalo.guard{border-radius:6px;width:42px;height:42px;font-size:10px}
+.combatHalo.restore{border-style:dotted;background:radial-gradient(ellipse,#91ffc025,transparent 70%)}
+.combatHalo.impact{width:48px;height:48px;border-width:3px;border-radius:0;clip-path:polygon(50% 0,60% 32%,100% 50%,65% 63%,50% 100%,35% 65%,0 50%,33% 35%)}
+@media(prefers-reduced-motion:reduce){.comboAnchor{transform:none!important}.comboAnchor .historyGemVisual{filter:brightness(1.15)}.combatHalo{display:none}}
+
+/* Small emissive crystal fragments and soft colored light spill. */
+.litShard{width:4px;height:6px;border-radius:0;background:#fff7df;box-shadow:0 0 3px 1px var(--light),0 0 9px 3px var(--light);mix-blend-mode:screen}
+.litShard:before{content:'';position:absolute;inset:-16px;background:radial-gradient(circle,color-mix(in srgb,var(--light) 40%,transparent),transparent 65%);pointer-events:none}
+.particleLight{position:absolute;pointer-events:none;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--light) 65%,transparent) 0%,color-mix(in srgb,var(--light) 18%,transparent) 35%,transparent 70%);mix-blend-mode:screen}
+.damageSpark{background:#fffbea;box-shadow:0 0 3px #fff,0 0 9px 2px #ffd278,0 0 22px 4px #ed724870}
+.healthTrail{position:absolute;inset:0;background:#ffd590;transform-origin:left center;transition:transform 650ms cubic-bezier(.3,0,.2,1) 120ms;pointer-events:none}
+.healthFill{position:relative;transition:transform 330ms cubic-bezier(.16,1,.3,1)}
+.fightArrival{position:absolute;left:50%;top:44%;max-width:90%;padding:16px 24px;color:#ffe9bb;text-align:center;font:bold clamp(18px,5vw,30px) Georgia,serif;letter-spacing:3px;text-shadow:0 0 8px #ffbf65,0 0 24px #a95c2a;white-space:nowrap;background:radial-gradient(ellipse,#0a0909ed,transparent 72%);pointer-events:none}
+@media(prefers-reduced-motion:reduce){.healthTrail,.healthFill{transition:none}.particleLight,.litShard,.fightArrival{display:none}}
+.health{position:relative}
+
+/* Light is accumulated per tile with distance attenuation and a moving highlight. */
+.cell{isolation:isolate}
+.cell:before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:var(--surface-light,transparent);box-shadow:inset 0 0 12px var(--surface-light,transparent);mix-blend-mode:screen;z-index:0}
+.cell>.gem{z-index:1;filter:brightness(calc(1 + var(--surface-energy,0)))}
+.cell>.gem:before{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(var(--light-angle,0deg),var(--surface-light,transparent),transparent 65%);box-shadow:inset 1px 1px 3px var(--surface-light,transparent);mix-blend-mode:screen;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.cell:before,.cell>.gem:before{display:none}.cell>.gem{filter:none}}
+
+/* Obsidian sockets, cut crystal, restrained emissive response. */
+.game .boardShell{position:relative;background:linear-gradient(135deg,#49636a 0%,#263740 12%,#0b121c 45%,#26363c 86%,#5c6451 100%);border:1px solid #71939770;box-shadow:inset 0 1px 0 #b9ecdf35,inset 0 -2px 3px #000c,0 12px 36px #000a,0 0 28px #3e949014;padding:5px}
+.game .board{background:radial-gradient(ellipse at 12% 4%,#23414780,transparent 55%),radial-gradient(ellipse at 90% 100%,#29234190,transparent 55%),#060b12;border-radius:5px;gap:3px;padding:2px}
+.game .cell{background:radial-gradient(ellipse at 45% 35%,#182935,#0b141e 68%,#060b11);border:1px solid #607b871c;border-radius:6px;box-shadow:inset 0 2px 4px #000a,inset 0 -1px 0 #93c8ce17;overflow:visible}
+.game .cell:before{inset:0;background:radial-gradient(ellipse at 50% 40%,var(--surface-light,transparent),transparent 85%);box-shadow:inset 0 0 14px var(--surface-light,transparent);border-radius:inherit}
+.game .cell.sel{outline:1px solid #e0fbff;outline-offset:-2px;box-shadow:inset 0 0 18px #89eaff40,0 0 7px #b2faff55}
+.game .board .gem{--crystal:#78baff;--crystal-deep:#134f9b;width:64%;border-radius:11%;border:1px solid #ffffff65;background:conic-gradient(from 45deg at 50% 50%,#ffffff35 0deg 45deg,#0002 45deg 90deg,#fff1 90deg 135deg,#0004 135deg 180deg,#fff3 180deg 225deg,#0002 225deg 270deg,#fff5 270deg 315deg,#0002 315deg),radial-gradient(ellipse at 28% 18%,#ffffffa0,transparent 42%),linear-gradient(145deg,var(--crystal),var(--crystal-deep));box-shadow:inset 2px 2px 1px #ffffff70,inset -3px -3px 2px #0005,var(--cast-x,1px) var(--cast-y,5px) 5px #0009,0 0 7px color-mix(in srgb,var(--crystal) 12%,transparent);filter:brightness(calc(1 + var(--surface-energy,0)));}
+.game .board .red{--crystal:#ff7b96;--crystal-deep:#a21846}.game .board .blue{--crystal:#77d6ff;--crystal-deep:#1c479f}.game .board .green{--crystal:#79f0b8;--crystal-deep:#147e61}.game .board .yellow{--crystal:#ffe59a;--crystal-deep:#b77518}.game .board .purple{--crystal:#d2acff;--crystal-deep:#66319f}
+.game .board .gem:before{background:linear-gradient(var(--light-angle,135deg),var(--surface-light,transparent),transparent 60%),linear-gradient(135deg,#fff5,transparent 35%,#0001 65%);opacity:calc(.6 + var(--specular,0));box-shadow:inset 1px 1px 2px #fff4;mix-blend-mode:screen}
+.game .board .gem:after{z-index:2;color:#ffffffd9;text-shadow:0 1px 3px #0009;font-size:clamp(10px,3.5vw,17px)}
+.game .board .gold{--crystal:#ffe7a5;--crystal-deep:#a66a18;border-radius:50%;width:59%;box-shadow:inset 2px 2px 1px #fff9,inset -3px -3px 2px #78451188,1px 4px 4px #000a}
+.game .board .xp{--crystal:#b9faff;--crystal-deep:#338da4;border-radius:0;background:radial-gradient(circle,#ecffff,#90edff 45%,#2894b2)}
+.game .board .wild{background:conic-gradient(from 20deg,#ff6c91,#ffd777,#71efb9,#75d6ff,#c095ff,#ff6c91)}
+.game .board .chargedGem{filter:brightness(calc(1.14 + var(--surface-energy,0))) saturate(1.12) drop-shadow(0 0 4px var(--charge-glow));border-color:#fffbd2}
+.game .board .pinnedCell{border-color:#9ecbff90}
+@media(prefers-reduced-motion:reduce){.game .board .gem{filter:brightness(1)}.game .board .chargedGem{filter:brightness(1.14)}}

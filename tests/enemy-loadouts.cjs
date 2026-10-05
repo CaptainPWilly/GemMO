@@ -31,3 +31,10 @@ const bossArgs={version:'replay-v6',encounterId:'troll',sack:['dagger','bloodsto
 let victory;for(let seed=1;seed<=10&&!victory;seed++){const state=engine.createCombat({...bossArgs,seed}),transcript=[];state.probeMaxHP=state.pHP;while(state.pHP>0&&state.eHP>0&&transcript.length<200){const next=action(state);assert(next);assert(engine.applyCombatAction(state,next));transcript.push(next)}if(state.eHP<=0)victory={seed,transcript,state}}
 assert(victory,'Gravemaw is hard but legally beatable');const verified=engine.verifyCombatTranscript({...bossArgs,seed:victory.seed,transcript:victory.transcript});assert.equal(verified.won,true);assert.equal(verified.gold,victory.state.gold);assert.equal(verified.xp,victory.state.xp);
 console.log('PASS: v6 encounter difficulty, symmetric Bonebreaker, and a complete replay-verified Gravemaw victory.');
+
+// New matches change weapon color without rewriting any saved v6 encounters.
+for(const [id,color] of [['bandit','yellow'],['troll','green']]){
+ const s=make(id,'replay-v7'),e=encounters.forVersion(id,s.version),w=loadouts.weapon(e,lookup);
+ assert.equal(w.color,color);const before=s.pHP;engine.applyColor(s,color,3,'enemy');assert.equal(s.pHP,before-3*w.attack);assert.equal(s.ec[color],3);
+ assert.equal(loadouts.weapon(encounters.forVersion(id,'replay-v6'),lookup).color,'red');
+}
