@@ -1874,3 +1874,42 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
 .game .cell:before{transform-origin:50% 50%}
 .game .board{transform-origin:50% 50%}
 
+/* Upright means upright: legacy diamond transforms must never leak into the canonical combat renderer. */
+.game .board .gem{transform:none}
+.game .board .gem:after{transform:none}
+.shopGemIcon,.itemGem,.historyGemVisual{transform:none}
+
+/* Semantic effects: sockets respond to matches; gems themselves never spin. */
+.game .cell.matchPulse:before{
+ border-color:color-mix(in srgb,var(--match-c,#fff) 72%,#fff);
+ animation:socketMatchPulse 270ms cubic-bezier(.2,.72,.22,1) both;
+}
+@keyframes socketMatchPulse{
+ 0%{transform:scale(.86);opacity:.18}
+ 44%{transform:scale(1.06);opacity:.72}
+ 100%{transform:scale(1);opacity:.16}
+}
+
+/* Re-declare the turn cue as compositor-only. */
+@keyframes turnCuePulse{
+ 0%{transform:scale(.975);opacity:.78}
+ 48%{transform:scale(1.018);opacity:1}
+ 100%{transform:scale(1);opacity:1}
+}
+
+/* Combo feedback lives in size/value, not glow filters. */
+.moveBreak.comboCharging .historyGemVisual{
+ filter:none!important;
+ box-shadow:inset 1px 1px 0 #ffffff55,inset -1px -1px 0 #0004!important;
+}
+.moveBreak.comboCharging>b{box-shadow:none!important}
+
+/* Preserve smoothness on touch hardware; meaningful motion stays enabled. */
+@media(pointer:coarse){
+ .game .cell.matchPulse:before{animation-duration:250ms}
+ .liquidChargeGem.readyPulse{animation-duration:320ms}
+}
+@media(prefers-reduced-motion:reduce){
+ .game .cell.matchPulse:before{animation:none!important;opacity:.45}
+}
+
