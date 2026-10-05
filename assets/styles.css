@@ -1691,3 +1691,42 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
  .cell.sel,.cell.hintCell,.cell.freeTarget{outline:3px solid Highlight!important}
  .gem:after{color:CanvasText!important}
 }
+
+
+/* Mobile performance tier: preserve the visual language without expensive compositor effects.
+   Coarse-pointer devices (phones/tablets) use static depth, borders and color instead of filters/glows. */
+@media (pointer:coarse){
+ .game.turn-enemy .board,
+ .game.turn-enemy .slots,
+ .game.turn-enemy .reservoirs,
+ .game.turn-enemy .playerSide,
+ .game.turn-player .enemySide,
+ .game .enemyGem.ready .liquidChargeGem,
+ .game #slots .liquidGemButton.ready .liquidChargeGem,
+ .game #slots .liquidGemButton.armed .liquidChargeGem,
+ .liquidChargeGem,
+ .chargeWeaponMark,
+ .sackPage .sackSlot,
+ .sackPage .itemCard,
+ .worldQuickButton,
+ .worldAction{
+  filter:none!important;
+ }
+ .worldHud,.worldCard,.worldPlayerStrip,.worldObjectiveBar,.modal{
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+ }
+ .turnBadge.turnPulse,.worldNodePulse,.gemLiquid.liquidRise,.flash.go{
+  animation:none!important;
+ }
+ .healthFill,.healthTrail,.enemyChargeTrack i,.slotChargeMeter i,
+ .combatant,.turn #turnText,.turnBadge,.cell,.slot,.worldQuickButton,.worldAction{
+  transition:none!important;
+ }
+ .gem.draggingGem,.gem.movingGem{will-change:auto!important}
+ .game .boardShell{box-shadow:inset 0 1px 0 #b9ecdf20,0 6px 14px #0008}
+ .game .board .gem{box-shadow:inset 1px 1px 0 #ffffff66,inset -1px -1px 0 #0003,0 2px 2px #0008}
+ .game .board .chargedGem{box-shadow:inset 1px 1px 0 #fff7,0 2px 2px #0008}
+ .game .enemyGem.ready,.game .slot.compactGemCard.weaponGemCard.ready{box-shadow:none!important}
+ .damageSpark,.shard,.particleLight,.combatHalo{display:none!important}
+}
