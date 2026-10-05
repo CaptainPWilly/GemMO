@@ -1898,3 +1898,164 @@ button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-v
  .game .healthFill,.game .healthTrail{will-change:auto}
  .turnBadge.turnPulse{will-change:auto}
 }
+
+/* =========================================================
+   MOBILE ORIGINAL-FIDELITY BOARD
+   Visually matches the pre-performance crystal board.
+   Dynamic relighting/filter glow remain intentionally absent.
+   ========================================================= */
+@media(pointer:coarse){
+ .game .boardShell{
+  contain:layout paint;
+  padding:5px;
+  border-radius:6px;
+  border:1px solid #71939770;
+  background:linear-gradient(135deg,#49636a 0%,#263740 12%,#0b121c 45%,#26363c 86%,#5c6451 100%);
+  box-shadow:inset 0 1px 0 #b9ecdf35,inset 0 -2px 3px #000c,0 12px 30px #0009,0 0 22px #3e949010;
+ }
+ .game .boardShell:before{display:none}
+ .game .board{
+  contain:layout paint;
+  padding:2px;
+  gap:3px;
+  border-radius:5px;
+  background:
+   radial-gradient(ellipse at 12% 4%,#23414780,transparent 55%),
+   radial-gradient(ellipse at 90% 100%,#29234190,transparent 55%),
+   #060b12;
+  box-shadow:none;
+ }
+ .game .cell{
+  contain:layout style;
+  overflow:visible;
+  border:1px solid #607b871c;
+  border-radius:6px;
+  background:radial-gradient(ellipse at 45% 35%,#182935,#0b141e 68%,#060b11);
+  box-shadow:inset 0 2px 4px #000a,inset 0 -1px 0 #93c8ce17;
+ }
+ .game .cell:before{
+  content:"";
+  display:block!important;
+  position:absolute;
+  inset:0;
+  border:0;
+  border-radius:inherit;
+  background:radial-gradient(ellipse at 50% 38%,#b7f5ff0d,transparent 78%)!important;
+  box-shadow:none!important;
+ }
+ .game .cell.sel{
+  outline:1px solid #e0fbff;
+  outline-offset:-2px;
+  background:radial-gradient(ellipse at 45% 35%,#182935,#0b141e 68%,#060b11);
+  box-shadow:inset 0 0 16px #89eaff32,0 0 6px #b2faff44!important;
+ }
+ .game .cell.hintCell{
+  animation:none!important;
+  outline:2px solid #fff2ae;
+  outline-offset:-3px;
+  background:radial-gradient(ellipse at 45% 35%,#1b2e37,#0b141e 68%,#060b11);
+  box-shadow:inset 0 0 12px #ffdf771d!important;
+ }
+ .game .cell.swipeOrigin{outline:1px solid #e0fbff;outline-offset:-2px}
+ .game .cell.swipeTarget{outline:2px solid #ffe7a8;outline-offset:-3px}
+ .game .cell.pinnedCell{border-color:#9ecbff90}
+
+ .game .board .gem{
+  --crystal:#78baff;--crystal-deep:#134f9b;
+  width:64%;
+  aspect-ratio:1;
+  border-radius:11%;
+  border:1px solid #ffffff65;
+  clip-path:none!important;
+  background:
+   conic-gradient(from 45deg at 50% 50%,
+    #ffffff35 0deg 45deg,#0002 45deg 90deg,
+    #fff1 90deg 135deg,#0004 135deg 180deg,
+    #fff3 180deg 225deg,#0002 225deg 270deg,
+    #fff5 270deg 315deg,#0002 315deg),
+   radial-gradient(ellipse at 28% 18%,#ffffffa0,transparent 42%),
+   linear-gradient(145deg,var(--crystal),var(--crystal-deep));
+  box-shadow:
+   inset 2px 2px 1px #ffffff70,
+   inset -3px -3px 2px #0005,
+   1px 5px 5px #0009,
+   0 0 6px color-mix(in srgb,var(--crystal) 11%,transparent);
+  filter:none!important;
+ }
+ .game .board .red{--crystal:#ff7b96;--crystal-deep:#a21846;clip-path:none!important}
+ .game .board .blue{--crystal:#77d6ff;--crystal-deep:#1c479f;clip-path:none!important}
+ .game .board .green{--crystal:#79f0b8;--crystal-deep:#147e61;clip-path:none!important}
+ .game .board .yellow{--crystal:#ffe59a;--crystal-deep:#b77518;clip-path:none!important}
+ .game .board .purple{--crystal:#d2acff;--crystal-deep:#66319f;clip-path:none!important}
+
+ .game .board .gem:before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border:0;
+  border-radius:inherit;
+  background:linear-gradient(135deg,#fff5,transparent 35%,#0001 65%)!important;
+  opacity:.72;
+  box-shadow:inset 1px 1px 2px #fff4!important;
+  mix-blend-mode:normal!important;
+ }
+ .game .board .gem:after{
+  z-index:2;
+  color:#ffffffdf;
+  text-shadow:0 1px 3px #0009;
+  font-size:clamp(10px,3.5vw,17px);
+ }
+
+ .game .board .gold{
+  --crystal:#ffe7a5;--crystal-deep:#a66a18;
+  width:59%;
+  border-radius:50%;
+  clip-path:none!important;
+  background:
+   radial-gradient(circle at 31% 27%,#fff8cc 0 7%,transparent 8%),
+   linear-gradient(145deg,var(--crystal),var(--crystal-deep));
+  box-shadow:inset 2px 2px 1px #fff9,inset -3px -3px 2px #78451188,1px 4px 4px #000a;
+ }
+ .game .board .gold:before{
+  inset:0;border-radius:50%;
+  background:linear-gradient(135deg,#fff7,transparent 38%,#8d4f151f 70%)!important;
+ }
+ .game .board .xp{
+  --crystal:#b9faff;--crystal-deep:#338da4;
+  border-radius:0;
+  clip-path:none!important;
+  background:radial-gradient(circle,#ecffff,#90edff 45%,#2894b2);
+ }
+ .game .board .xp:before{background:linear-gradient(135deg,#fff8,transparent 42%,#176d811f 75%)!important}
+ .game .board .wild{
+  border-radius:11%;
+  clip-path:none!important;
+  background:conic-gradient(from 20deg,#ff6c91,#ffd777,#71efb9,#75d6ff,#c095ff,#ff6c91);
+  animation:none!important;
+  filter:none!important;
+ }
+
+ .game .board .chargedGem{
+  filter:none!important;
+  border-color:#fffbd2;
+  box-shadow:
+   inset 2px 2px 1px #ffffff82,
+   inset -3px -3px 2px #0005,
+   1px 5px 5px #0009,
+   0 0 0 1px #fff2a067,
+   0 0 5px color-mix(in srgb,var(--crystal) 24%,transparent);
+ }
+ .game .board .chargedGem:before{border:0;opacity:.82}
+
+ /* Motion keeps the original art intact: only position/scale/opacity change. */
+ .game .board .gem.draggingGem,.game .board .gem.movingGem{
+  z-index:12!important;
+  box-shadow:
+   inset 2px 2px 1px #ffffff82,
+   inset -3px -3px 2px #0005,
+   1px 7px 7px #000b,
+   0 0 5px color-mix(in srgb,var(--crystal) 18%,transparent);
+ }
+ .game .board .gem.dragNeighbor{z-index:7!important;opacity:.94}
+}
+
