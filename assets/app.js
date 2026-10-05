@@ -586,7 +586,7 @@ function renderBoard(){
   const type=board[y]?.[x]||'',bonus=boardBonus[y]?.[x]||0,cell=boardEl.children[y*W+x],gem=cell.firstElementChild||cell.children?.[0];if(!gem)continue;
   const cellClass='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'')+(x===pinColumn&&pinTurns?' pinnedCell':'');
   if(cell.className!==cellClass)cell.className=cellClass;
-  const label=(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'')+', row '+(y+1)+', column '+(x+1);if(cell.getAttribute('aria-label')!==label)cell.setAttribute('aria-label',label);
+  const label=(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'')+', row '+(y+1)+', column '+(x+1);if(cell.getAttribute?.('aria-label')!==label)cell.setAttribute('aria-label',label);
   if(type){
    gem.hidden=false;const gemClass='gem '+type+(bonus?' chargedGem':'');if(gem.className!==gemClass)gem.className=gemClass;
    if(gem.dataset.i!==(ICON[type]||''))gem.dataset.i=ICON[type]||'';gem.style.opacity='';
