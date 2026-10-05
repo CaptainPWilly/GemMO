@@ -89,7 +89,7 @@ function unequipGear(slot){if(!gearSlotById(slot))return false;equipment[slot]=n
 const DEFAULT_SACK=[null,null,null,null,null];
 let sack=Array(5).fill(null),charges={red:0,blue:0,green:0,yellow:0,purple:0},screen='splash',chosenSlot=0,loadoutReturnScreen='menu',enemyTimer=0,motionOff=false,textSize='large';
 let actionNumber=1,targetMode=null,targetKeepsTurn=false,armedAbilitySlot=-1,armedConsumableId=null,pinColumn=-1,pinTurns=0,guardTurns=0,evadeTurns=0,renderedTurnOwner='';
-let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,suppressClickUntil=0;
+let buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0},enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0},hintTimer=0,hintDelay=30000,swipeStart=null,swipePreviewFrame=0,swipePreviewEvent=null,suppressClickUntil=0;
 function touchActivity(){clearTimeout(hintTimer);document.querySelectorAll('.hintCell').forEach(el=>el.classList.remove('hintCell'));if(hintDelay>0&&screen==='fight'&&!combatPaused&&playerTurn&&!busy&&!targetMode&&!freeSwap&&pHP>0&&eHP>0)hintTimer=setTimeout(showHint,hintDelay)}
 function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||busy||targetMode||freeSwap||pHP<=0||eHP<=0)return;const move=legalMoves()[0];if(move){move.forEach(p=>cellAt(p).classList.add('hintCell'));setLog('HINT: swap the two glowing tiles.')}else void reshuffleBoard()}
 const combatItemById=id=>{const gem=ITEMS.find(i=>i.id===id);return gem&&activeAuthority?.mode?{...COLOR_BALANCE.gemSpec(gem.legacy,activeAuthority.mode),gemType:gem.gemType}:gem};
@@ -1107,7 +1107,7 @@ function animateScreenChange(previous,next){
  if(veil)void animate(veil,[{opacity:.35},{opacity:0}],{duration:340,easing:'ease-out'});
 }
 async function fightEntrance(){
- if(reducedMotion()||screen!=='fight')return;
+ if(reducedMotion()||performanceMode()||screen!=='fight')return;
  const title=document.createElement('div');title.className='fightArrival';title.textContent=enemyLabel();$('fxLayer').appendChild(title);
  const gems=Array.from(boardEl.children).map(cell=>cell.firstElementChild).filter(Boolean);
  await Promise.all([animate(title,[{opacity:0,transform:'translate(-50%,-50%) scale(.8)',letterSpacing:'8px'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',letterSpacing:'3px',offset:.25},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.65},{opacity:0,transform:'translate(-50%,-65%) scale(1.06)'}],{duration:850,easing:'ease-out'}),...gems.map((el,i)=>animate(el,[{opacity:0,transform:'translate3d(0,-18px,0) scale(.72)'},{opacity:1,transform:'translate3d(0,2px,0) scale(1.035)',offset:.76},{opacity:1,transform:'translate3d(0,0,0) scale(1)'}],{duration:320,delay:(Math.floor(i/8)+i%8)*18,easing:'cubic-bezier(.16,1,.3,1)'}))]);title.remove();
@@ -1355,7 +1355,14 @@ boardEl.addEventListener('pointerdown',event=>{
  const rect=boardEl.getBoundingClientRect(),x=Math.floor((event.clientX-rect.left)/rect.width*8),y=Math.floor((event.clientY-rect.top)/rect.height*8);
  if(x<0||x>7||y<0||y>7)return;swipeStart={x,y,clientX:event.clientX,clientY:event.clientY,pointerId:event.pointerId,target:null,progress:0,boardRect:rect};boardEl.setPointerCapture?.(event.pointerId);touchActivity();
 });
-boardEl.addEventListener('pointermove',event=>{if(swipeStart)updateSwipePreview(event)});
+boardEl.addEventListener('pointermove',event=>{
+ if(!swipeStart)return;
+ swipePreviewEvent={pointerId:event.pointerId,clientX:event.clientX,clientY:event.clientY};
+ if(swipePreviewFrame)return;
+ const raf=window.requestAnimationFrame||globalThis.requestAnimationFrame;
+ if(!raf){const next=swipePreviewEvent;swipePreviewEvent=null;updateSwipePreview(next);return}
+ swipePreviewFrame=raf(()=>{swipePreviewFrame=0;const next=swipePreviewEvent;swipePreviewEvent=null;if(next)updateSwipePreview(next)});
+});
 boardEl.addEventListener('pointerup',event=>{
  if(!swipeStart||event.pointerId!==swipeStart.pointerId)return;const a={...swipeStart},dx=event.clientX-a.clientX,dy=event.clientY-a.clientY,progress=a.progress||0;clearSwipePreview();swipeStart=null;
  if(Math.max(Math.abs(dx),Math.abs(dy))<16){suppressClickUntil=Date.now()+450;tapCell(a.x,a.y);return}suppressClickUntil=Date.now()+450;touchActivity();
