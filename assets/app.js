@@ -587,6 +587,7 @@ function renderBoard(){
   const cellClass='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'')+(x===pinColumn&&pinTurns?' pinnedCell':'');
   if(cell.className!==cellClass)cell.className=cellClass;
   const label=(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'')+', row '+(y+1)+', column '+(x+1);if(cell.getAttribute?.('aria-label')!==label)cell.setAttribute('aria-label',label);
+  const bonusLabel=bonus?String(bonus):'';if(cell.dataset.bonus!==bonusLabel)cell.dataset.bonus=bonusLabel;
   if(type){
    gem.hidden=false;const gemClass='gem '+type+(bonus?' chargedGem':'');if(gem.className!==gemClass)gem.className=gemClass;
    if(gem.dataset.i!==(ICON[type]||''))gem.dataset.i=ICON[type]||'';gem.style.opacity='';
