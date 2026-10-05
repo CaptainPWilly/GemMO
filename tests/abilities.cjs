@@ -58,7 +58,7 @@ assert(src.includes("localDevHost?'http://127.0.0.1:8787':'https://gemmo.onrende
 assert(src.includes("won:false,gold:0,xp:0"),'defeats must settle their match ticket with zero rewards');
 assert(src.includes('activeRewardBudget=data.match?.rewardBudget||null'),'client must accept the server-issued reward budget');
 assert(src.includes("activeRewardBudget?'/'+activeRewardBudget.gold:''"),'combat HUD must show the server Gold budget');
-assert(src.includes("['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode)"),'client records proof transcripts for current and active legacy combats');
+assert(src.includes("['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(activeAuthority?.mode)"),'client records proof transcripts for current and active legacy combats');
 assert(src.includes("resultBody.transcript=combatTranscript"),'verified victories must submit the combat transcript');
 assert(src.includes("makeCombatRng(activeAuthority.seed)"),'authoritative combat must use the server-issued deterministic seed');
 assert(src.includes("recordCombatAction({t:'swap'"),'player swaps must enter the combat proof transcript');
@@ -170,7 +170,7 @@ const comboRules=c.GEMMO_COMBAT_RULES;assert.equal(comboRules.comboChargeTypes({
 a.beginCombatMove('player','MATCH');a.recordBrokenGems({red:3,gold:4,wild:1});let visualHistory=a.getCombatHistory();assert.equal(visualHistory.length,1);assert.equal(visualHistory[0].label,'MATCH');assert.equal(visualHistory[0].breaks.red,3);assert.equal(visualHistory[0].breaks.gold,4);assert.equal(visualHistory[0].breaks.wild,1);
 a.recordComboCharge(['red'],1,2);visualHistory=a.getCombatHistory();assert.equal(visualHistory[0].breaks.red,4,'combo 2 charges the opening red value by +1');assert.equal(visualHistory[0].comboDepth,2);
 a.recordComboCharge(['red'],2,3);visualHistory=a.getCombatHistory();assert.equal(visualHistory[0].breaks.red,6,'combo 3 charges the opening red value by +2');assert.equal(visualHistory[0].comboDepth,3);
-a.recordBrokenGems({red:4,blue:3});visualHistory=a.getCombatHistory();assert.equal(visualHistory[0].breaks.red,10,'actual cascade breaks still add their own value');assert.equal(visualHistory[0].breaks.blue,3);
+a.recordBrokenGems({red:4,blue:3});visualHistory=a.getCombatHistory();assert.equal(visualHistory[0].breaks.red,10,'actual cascade breaks still add their own value');assert.equal(visualHistory[0].anchorGrowth.red,3,'cascade anchors retain cumulative growth across history redraws');assert.equal(visualHistory[0].breaks.blue,3);
 assert(Array.isArray(a.combatEffectRows()),'current combat effects are derived as structured rows');
 
 (async()=>{
@@ -184,7 +184,7 @@ assert.equal(JSON.stringify(a.get().charges),JSON.stringify(replayPair.charges),
  const cases={dagger:[10,18,0],axe:[10,16,0],spear:[10,21,3],shield:[10,24,6],buckler:[10,21,3],ward:[12,24,3],salve:[15,24,0],poultice:[13,24,0],briar:[12,21,0],boots:[10,24,0],cloak:[10,24,5],knife:[10,23,0],charm:[10,24,0],seal:[10,16,0],relic:[14,24,4]};
  Object.assign(cases,{"arming-sword":[10,17,0],"warhammer":[10,14,0],"longbow":[10,19,0],"rapier":[10,21,3],"halberd":[10,15,0],"hand-crossbow":[10,21,0],"flail":[10,16,0],"tower-shield":[10,24,10],"swordbreaker":[10,24,0],"quarterstaff":[10,24,4],"pavise":[10,24,8],"war-pick":[10,22,0],"kite-shield":[12,24,3],"hook-spear":[10,24,7],"sickle":[12,21,0],"druid-staff":[18,24,0],"hunting-bow":[10,24,0],"thorn-whip":[10,20,0],"grove-spear":[12,24,3],"woodland-club":[10,24,6],"willow-wand":[12,24,0],"twin-knives":[10,17,0],"light-crossbow":[10,18,0],"sling":[10,22,0],"duelist-sabre":[10,21,3],"glaive":[10,16,0],"parrying-dagger":[10,24,3],"javelin":[10,15,0],"rune-blade":[10,17,0],"hex-staff":[10,24,0],"relic-mace":[14,24,4],"moon-scythe":[12,21,0],"crystal-wand":[10,20,0],"spell-tome":[12,24,3],"ritual-dagger":[10,21,3]});
  Object.assign(cases,{"bloodstone-whet":[10,24,0],"bastion-sigil":[10,24,0],"heartseed":[10,24,0],"gamblers-thread":[10,24,0]});
- assert.equal(a.ITEMS.length,76);assert.equal(new Set(a.ITEMS.map(i=>i.id)).size,76);const starterWand=a.ITEMS.find(i=>i.id==='crystal-wand');assert.equal(starterWand.color,'blue');assert.equal(starterWand.kind,'damage');assert.equal(starterWand.power,4);
+ assert.equal(a.ITEMS.length,77);assert.equal(new Set(a.ITEMS.map(i=>i.id)).size,77);const starterWand=a.ITEMS.find(i=>i.id==='crystal-wand');assert.equal(starterWand.color,'blue');assert.equal(starterWand.kind,'damage');assert.equal(starterWand.power,4);
  const effectIds=['executioners-axe','barbed-blade','mirror-shield','binding-chain','healing-potion','purifying-tonic','locksmith-pick','powder-bomb','chaos-orb','void-flask'];
  for(const id of effectIds)assert(a.ITEMS.some(i=>i.id===id),id+' exists in expanded effect catalog');
  assert(a.ITEMS.every(i=>i.effect===i.kind&&i.effectLabel&&i.role&&Number.isInteger(i.turnCost)),'every gem carries normalized effect metadata');
@@ -394,7 +394,7 @@ assert.equal(JSON.stringify(a.get().charges),JSON.stringify(replayPair.charges),
  }
 
  // Current NPC loadouts: run real client actions against server replay for every starter and encounter.
- for(const version of ['replay-v5','replay-v6'])for(const encounterId of (version==='replay-v6'?['rat','bandit','sentinel','troll']:['rat','bandit','sentinel']))for(const weaponId of wr.STARTER_WEAPON_IDS)for(const seed of [7,23,81]){
+ for(const version of ['replay-v5','replay-v6','replay-v7'])for(const encounterId of (version!=='replay-v5'?['rat','bandit','sentinel','troll']:['rat','bandit','sentinel']))for(const weaponId of wr.STARTER_WEAPON_IDS)for(const seed of [7,23,81]){
   const loadout=[weaponId,'shield','healing-potion',null,null],state=serverCombat.createCombat({encounterId,seed,version,sack:loadout,rewardBudget:{gold:30,xp:30}});
   a.restoreCombatMatch({matchId:'npc-parity',encounterId,authority:{mode:version,seed},rewardBudget:state.rewardBudget,transcript:[],state:JSON.parse(JSON.stringify({...state,rngCalls:state.rng.calls()}))});
   for(let step=0;step<15&&state.pHP>0&&state.eHP>0;step++){
@@ -408,7 +408,7 @@ assert.equal(JSON.stringify(a.get().charges),JSON.stringify(replayPair.charges),
    assert.equal(JSON.stringify(a.getBonus()),JSON.stringify(state.bonus));
   }
  }
- console.log('PASS: current NPC loadouts, all starter colors, charge spending, extra turns and replay parity across 105 seeded fights.');
+ console.log('PASS: current NPC loadouts, all starter colors, charge spending, extra turns and replay parity across 165 seeded fights.');
 
  const paidBomb=serverCombat.createRatCombat({seed:88,sack:['dagger',null,null,null,null],consumables:{'cherry-bomb':1},rewardBudget:{gold:12,xp:12}});serverCombat.applyCombatAction(paidBomb,{t:'consume',itemId:'cherry-bomb'});
  a.restoreCombatMatch({matchId:'paid-bomb-resume',encounterId:'rat',authority:{mode:'replay-v2',seed:88},rewardBudget:{gold:12,xp:12},transcript:[{t:'consume',itemId:'cherry-bomb'}],state:JSON.parse(JSON.stringify({...paidBomb,rngCalls:paidBomb.rng.calls()}))});
@@ -439,5 +439,5 @@ assert.equal(JSON.stringify(a.get().charges),JSON.stringify(replayPair.charges),
  a.setTestAccount({...buyer,inventory:a.ITEMS.map(i=>i.id)});a.setToken('test-session');a.setSack(['dagger','shield',null,null,null]);let releaseSave,storedSack=null,sackWrites=[];
  c.fetch=async(url,options)=>{const body=JSON.parse(options.body);if(url.endsWith('/v1/account/sack')){storedSack=body.sack;sackWrites.push(body.sack);if(sackWrites.length===1)await new Promise(resolve=>releaseSave=resolve);return {ok:true,json:async()=>({account:buyer})}}assert(url.endsWith('/v1/account/equipment'));return {ok:true,json:async()=>({account:{...buyer,sack:storedSack,equipment:body.equipment}})}};
  const firstSave=a.syncAccountLoadout();a.setSack(['dagger','salve',null,null,null]);const secondSave=a.syncAccountLoadout();assert.equal(firstSave,secondSave,'edits share one serialized save');releaseSave();assert.equal(await firstSave,true);assert.equal(sackWrites.length,2);assert.equal(storedSack[1],'salve','latest edit is persisted after an older response');assert.equal(a.get().sack[1],'salve','latest edit remains visible');a.setToken(null);
- console.log('PASS: 76 organized gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard durations, hints, reshuffle preservation and swipe input.');
+ console.log('PASS: 77 organized gems plus level-1 inventory/equipment, core color rules, Attunement cascade procs and expiry, timed effects, pinning, row rotation, Wild creation, recoloring, haste, siphon, Guard durations, hints, reshuffle preservation and swipe input.');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -66,7 +66,7 @@ function gearSlotIcon(type){return GEAR_SLOT_ICON[type]||'▣'}
 function openLoadoutScreen(next,origin=screen){loadoutReturnScreen=origin==='world'?'world':'menu';showScreen(next)}
 function leaveMenuPage(){if(['sack','inventory'].includes(screen)&&loadoutReturnScreen==='world'){enterWorld();return}showScreen(account?'menu':'splash')}
 function currentSkillIds(){return account?.skills?.purchased||[]}
-function currentSkillEffects(){return skillEffects(currentSkillIds(),screen==='fight'?(activeAuthority?.mode||'replay-v6'):'replay-v4')}
+function currentSkillEffects(){return skillEffects(currentSkillIds(),screen==='fight'?(activeAuthority?.mode||'replay-v7'):'replay-v4')}
 function playerMaxHP(){return 18+gearStats().hp+currentSkillEffects().maxHP}
 function matchPower(color,loadout=sack){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return loadout.reduce((sum,id)=>{const gem=itemById(id);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function weaponDamage(color,loadout=sack){return GEMMO_WEAPON_GEMS.weaponMatchDamage(loadout,color,itemById)}
@@ -86,11 +86,11 @@ function showHint(){if(hintDelay===0)return;if(screen!=='fight'||!playerTurn||bu
 const combatItemById=id=>{const gem=ITEMS.find(i=>i.id===id);return gem&&activeAuthority?.mode?{...COLOR_BALANCE.gemSpec(gem.legacy,activeAuthority.mode),gemType:gem.gemType}:gem};
 const itemById=id=>screen==='fight'?combatItemById(id):ITEMS.find(i=>i.id===id);
 let procsUsed=[];
-function colorRuleState(){return {version:activeAuthority?.mode||'replay-v6',sack,skill:currentSkillEffects(),buffs,procsUsed,charges,ec,pHP,pGuard,guardTurns}}
+function colorRuleState(){return {version:activeAuthority?.mode||'replay-v7',sack,skill:currentSkillEffects(),buffs,procsUsed,charges,ec,pHP,pGuard,guardTurns}}
 function weaponGemEffects(){return [currentSkillEffects(),...Object.values(equipment).map(gearById).filter(Boolean)]}
 function sackIsValid(list=sack){if(!Array.isArray(list)||list.length!==5)return false;const equipped=list.filter(Boolean);return GEMMO_WEAPON_GEMS.validWeaponGems(list,weaponGemEffects())&&equipped.length>=1&&equipped.every(id=>itemById(id))&&new Set(equipped).size===equipped.length}
-function encounterSpec(id=activeEncounter){return ENCOUNTERS.forVersion(id||'bandit',activeAuthority?.mode||'replay-v6')||ENCOUNTERS.bandit}
-function usesEnemyGems(){return ENEMY_LOADOUTS.isCurrent(activeAuthority?.mode||'replay-v6')}
+function encounterSpec(id=activeEncounter){return ENCOUNTERS.forVersion(id||'bandit',activeAuthority?.mode||'replay-v7')||ENCOUNTERS.bandit}
+function usesEnemyGems(){return ENEMY_LOADOUTS.isCurrent(activeAuthority?.mode||'replay-v7')}
 function enemyGemState(){return {hp:eHP,maxHP:enemyMaxHP(),guard:eGuard,charge:ec,opponentCharge:charges,silenced:enemyEffects.silence,disarmed:enemyEffects.disarm}}
 function enemyGems(){return ENEMY_LOADOUTS.gems(encounterSpec(),combatItemById)}
 function enemyReservoir(type){return usesEnemyGems()?{name:type.toUpperCase(),cap:ENEMY_LOADOUTS.cap(encounterSpec(),type,combatItemById),visible:enemyGems().some(g=>g.color===type)}:encounterSpec().reservoirs[type]}
@@ -112,7 +112,7 @@ function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
 function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
 function clearCombatJournal(){try{localStorage.removeItem(combatJournalKey())}catch{}}
-function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
+function recordCombatAction(action){if(!['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(activeAuthority?.mode))return;combatTranscript.push(action);persistCombatJournal();if(!accountToken||!activeMatchId)return;const matchId=activeMatchId,transcript=JSON.parse(JSON.stringify(combatTranscript));combatCheckpointQueue=combatCheckpointQueue.catch(()=>{}).then(()=>accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId,transcript}})).catch(error=>{lastMatchError=error.message;return null})}
 async function flushCombatCheckpoint(){await combatCheckpointQueue;if(activeMatchId&&accountToken)return accountRequest('/v1/matches/checkpoint',{method:'POST',body:{matchId:activeMatchId,transcript:combatTranscript}})}
 
 function roll(){let total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor((combatRng?combatRng():Math.random())*total),a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
@@ -187,22 +187,75 @@ const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: r
 let effectOrigin=null,damageAnimations=[];
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
-const MOTION={swap:170,pop:190,flight:340,settle:440};
+const MOTION={swap:180,pop:240,flight:360,settle:440};
+const visualStats={p:null,e:null};
+function statMotion(side,hp,guard){
+ if(screen!=='fight')return;const prior=visualStats[side];visualStats[side]={hp,guard};if(!prior||reducedMotion())return;
+ if(hp>prior.hp)combatHalo($(side+'health'),'restore','#91ffc0',hp-prior.hp);
+ if(guard>prior.guard)combatHalo($(side+'health'),'guard','#8ec7ff',guard-prior.guard);
+}
+function combatHalo(target,kind,color,value){
+ if(reducedMotion()||!target)return;
+ const at=center(target),ring=document.createElement('span');ring.className='combatHalo '+kind;ring.style.cssText='left:'+at.x+'px;top:'+at.y+'px;--c:'+color;ring.textContent=kind==='guard'?'◇ +'+value:kind==='restore'?'✚ +'+value:'';$('fxLayer').appendChild(ring);
+ const turn=kind==='guard'?45:0;
+ void animate(ring,[{transform:'translate(-50%,-50%) rotate('+turn+'deg) scale(.55)',opacity:0},{transform:'translate(-50%,-50%) rotate('+turn+'deg) scale(1)',opacity:1,offset:.25},{transform:'translate(-50%,-80%) rotate('+turn+'deg) scale(1.5)',opacity:0}],{duration:650,easing:'cubic-bezier(.16,1,.3,1)'}).then(()=>ring.remove());
+}
+function gemPopFrames(type){
+ const angle=type==='gold'?0:45;
+ const shapes={red:[1.35,.65,90],blue:[1.15,1.15,45],green:[.75,1.4,20],yellow:[1.4,.8,125],purple:[.9,.9,225],gold:[1.2,1.2,0],xp:[.8,1.4,70],wild:[1.5,1.5,180]},shape=shapes[type]||shapes.wild;
+ return [{transform:'rotate('+angle+'deg) scale(1)',opacity:1},{transform:'rotate('+angle+'deg) scale(.82)',opacity:1,offset:.18},{transform:'rotate('+shape[2]+'deg) scale('+shape[0]+','+shape[1]+')',filter:'brightness(1.65)',opacity:1,offset:.5},{transform:'rotate('+(shape[2]+35)+'deg) scale(.08)',opacity:0}];
+}
 const shownHP={p:18,e:24},pendingHP={p:0,e:0};
-function syncHealth(side){const hp=shownHP[side],max=side==='p'?playerMaxHP():enemyMaxHP();$(side+'fill').style.transform='scaleX('+Math.max(0,hp)/max+')';$(side+'health').setAttribute('aria-valuenow',Math.max(0,hp));$(side+'health').setAttribute('aria-valuemax',max);$(side+'stats').textContent=(side==='p'?Math.max(0,hp)+'/'+max:Math.max(0,hp))+' HP · '+(side==='p'?pGuard+' GUARD':eGuard+' GUARD')}
+function syncHealth(side){const hp=shownHP[side],max=side==='p'?playerMaxHP():enemyMaxHP();const health=$(side+'health'),fill=$(side+'fill');let trail=health.querySelector?.('.healthTrail');if(!trail&&document.createElement&&fill.parentNode){trail=document.createElement('i');trail.className='healthTrail';fill.parentNode.insertBefore(trail,fill)}fill.style.transition=reducedMotion()?'none':'';if(trail){trail.style.transition=reducedMotion()||hp>=Number(health.getAttribute('aria-valuenow'))?'none':'';}if(trail)trail.style.transform='scaleX('+Math.max(0,Math.min(1,hp/max))+')';fill.style.transform='scaleX('+Math.max(0,hp)/max+')';$(side+'health').setAttribute('aria-valuenow',Math.max(0,hp));$(side+'health').setAttribute('aria-valuemax',max);$(side+'stats').textContent=(side==='p'?Math.max(0,hp)+'/'+max:Math.max(0,hp))+' HP · '+(side==='p'?pGuard+' GUARD':eGuard+' GUARD')}
 function animate(el,frames,options){
  if(reducedMotion())return Promise.resolve();
  const animation=el.animate(frames,options);
  return new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(timer);animation.cancel();resolve()};const timer=setTimeout(finish,(options.delay||0)+options.duration+100);animation.finished.then(finish,finish)});
 }
+// Emissive fragments illuminate the tile material, not only the FX overlay.
+const boardLights=[];let boardLightFrame=0;
+const BOARD_LIGHT_COLORS={red:'#ff526b',blue:'#56adff',green:'#57edaa',yellow:'#ffce5e',purple:'#b18aff',gold:'#ffd58b',xp:'#75eeff',wild:'#e5cfff'};
+const linearLight=n=>Math.pow(n/255,2.2),displayLight=n=>Math.round(255*Math.pow(Math.max(0,n),1/2.2));
+function illuminateBoard(origin,color,dx=0,dy=0,duration=500,power=1){
+ if(reducedMotion()||screen!=='fight')return;if(boardLights.length>=40){let weakest=0;for(let i=1;i<boardLights.length;i++)if(boardLights[i].power<boardLights[weakest].power)weakest=i;if(boardLights[weakest].power>=power)return;boardLights.splice(weakest,1)}
+ const hex=color.replace('#',''),rgb=[0,2,4].map(i=>parseInt(hex.slice(i,i+2),16));if(rgb.some(n=>!Number.isFinite(n)))return;
+ boardLights.push({x:origin.x,y:origin.y,dx,dy,rgb,start:performance.now(),duration,power});
+ if(!boardLightFrame)boardLightFrame=requestAnimationFrame(drawBoardLighting);
+}
+function drawBoardLighting(now){
+ boardLightFrame=0;
+ const active=screen==='fight'&&!reducedMotion();
+ for(let i=boardLights.length-1;i>=0;i--)if(!active||now-boardLights[i].start>=boardLights[i].duration)boardLights.splice(i,1);
+ const live=boardLights.map(light=>{const t=Math.max(0,Math.min(1,(now-light.start)/light.duration)),travel=1-Math.pow(1-t,2);return {...light,x:light.x+light.dx*travel,y:light.y+light.dy*travel+20*t*t,energy:light.power*Math.pow(1-t,1.6)}});
+ const area=$('fxLayer').getBoundingClientRect(),cells=Array.from(boardEl.children),boxes=cells.map(cell=>cell.getBoundingClientRect());
+ // The board's enhanced gems and selection are low-energy, persistent emitters.
+ for(let i=0;i<cells.length;i++){const gem=cells[i].firstElementChild;if(!gem)continue;const charged=gem.classList.contains('chargedGem'),picked=cells[i].classList.contains('sel');if(!charged&&!picked)continue;const type=Object.keys(BOARD_LIGHT_COLORS).find(type=>gem.classList.contains(type)),hex=(BOARD_LIGHT_COLORS[type]||'#ffffff').slice(1),box=boxes[i];live.push({x:box.left+box.width/2-area.left,y:box.top+box.height/2-area.top,rgb:[0,2,4].map(n=>parseInt(hex.slice(n,n+2),16)),energy:picked?.7:.35})}
+ for(let i=0;i<cells.length;i++){const cell=cells[i];
+  if(!live.length){cell.style.removeProperty('--surface-light');cell.style.removeProperty('--surface-energy');cell.style.removeProperty('--light-angle');cell.style.removeProperty('--specular');cell.style.removeProperty('--cast-x');cell.style.removeProperty('--cast-y');continue}
+  const box=boxes[i],x=box.left+box.width/2-area.left,y=box.top+box.height/2-area.top,radius=Math.max(42,box.width*1.8);let red=0,green=0,blue=0,total=0,vx=0,vy=0;
+  for(const light of live){const lx=light.x-x,ly=light.y-y,d2=lx*lx+ly*ly;const strength=light.energy/(1+d2/(radius*radius*.16));if(strength<.012)continue;red+=linearLight(light.rgb[0])*strength;green+=linearLight(light.rgb[1])*strength;blue+=linearLight(light.rgb[2])*strength;total+=strength;vx+=lx*strength;vy+=ly*strength}
+  const alpha=1-Math.exp(-total*.38);cell.style.setProperty('--surface-light','rgba('+displayLight(red/Math.max(total,.001))+','+displayLight(green/Math.max(total,.001))+','+displayLight(blue/Math.max(total,.001))+','+alpha+')');cell.style.setProperty('--surface-energy',String(Math.min(.8,total*.2)));cell.style.setProperty('--light-angle',(Math.atan2(vy,vx)*180/Math.PI+90)+'deg');const norm=Math.max(1,Math.hypot(vx,vy));cell.style.setProperty('--cast-x',(-vx/norm*3)+'px');cell.style.setProperty('--cast-y',(-vy/norm*3+3)+'px');cell.style.setProperty('--specular',String(Math.min(.6,total*.18)));
+ }
+ if(boardLights.length)boardLightFrame=requestAnimationFrame(drawBoardLighting);
+}
+function lightPulse(origin,color,size=72){
+ if(reducedMotion())return;
+ const layer=$('fxLayer');if(layer.childElementCount>180)return;illuminateBoard(origin,color,0,0,420,1.4);
+ const glow=document.createElement('i');glow.className='particleLight';glow.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;--light:'+color+';width:'+size+'px;height:'+size+'px';layer.appendChild(glow);
+ void animate(glow,[{transform:'translate(-50%,-50%) scale(.35)',opacity:0},{transform:'translate(-50%,-50%) scale(1)',opacity:.8,offset:.18},{transform:'translate(-50%,-50%) scale(1.5)',opacity:0}],{duration:420,easing:'ease-out'}).then(()=>glow.remove());
+}
 function burst(origin,color,count=7){
  if(reducedMotion())return;
- for(let i=0;i<count;i++){const p=document.createElement('i'),angle=i/count*Math.PI*2,dist=18+Math.random()*23;p.className='shard';p.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;background:'+color;
- $('fxLayer').appendChild(p);animate(p,[{transform:'translate(-50%,-50%) scale(1)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) rotate(160deg) scale(.1)',opacity:0}],{duration:300+Math.random()*100,easing:'cubic-bezier(.12,.7,.25,1)'}).then(()=>p.remove())}
+ const layer=$('fxLayer');lightPulse(origin,color);count=Math.min(count,Math.max(0,180-layer.childElementCount));
+ for(let i=0;i<count;i++){
+  const shard=document.createElement('i'),angle=i/count*Math.PI*2+(Math.random()-.5)*.4,distance=24+Math.random()*32,dx=Math.cos(angle)*distance,dy=Math.sin(angle)*distance,spin=(Math.random()-.5)*360,duration=390+Math.random()*170;
+  illuminateBoard(origin,color,dx,dy,duration,.4);shard.className='shard litShard';shard.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;--light:'+color+';color:'+color;layer.appendChild(shard);
+  void animate(shard,[{transform:'translate(-50%,-50%) scale(1.25)',opacity:1},{transform:'translate('+dx*.7+'px,'+(dy*.7-8)+'px) rotate('+spin*.65+'deg) scale(.85)',opacity:1,offset:.48},{transform:'translate('+dx+'px,'+(dy+20)+'px) rotate('+spin+'deg) scale(.2)',opacity:0}],{duration,easing:'cubic-bezier(.12,.65,.35,1)'}).then(()=>shard.remove());
+ }
 }
 async function popCells(cells){
- const points=cells.map(p=>({el:cellAt(p).firstElementChild,origin:center(cellAt(p)),color:{red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'}[board[p.y][p.x]]}));
- await Promise.all(points.map(async({el,origin,color},i)=>{burst(origin,color,Math.min(7,Math.floor(120/points.length)));await animate(el,[{transform:'rotate(45deg) scale(1)',opacity:1},{transform:'rotate(45deg) scale(.82)',opacity:1,offset:.2},{transform:'rotate(65deg) scale(1.28)',opacity:.9,offset:.5},{transform:'rotate(85deg) scale(.15)',opacity:0}],{duration:MOTION.pop,delay:i%3*12,easing:'ease-out'});el.style.opacity='0'}))
+ const points=cells.map(p=>({el:cellAt(p).firstElementChild,type:board[p.y][p.x],origin:center(cellAt(p)),color:{red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'}[board[p.y][p.x]]}));
+ await Promise.all(points.map(async({el,type,origin,color},i)=>{burst(origin,color,Math.min(7,Math.floor(120/points.length)));await animate(el,gemPopFrames(type),{duration:MOTION.pop,delay:i%3*12,easing:'ease-out'});el.style.opacity='0'}))
 }
 function damageFlight(side,amount,blocked){
  const destination=center($(side+'health')),origin=effectOrigin||center(boardEl),targetHP=side==='p'?pHP:eHP;pendingHP[side]++;
@@ -210,7 +263,7 @@ function damageFlight(side,amount,blocked){
  const dx=destination.x-origin.x,dy=destination.y-origin.y,curve=(side==='p'?-1:1)*Math.min(80,Math.abs(dy)*.3);
  const path=Array.from({length:15},(_,i)=>{const t=i/14;return {transform:'translate3d('+(dx*t+curve*4*t*(1-t)-6)+'px,'+(dy*t-6)+'px,0) rotate('+(t*270)+'deg) scale('+(1-.4*t)+')',opacity:t<.1?t*10:1,offset:t}});
  const trails=Array.from({length:reducedMotion()?0:4},(_,i)=>{const dot=document.createElement('span');dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';dot.style.opacity=1-i*.2;$('fxLayer').appendChild(dot);return animate(dot,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>dot.remove())});
- await Promise.all(trails);shownHP[side]=Math.max(0,targetHP);pendingHP[side]--;syncHealth(side);burst(destination,'#ffe5a0',10);
+ await Promise.all(trails);shownHP[side]=Math.max(0,targetHP);pendingHP[side]--;syncHealth(side);burst(destination,blocked?'#8ec7ff':'#ffae8c',blocked?6:10);combatHalo($(side+'health'),blocked?'guard':'impact',blocked?'#8ec7ff':'#ffae8c',blocked||amount);
  const label=document.createElement('span');label.className='damageNumber';label.textContent=amount?'−'+amount:'BLOCK';label.style.left=destination.x+'px';label.style.top=destination.y+'px';$('fxLayer').appendChild(label);
  void animate($(side+'health'),[{transform:'translateX(0)'},{transform:'translateX(-3px)',offset:.2},{transform:'translateX(2px)',offset:.45},{transform:'translateX(0)'}],{duration:180});
  void animate(label,[{transform:'translate(-50%,0) scale(.75)',opacity:0},{transform:'translate(-50%,-8px) scale(1.15)',opacity:1,offset:.18},{transform:'translate(-50%,-28px) scale(1)',opacity:0}],{duration:540,easing:'ease-out'}).then(()=>label.remove());
@@ -230,7 +283,7 @@ async function fallColumns(){
  const falling=[];for(let x=0;x<W;x++){if(x===pinColumn&&pinTurns>0){for(let y=0;y<H;y++)if(!board[y][x]){const tile=rollTile();board[y][x]=tile.type;boardBonus[y][x]=tile.bonus}continue}const kept=[];for(let y=H-1;y>=0;y--)if(board[y][x])kept.push({type:board[y][x],bonus:boardBonus[y][x]||0,from:y});
  const missing=H-kept.length;for(let y=H-1,i=0;y>=0;y--,i++){const entry=kept[i];const tile=entry||rollTile();board[y][x]=tile.type;boardBonus[y][x]=tile.bonus;const from=entry?entry.from:y-missing;if(from!==y)falling.push({x,y,from})}}
  render();const step=cellAt({x:0,y:1}).getBoundingClientRect().top-cellAt({x:0,y:0}).getBoundingClientRect().top;
- await Promise.all(falling.map(p=>animate(cellAt(p).firstElementChild,[{transform:'translate3d(0,'+((p.from-p.y)*step)+'px,0) rotate(45deg)',opacity:p.from<0?0:1},{transform:'translate3d(0,3px,0) rotate(45deg) scale(1.04,.96)',opacity:1,offset:.78},{transform:'translate3d(0,-1px,0) rotate(45deg)',opacity:1,offset:.9},{transform:'translate3d(0,0,0) rotate(45deg)',opacity:1}],{duration:280+Math.sqrt(p.y-p.from)*55,delay:p.x*9,easing:'cubic-bezier(.33,0,.67,1)'})));
+ await Promise.all(falling.map(p=>{const el=cellAt(p).firstElementChild,rotation=el.classList.contains('gold')?'':' rotate(45deg)';return animate(el,[{transform:'translate3d(0,'+((p.from-p.y)*step)+'px,0)'+rotation,opacity:p.from<0?0:1},{transform:'translate3d(0,4px,0)'+rotation+' scale(1.09,.91)',opacity:1,offset:.78},{transform:'translate3d(0,-2px,0)'+rotation,opacity:1,offset:.9},{transform:'translate3d(0,0,0)'+rotation,opacity:1}],{duration:240+Math.sqrt(p.y-p.from)*50,delay:p.x*7,easing:'cubic-bezier(.32,0,.66,1)'})}));
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
@@ -313,7 +366,7 @@ async function applyTarget(p){
  if(mode==='wildcraft')board[p.y][p.x]='wild';
  if(mode==='rotate'){board[p.y].unshift(board[p.y].pop());boardBonus[p.y].unshift(boardBonus[p.y].pop())}
  if(mode==='reroll'){const tile=rollTile();board[p.y][p.x]=tile.type;boardBonus[p.y][p.x]=tile.bonus}
- if(mode==='blast'&&COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+2);}
+ if(mode==='blast'&&COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')){const color=itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color;if(color)charges[color]=Math.min(reservoirCap(color),charges[color]+2);}
  if(['break','blast','purge'].includes(mode)){
   let cells=[];
   if(mode==='break')cells=[p];
@@ -368,7 +421,7 @@ function activate(index){
  if(spec.kind==='green_attune')buffs.aftergrowth=4;
  if(spec.kind==='yellow_attune')buffs.momentum=4;
  if(spec.kind==='haste')extraTurn=true;
- if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;const target=COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color:'purple';if(target)charges[target]=Math.min(reservoirCap(target),charges[target]+amount)}
+ if(spec.kind==='siphon'){damageEnemy(2);const color=Object.keys(ec).sort((a,b)=>ec[b]-ec[a])[0],amount=Math.min(3,ec[color]);ec[color]-=amount;const target=COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')?itemById(sack.find(GEMMO_WEAPON_GEMS.isWeaponGem))?.color:'purple';if(target)charges[target]=Math.min(reservoirCap(target),charges[target]+amount)}
  if(spec.kind==='quick_damage')damageEnemy(spec.power);
  if(spec.kind==='execute')damageEnemy(eHP<=8?10:spec.power);
  if(spec.kind==='breach'){eGuard=0;damageEnemy(spec.power)}
@@ -390,7 +443,7 @@ async function startMatchTicket(){
  try{
   if(!await syncAccountLoadout())throw new Error('loadout_not_synced');
   const data=await accountRequest('/v1/matches/start',{method:'POST',body:{encounterId:activeEncounter}});
-  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
+  applyAccount(data.account);activeMatchId=data.match?.matchId||null;activeRewardBudget=data.match?.rewardBudget||null;activeAuthority=data.match?.authority||null;combatRng=['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(activeAuthority?.mode)?makeCombatRng(activeAuthority.seed):null;
   if(activeRewardBudget){gold=Math.min(gold,activeRewardBudget.gold);xp=Math.min(xp,activeRewardBudget.xp);render()}lastMatchError='';return activeMatchId;
  }catch(error){activeMatchId=null;lastMatchError=error.message||'match_start_failed';if(error.message==='unfinished_match'){await refreshAccount();enterWorld()}return null}
 }
@@ -424,7 +477,7 @@ async function settleVictory(){
   if(!await ensureMatchTicket())throw Object.assign(new Error(lastMatchError||'match_start_failed'),{status:0});
   const firstClear=!worldCleared(activeEncounter),unlockText=encounterSpec().unlockText;
   let data;
-  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
+  const resultBody={matchId:activeMatchId,won:true,gold,xp};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(activeAuthority?.mode))resultBody.transcript=combatTranscript;
   try{data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
   catch(error){
    if(error.status===0||error.status>=500){await new Promise(resolve=>setTimeout(resolve,650));data=await accountRequest('/v1/matches/settle',{method:'POST',body:resultBody})}
@@ -441,7 +494,7 @@ async function settleDefeat(){
  lossSettlementStarted=true;encounterSettling=true;$('resultMenu').disabled=true;$('resultRetry').hidden=true;$('resultText').textContent='SAVING…';
  try{
   if(!await ensureMatchTicket())throw new Error(lastMatchError||'match_start_failed');
-  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
+  const body={matchId:activeMatchId,won:false,gold:0,xp:0};if(['replay-v1','replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(activeAuthority?.mode))body.transcript=combatTranscript;
   const data=await accountRequest('/v1/matches/settle',{method:'POST',body});applyAccount(data.account);clearCombatJournal();
   $('resultText').textContent=data.settlement?.respawnNode?'You awaken at '+WORLD_NODES[data.settlement.respawnNode].name+'.':account?.world?.currentNode===account?.world?.checkpoint?'You awaken at '+WORLD_NODES[account.world.currentNode].name+'.':'No rewards earned.';
  }catch(error){lossSettlementStarted=false;$('resultText').textContent='Could not save your result. Please retry.';$('resultRetry').hidden=false}
@@ -457,13 +510,13 @@ function renderMoveHistory(){
  const host=$('moveHistory');if(!host)return;
  if(!combatHistory.length){host.innerHTML='<article class="moveHistoryItem moveHistoryPlaceholder latest" aria-hidden="true"><div class="moveHistoryMeta"><small>&nbsp;</small><strong>&nbsp;</strong></div><div class="moveBreaks"><span class="moveNoBreak">&nbsp;</span></div></article>';return}
  host.innerHTML=combatHistory.slice(-3).reverse().map((move,index)=>{
-  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak" data-gem="'+type+'" title="'+type+' value '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
+  const breaks=Object.entries(move.breaks||{}).filter(([,value])=>value>0).map(([type,value])=>'<span class="moveBreak'+(move.anchorGrowth?.[type]?' comboAnchor':'')+'" style="--anchor-scale:'+(1+Math.min(.38,(move.anchorGrowth?.[type]||0)*.065))+';--anchor-glow:'+Math.min(18,4+(move.anchorGrowth?.[type]||0)*2)+'px;--c:var(--'+type[0]+')" data-gem="'+type+'" title="'+type+' value '+value+'"><span class="historyGemVisual gem '+type+'" data-i="'+(ICON[type]||'')+'"></span><b>'+value+'</b></span>').join('');
   const ability=move.ability?'<span class="moveAbilityChip" style="--c:var(--'+(move.ability.color?.[0]||'gold')+')"><i>✦</i><b>ABILITY</b></span>':'';
   return '<article class="moveHistoryItem '+move.actor+' '+(move.ability?'abilityMove ':'')+(index===0?'latest':'')+'"><div class="moveHistoryMeta"><small>'+move.actorLabel+(move.comboDepth?' · COMBO '+move.comboDepth:'')+'</small><strong>'+move.label+'</strong></div><div class="moveBreaks">'+ability+breaks+(ability||breaks?'':'<span class="moveNoBreak">—</span>')+'</div></article>';
  }).join('');
 }
 function beginCombatMove(actor,label){
- const move={id:++logSequence,actor,actorLabel:moveActorLabel(actor),label:String(label||'MATCH').toUpperCase(),breaks:{},ability:null};
+ const move={anchorGrowth:{},id:++logSequence,actor,actorLabel:moveActorLabel(actor),label:String(label||'MATCH').toUpperCase(),breaks:{},ability:null};
  combatHistory.push(move);if(combatHistory.length>12)combatHistory.shift();activeCombatMove=move;renderMoveHistory();return move;
 }
 function recordBrokenGems(counts){
@@ -473,9 +526,10 @@ function recordBrokenGems(counts){
 }
 function recordComboCharge(types,amount,comboNumber){
  if(!activeCombatMove||!types?.length||amount<=0)return;
- for(const type of types)activeCombatMove.breaks[type]=(activeCombatMove.breaks[type]||0)+amount;
+ const priorGrowth={...activeCombatMove.anchorGrowth};activeCombatMove.anchorGrowth=activeCombatMove.anchorGrowth||{};
+ for(const type of types){activeCombatMove.breaks[type]=(activeCombatMove.breaks[type]||0)+amount;activeCombatMove.anchorGrowth[type]=(activeCombatMove.anchorGrowth[type]||0)+amount}
  activeCombatMove.comboDepth=comboNumber;renderMoveHistory();
- for(const type of types){const gem=document.querySelector('.moveHistoryItem.latest .moveBreak[data-gem="'+type+'"]');if(!gem)continue;gem.dataset.charge='+'+amount+'!';gem.classList.add('comboCharging');if(!reducedMotion())void gem.animate([{transform:'scale(.86)',filter:'brightness(1)'},{transform:'scale(1.22)',filter:'brightness(1.75)'},{transform:'scale(1)',filter:'brightness(1)'}],{duration:460,easing:'cubic-bezier(.2,.85,.2,1)'})}
+ for(const type of types){const gem=document.querySelector('.moveHistoryItem.latest .moveBreak[data-gem="'+type+'"]');if(!gem)continue;gem.dataset.charge='+'+amount+'!';gem.classList.add('comboCharging');const before=1+Math.min(.38,(priorGrowth[type]||0)*.065),after=1+Math.min(.38,activeCombatMove.anchorGrowth[type]*.065);void animate(gem,[{transform:'scale('+before+')',filter:'brightness(1)'},{transform:'scale('+(after+.14)+')',filter:'brightness(1.9)',offset:.45},{transform:'scale('+after+')',filter:'brightness(1.2)'}],{duration:560,easing:'cubic-bezier(.16,1,.3,1)'})}
 }
 function finishCombatMove(){activeCombatMove=null}
 function announceAbility(actor,name,description,color='gold'){
@@ -523,7 +577,7 @@ function renderEnemyChargeGauges(){
  const colors=['red','blue','green','yellow','purple'],enemy=encounterSpec();
  $('enemyChargeGauges').innerHTML=colors.map(color=>{const reservoir=enemy.reservoirs?.[color],active=!!reservoir?.visible,cap=reservoir?.cap||0,value=active?Math.min(cap,ec[color]||0):0,ratio=cap?Math.max(0,Math.min(1,value/cap)):0,label=reservoir?.name||color.toUpperCase();return '<div class="enemyChargeGauge '+color+(active?'':' inactive')+'" style="--c:var(--'+color[0]+');--fill:'+(ratio*100)+'%" title="'+label+' · '+(active?value+'/'+cap:'inactive')+'"><span class="enemyChargeDot"></span><span class="enemyChargeTrack"><i></i></span><b>'+(active?value+'/'+cap:'—')+'</b></div>'}).join('');
 }
-function render(){renderStatuses();boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');const bonus=boardBonus[y]?.[x]||0;c.setAttribute('aria-label',(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'' )+', row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+(bonus?' chargedGem':'')+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>{if(Date.now()>suppressClickUntil)tapCell(x,y)});if(x===pinColumn&&pinTurns)c.classList.add('pinnedCell');boardEl.appendChild(c)}$('pstats').textContent='♥ '+pHP+' · ◈ '+pGuard;$('enemyName').textContent=enemyLabel();$('estats').textContent='♥ '+eHP+' · ◌ '+eGuard;$('gold').textContent='◆ '+gold+(activeRewardBudget?'/'+activeRewardBudget.gold:'');$('xp').textContent='XP '+xp+(activeRewardBudget?'/'+activeRewardBudget.xp:'');$('turnText').textContent=freeSwap?'↯ QUICKSTEP':(playerTurn?'✦ YOU':'⚔ '+enemyLabel().toUpperCase());$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');renderEnemyChargeGauges();renderEnemyIntent();for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side)}$('leaveFight').disabled=busy||!playerTurn||pendingHP.p>0||pendingHP.e>0;renderSlots()}
+function render(){renderStatuses();boardEl.innerHTML='';for(let y=0;y<H;y++)for(let x=0;x<W;x++){let type=board[y]?.[x]||'',c=document.createElement('button');c.className='cell'+(selected&&selected.x===x&&selected.y===y?' sel':'')+(freeSwap&&selected&&Math.abs(selected.x-x)+Math.abs(selected.y-y)===1?' freeTarget':'');const bonus=boardBonus[y]?.[x]||0;c.setAttribute('aria-label',(type||'Empty')+' gem'+(bonus?' plus '+bonus+' value':'' )+', row '+(y+1)+', column '+(x+1));c.innerHTML=type?'<span class="gem '+type+(bonus?' chargedGem':'')+'" data-i="'+ICON[type]+'"></span>':'';c.addEventListener('click',()=>{if(Date.now()>suppressClickUntil)tapCell(x,y)});if(x===pinColumn&&pinTurns)c.classList.add('pinnedCell');boardEl.appendChild(c)}$('pstats').textContent='♥ '+pHP+' · ◈ '+pGuard;$('enemyName').textContent=enemyLabel();$('estats').textContent='♥ '+eHP+' · ◌ '+eGuard;$('gold').textContent='◆ '+gold+(activeRewardBudget?'/'+activeRewardBudget.gold:'');$('xp').textContent='XP '+xp+(activeRewardBudget?'/'+activeRewardBudget.xp:'');$('turnText').textContent=freeSwap?'↯ QUICKSTEP':(playerTurn?'✦ YOU':'⚔ '+enemyLabel().toUpperCase());$('turnText').style.color=freeSwap?'var(--y)':(playerTurn?'var(--g)':'var(--r)');renderEnemyChargeGauges();renderEnemyIntent();for(const [side,hp] of [['p',pHP],['e',eHP]]){if(!pendingHP[side])shownHP[side]=hp;syncHealth(side);statMotion(side,hp,side==='p'?pGuard:eGuard)}$('leaveFight').disabled=busy||!playerTurn||pendingHP.p>0||pendingHP.e>0;renderSlots();if(screen==='fight'&&!reducedMotion()&&typeof requestAnimationFrame==='function')requestAnimationFrame(now=>{if(!boardLightFrame)drawBoardLighting(now)})}
 const chargeGemShapes={red:'16,4 48,4 60,20 52,52 32,62 12,52 4,20',blue:'32,2 60,30 32,62 4,30',green:'22,3 42,3 58,20 54,48 32,62 10,48 6,20',yellow:'32,2 60,48 48,60 16,60 4,48',purple:'20,3 44,3 58,32 44,61 20,61 6,32'};
 const chargeGemLevels=new Map();
 function liquidChargeGem(v,slot,fill){
@@ -999,13 +1053,16 @@ function save(){saveDeviceSettings();scheduleAccountSync()}
 try{localStorage.removeItem?.('gemmo.sack.v1');localStorage.removeItem?.('gemmo.equipment.v1');localStorage.removeItem?.('gemmo.inventory.v1');localStorage.removeItem?.('gemmo.worldNode')}catch{}
 try{motionOff=localStorage.getItem('gemmo.motionOff')==='true';const savedHint=localStorage.getItem('gemmo.hintDelay');if(savedHint!==null&&['0','15000','30000'].includes(savedHint))hintDelay=Number(savedHint);const savedTextSize=localStorage.getItem('gemmo.textSize');if(['normal','large','xl'].includes(savedTextSize))textSize=savedTextSize}catch{}applyTextSize();
 function animateScreenChange(previous,next){
- if(motionOff||window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)return;
- const target=next==='fight'?document.querySelector('.game'):$(next+'Page'),veil=$('screenVeil');
- if(target)target.animate([
-  {opacity:0,transform:'translate3d(0,12px,0) scale(.992)',filter:'blur(3px)'},
-  {opacity:1,transform:'translate3d(0,0,0) scale(1)',filter:'blur(0)'}
- ],{duration:280,easing:'cubic-bezier(.2,.82,.2,1)'});
- if(veil)veil.animate([{opacity:0},{opacity:.32,offset:.28},{opacity:0}],{duration:300,easing:'ease-out'});
+ if(reducedMotion()||screen!==next)return;
+ const target=next==='fight'?document.querySelector('.game'):$(next+'Page'),veil=$('screenVeil'),back=next==='world'||next==='menu'||next==='splash';
+ if(target)void animate(target,[{opacity:0,transform:next==='fight'?'scale(.96)':'translate3d('+(back?-18:18)+'px,8px,0) scale(.985)'},{opacity:1,transform:'translate3d(0,0,0) scale(1)'}],{duration:next==='fight'?440:320,easing:'cubic-bezier(.16,1,.3,1)'});
+ if(veil)void animate(veil,[{opacity:.35},{opacity:0}],{duration:340,easing:'ease-out'});
+}
+async function fightEntrance(){
+ if(reducedMotion()||screen!=='fight')return;
+ const title=document.createElement('div');title.className='fightArrival';title.textContent=enemyLabel();$('fxLayer').appendChild(title);
+ const gems=Array.from(boardEl.children).map(cell=>cell.firstElementChild).filter(Boolean);
+ await Promise.all([animate(title,[{opacity:0,transform:'translate(-50%,-50%) scale(.8)',letterSpacing:'8px'},{opacity:1,transform:'translate(-50%,-50%) scale(1)',letterSpacing:'3px',offset:.25},{opacity:1,transform:'translate(-50%,-50%) scale(1)',offset:.65},{opacity:0,transform:'translate(-50%,-65%) scale(1.06)'}],{duration:850,easing:'ease-out'}),...gems.map((el,i)=>{const base=el.classList.contains('gold')?'':' rotate(45deg)';return animate(el,[{opacity:0,transform:'translateY(-18px)'+base+' scale(.5)'},{opacity:1,transform:'translateY(2px)'+base+' scale(1.06)',offset:.75},{opacity:1,transform:base||'none'}],{duration:320,delay:(Math.floor(i/8)+i%8)*22,easing:'cubic-bezier(.16,1,.3,1)'})})]);title.remove();
 }
 function showScreen(next){
  clearTimeout(hintTimer);if(!account&&!['splash','account','settings'].includes(next))next='account';
@@ -1101,10 +1158,10 @@ function combatEffectRows(){
   {side:'enemy',name:'Venom',value:buffs.poison,turns:buffs.poison,detail:'Takes 2 damage after each enemy action.'},
   {side:'you',name:'Restoring Verse',value:buffs.regen,turns:buffs.regen,detail:'Heals 2 HP after each enemy action.'},
   {side:'you',name:'Resonance',value:buffs.focus,turns:buffs.focus,detail:'Adds 1 charge to every equipped color after each enemy action.'},
-  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First weapon-color match per action deals +2 damage.':'Red match resolutions deal +2 bonus damage.'},
-  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Blue match per action grants +2 Guard.':'Blue match resolutions grant +2 bonus Guard.'},
-  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Green match per action heals 2 HP.':'Green match resolutions heal 2 HP.'},
-  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v6')?'First Yellow match per action sends +2 charge to your most depleted other color.':'Yellow matches send +2 charge to your most depleted other color.'},
+  {side:'you',name:'Redwake',value:buffs.redwake,turns:buffs.redwake,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')?'First weapon-color match per action deals +2 damage.':'Red match resolutions deal +2 bonus damage.'},
+  {side:'you',name:'Holdfast',value:buffs.holdfast,turns:buffs.holdfast,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')?'First Blue match per action grants +2 Guard.':'Blue match resolutions grant +2 bonus Guard.'},
+  {side:'you',name:'Aftergrowth',value:buffs.aftergrowth,turns:buffs.aftergrowth,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')?'First Green match per action heals 2 HP.':'Green match resolutions heal 2 HP.'},
+  {side:'you',name:'Momentum',value:buffs.momentum,turns:buffs.momentum,detail:COLOR_BALANCE.isCurrent(activeAuthority?.mode||'replay-v7')?'First Yellow match per action sends +2 charge to your most depleted other color.':'Yellow matches send +2 charge to your most depleted other color.'},
   {side:'you',name:'Reprisal',value:buffs.reflect,turns:buffs.reflect,detail:'Reflects half of the next unblocked hit.'},
   {side:'you',name:'Overdrive',value:overdrive?1:0,turns:null,detail:'Doubles the next colored match once.'},
   {side:'you',name:'Earthbind',value:pinTurns,turns:pinTurns,detail:'The pinned column refills in place through the next enemy action.'},
@@ -1131,7 +1188,7 @@ function surrenderFight(){
  $('combatMenuPanel').hidden=true;combatPaused=false;clearTimeout(enemyTimer);pHP=0;shownHP.p=0;syncHealth('p');setLog('You surrendered.','system');checkEnd();
 }
 function startFight(){
- chargeGemLevels.clear();procsUsed=[];
+ chargeGemLevels.clear();visualStats.p=visualStats.e=null;procsUsed=[];
  if(account?.needsStarter){enterWorld();openDialogue('warden-vale');return}
  resumedArmedSpec=null;resumedConsumablePaid=false;
  clearTimeout(hintTimer);actionNumber=1;renderedTurnOwner='';targetMode=null;targetKeepsTurn=false;armedAbilitySlot=-1;armedConsumableId=null;pinColumn=-1;pinTurns=guardTurns=evadeTurns=0;buffs={dodge:0,reflect:0,poison:0,regen:0,focus:0,redwake:0,holdfast:0,aftergrowth:0,momentum:0};enemyEffects={bleed:0,stun:0,disarm:0,silence:0,mark:0};
@@ -1142,7 +1199,7 @@ function startFight(){
  encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
-  void matchStartPromise.then(()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}eHP=enemyMaxHP();shownHP.e=eHP;board=[];boardBonus=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()});
+  void matchStartPromise.then(async()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}eHP=enemyMaxHP();shownHP.e=eHP;board=[];boardBonus=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();busy=true;try{await fightEntrance()}finally{busy=false}render();touchActivity()});
  }else{buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();touchActivity()}
 }
 function leaveFight(){clearTimeout(hintTimer);if(busy||encounterSettling||(eHP<=0&&!rewardsSettled)||pendingHP.p||pendingHP.e)return;clearTimeout(enemyTimer);combatPaused=false;$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;$('result').classList.remove('show');$('modal').classList.remove('show');enterWorld()}

@@ -8,6 +8,7 @@ const {skillEffects}=require('../shared/progression.js');
 
 const W=8,H=8,TYPES=['red','blue','green','yellow','purple','gold','xp'],WEIGHTS=[15,15,15,15,15,10,8];
 const GEM=Object.freeze({
+  "grove-maul":["green",9,"damage",8,1,2,0],
   "troll-maul":["red",9,"damage",8,1,2,0],
   "rat-fang":["yellow",5,"damage",3,1,1,0],
   "hand-crossbow": [
@@ -704,7 +705,7 @@ function playerMaxHP(s){return 18+gearStats(s.equipment).hp+(s.skill?.maxHP||0)}
 function matchPower(s,color){const key=color==='red'?'attack':color==='blue'?'defense':null;if(!key)return 0;return s.sack.reduce((sum,id)=>{const gem=spec(id,s.version);return sum+(gem?.color===color?(gem[key]||0):0)},0)}
 function reservoirCap(s,color){const skill=s.skill||skillEffects(s.skills,s.version);return s.sack.reduce((n,id)=>n+(spec(id,s.version)?.color===color?spec(id,s.version).cap:0),0)+gearStats(s.equipment).caps[color]+skill.allCap+skill.caps[color]}
 function roll(s){const total=WEIGHTS.reduce((a,b)=>a+b,0),r=1+Math.floor(s.rng()*total);let a=0;for(let i=0;i<TYPES.length;i++){a+=WEIGHTS[i];if(r<=a)return TYPES[i]}return'red'}
-function rollBonus(s){return ['replay-v2','replay-v3','replay-v4','replay-v5','replay-v6'].includes(s.version)?rollGemBonus(s.rng):0}
+function rollBonus(s){return ['replay-v2','replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(s.version)?rollGemBonus(s.rng):0}
 function rollTile(s){const type=roll(s);return {type,bonus:rollBonus(s)}}
 function swap(s,a,b){[s.board[a.y][a.x],s.board[b.y][b.x]]=[s.board[b.y][b.x],s.board[a.y][a.x]];[s.bonus[a.y][a.x],s.bonus[b.y][b.x]]=[s.bonus[b.y][b.x],s.bonus[a.y][a.x]]}
 function key(x,y){return x+','+y}
@@ -737,9 +738,9 @@ function applyColor(s,type,n,actor,comboBonus=false){
   const colored=['red','blue','green','yellow','purple'].includes(type),mult=!comboBonus&&s.overdrive&&colored?2:1;
   if(colored){const cap=reservoirCap(s,type),gearGain=gearStats(s.equipment).chargeGain[type]||0,skillGain=s.skill?.chargeGain?.[type]||0,matchGain=!comboBonus&&n>=3?gearGain+skillGain:0;s.charges[type]=Math.min(cap,s.charges[type]+n*mult+matchGain)}
   if(COLOR_BALANCE.isCurrent(s.version)&&!comboBonus)COLOR_BALANCE.applyColorPerk(s,type,n,{lookup:id=>spec(id,s.version),maxHP:playerMaxHP(s),cap:c=>reservoirCap(s,c)});
-  const weaponAttack=['replay-v3','replay-v4','replay-v5','replay-v6'].includes(s.version)?weaponMatchDamage(s.sack,type,id=>spec(id,s.version)):0;
+  const weaponAttack=['replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(s.version)?weaponMatchDamage(s.sack,type,id=>spec(id,s.version)):0;
   if(weaponAttack)damageEnemy(s,n*mult*weaponAttack+COLOR_BALANCE.strikeBonus(s,weaponAttack,comboBonus));
-  if(type==='red'){if(!['replay-v3','replay-v4','replay-v5','replay-v6'].includes(s.version))damageEnemy(s,n*mult*matchPower(s,'red'));if(!COLOR_BALANCE.isCurrent(s.version)&&!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
+  if(type==='red'){if(!['replay-v3','replay-v4','replay-v5','replay-v6','replay-v7'].includes(s.version))damageEnemy(s,n*mult*matchPower(s,'red'));if(!COLOR_BALANCE.isCurrent(s.version)&&!comboBonus&&s.buffs.redwake)damageEnemy(s,2)}
   if(type==='blue'){const guard=n*mult*matchPower(s,'blue');s.pGuard+=guard;if(guard||!COLOR_BALANCE.isCurrent(s.version))s.guardTurns=2;if(COLOR_BALANCE.attuneProc(s,'holdfast',comboBonus)){s.pGuard+=2;s.guardTurns=2}}
   if(type==='green'&&COLOR_BALANCE.attuneProc(s,'aftergrowth',comboBonus))s.pHP=Math.min(playerMaxHP(s),s.pHP+2);
   if(type==='yellow'&&COLOR_BALANCE.attuneProc(s,'momentum',comboBonus)){const c=lowestReservoir(s,'yellow');if(c)s.charges[c]=Math.min(reservoirCap(s,c),s.charges[c]+2)}
