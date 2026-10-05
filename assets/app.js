@@ -3,16 +3,14 @@
 const W=8,H=8,COMBAT_CORE=globalThis.GEMMO_COMBAT_CORE,COMBAT_RULES=globalThis.GEMMO_COMBAT_RULES,PROGRESSION=globalThis.GEMMO_PROGRESSION,ENCOUNTERS=globalThis.GEMMO_ENCOUNTERS,STORY=globalThis.GEMMO_STORY;if(!COMBAT_CORE||!COMBAT_RULES||!PROGRESSION||!ENCOUNTERS||!STORY)throw new Error('geMMO runtime dependencies missing');
 const {WORLD_NODES,SHOP_STOCK,WORLD_HEIGHT,WORLD_ROAD,WORLD_ROAD_BANDIT,WORLD_ROAD_SENTINEL,WORLD_TREES,WORLD_ROCKS}=globalThis.GEMMO_CONTENT;
 let worldState={region:'brackenreach',currentNode:'camp',clearedEncounters:[]},selectedWorldNode='camp',worldHits=[],worldCamera={zoom:1,panX:0,panY:10},worldPointers=new Map(),worldGesture=null,worldTravelAnim=null,worldTravelRoute=null,activeEncounter=null,currentShop=null;
-let worldDrawFrame=0,worldLastDraw=0;
+let worldDrawFrame=0,worldDrawTimer=0,worldLastDraw=0;
 const coarsePointer=!!window.matchMedia?.('(pointer:coarse)').matches;
 const mobilePerformance=coarsePointer||!!navigator.connection?.saveData||(Number(navigator.deviceMemory)||8)<=4;
 function scheduleWorldDraw(){
- if(worldDrawFrame||screen!=='world')return;
- worldDrawFrame=requestAnimationFrame(now=>{
-  worldDrawFrame=0;if(screen!=='world')return;
-  if(mobilePerformance&&now-worldLastDraw<30){setTimeout(scheduleWorldDraw,Math.max(0,30-(now-worldLastDraw)));return}
-  worldLastDraw=now;drawWorld();
- })
+ if(worldDrawFrame||worldDrawTimer||screen!=='world')return;
+ const queueFrame=()=>{worldDrawFrame=requestAnimationFrame(now=>{worldDrawFrame=0;if(screen!=='world')return;worldLastDraw=now;drawWorld()})};
+ const delay=mobilePerformance?Math.max(0,30-(performance.now()-worldLastDraw)):0;
+ if(delay>0)worldDrawTimer=setTimeout(()=>{worldDrawTimer=0;queueFrame()},delay);else queueFrame();
 }
 function worldCleared(id){return worldState.clearedEncounters?.includes(id)}
 function worldNodeUnlocked(node){return !!node&&(!node.requires||worldCleared(node.requires))&&(!node.requiresQuest||questStatus(node.requiresQuest)==='completed')}
