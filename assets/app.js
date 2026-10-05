@@ -248,10 +248,10 @@ async function fallColumns(){
 
 async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;const value=1+(boardBonus[p.y]?.[p.x]||0);counts[type]=(counts[type]||0)+value;broken[actual]=(broken[actual]||0)+value}if(!comboRoots)comboRoots=comboChargeTypes(counts);recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
- for(const [type,n] of Object.entries(counts)){effectOrigin=effectCenter(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
+ for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
  if(cascade>0){const bonus=comboChargeBonus(cascade);for(const type of comboRoots)applyColor(type,bonus,actor,cascade,true);recordComboCharge(comboRoots,bonus,cascade+1)}
  for(const p of matches.cells){board[p.y][p.x]='';boardBonus[p.y][p.x]=0}if(makeWild){board[makeWild.y][makeWild.x]='wild';boardBonus[makeWild.y][makeWild.x]=0;setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='enemy'&&usesEnemyGems())enemyExtraTurn=true;if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
- await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){if(!reducedMotion())await sleep(Math.min(220,MOTION.cascadeBeat+cascade*35));busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}busy=false;afterAction(actor,keepTurn)}
+ await fallColumns();await Promise.all(damageAnimations.splice(0));checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}busy=false;afterAction(actor,keepTurn)}
 async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
  if(actor==='player')recordCombatAction({t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y});
@@ -289,8 +289,8 @@ function afterAction(actor,keepTurn=false){
   for(const key of ['redwake','holdfast','aftergrowth','momentum'])if(buffs[key])buffs[key]--;
   if(keepTurn){playerTurn=true;setLog('Quick effect: your turn continues.')}
   else if(extraTurn){extraTurn=false;playerTurn=true;setLog('Extra turn: you move again.')}
-  else{playerTurn=false;enemyTimer=setTimeout(enemyMove,reducedMotion()?320:MOTION.turnHandoff)}
- }else if(usesEnemyGems()&&(keepTurn||enemyExtraTurn)){enemyExtraTurn=false;playerTurn=false;enemyTimer=setTimeout(enemyMove,reducedMotion()?300:MOTION.enemyChain)}else playerTurn=true;
+  else{playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}
+ }else if(usesEnemyGems()&&(keepTurn||enemyExtraTurn)){enemyExtraTurn=false;playerTurn=false;enemyTimer=setTimeout(enemyMove,520)}else playerTurn=true;
  finishCombatMove();render();checkEnd();touchActivity();
 }
 
