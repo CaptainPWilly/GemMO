@@ -127,11 +127,11 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
 assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types keep distinct one-shot deformation definitions');
-assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style.opacity='0'"),'the matched gem itself is the entire normal pop effect');
+assert(src.includes("const accent=boardPopAccent(el,type,color,intensity,delay)")&&src.includes("animate(el,pop.frames(base)")&&src.includes("el.style.opacity='0'"),'normal pops combine the real gem deformation with exactly one lightweight board-local accent');
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop20')&&html.includes('assets/styles.css?v=20261005-pop20'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop21')&&html.includes('assets/styles.css?v=20261005-pop21'),'mobile receives cache-busted local-pop performance assets after deployment');
 assert(src.includes("function ensureBoardFx(){")&&src.includes("boardEl.appendChild(fx)")&&src.includes("const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove())")&&src.includes("boardEl.appendChild(c)}boardEl.appendChild(boardFx)"),'persistent board-local FX overlay survives cell rebuilds and is moved back to the final paint position after all 64 cells');
 assert(styles.includes('.board{position:relative;isolation:isolate}')&&styles.includes('.boardFx{position:absolute;inset:0;z-index:1000;pointer-events:none;overflow:visible}'),'board-local FX are painted inside the board above all cells and gems');
 assert(src.includes("function boardCellElements(){return Array.from(boardEl.children).filter")&&src.includes("boardCellElements().map")&&!src.includes("Array.from(boardEl.children).map"),'board animation paths ignore the non-cell FX overlay without recursive lookup');
@@ -150,7 +150,11 @@ assert(!src.includes("$('fxLayer')"),'all FX reads/appends route through the sel
 assert(src.includes("translate(-50%,-50%) translate3d('+(dx*p+bend*arc)") ,'charge motes are centered on their measured gem origin instead of using their top-left corner');
 assert(src.includes("translate(-50%,-50%) translate3d('+(dx*t+curve*4*t*(1-t))")&&!src.includes("dx*t+curve*4*t*(1-t)-6"),'damage particles use explicit center anchoring instead of hard-coded pixel compensation');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
+assert(src.includes("function center(el){const r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}}"),'all combat FX origins use raw viewport coordinates independent of the top-layer portal rectangle');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
+assert(src.includes("function boardPopAccent(el,type,color,intensity=1,delay=0)")&&['red','blue','green','yellow','purple','gold','xp'].every(type=>src.includes("type==='"+type+"'")),'every ordinary gem type has a visible board-local pop accent');
+assert(src.includes("const accent=boardPopAccent(el,type,color,intensity,delay)")&&src.includes("await Promise.all([")&&src.includes("animate(el,pop.frames(base)"),'each broken gem runs its own deformation and centered board-local accent together');
+assert(src.includes("fx.className='boardPopAccent boardPopAccent-'+type")&&src.includes("ensureBoardFx().appendChild(fx)"),'pop accents are painted inside the board-local top layer rather than the global portal');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');
 assert(!src.includes('function matchFxCenter(cells)'),'between-gem aggregate origin math is removed');
 assert(src.includes("function chargeFlight(color,amount,origin)")&&src.includes("function chargeImpact(destination,color,target,amount)"),'broken colored gems retain a dedicated energy-flight path into charge crystals');
