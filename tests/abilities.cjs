@@ -131,25 +131,28 @@ assert(src.includes("burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.leng
 assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
 assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
 assert(src.includes('function popGhost(el,origin,type,color,delay=0)')&&src.includes("ghost.className='gem popGhost '+type"),'matched gems spawn short-lived full-size FX ghosts so pops remain visible above board refill');
-assert(html.includes('assets/app.js?v=20261005-pop7')&&html.includes('assets/styles.css?v=20261005-pop7'),'mobile receives cache-busted premium choreography assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop8')&&html.includes('assets/styles.css?v=20261005-pop8'),'mobile receives cache-busted premium choreography assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'visible pop polish keeps the accepted old direct board renderer');
-assert(src.includes("ghostStep=Math.max(1,Math.ceil(points.length/12))"),'ghost copies are capped to about twelve even for large purge effects');
+assert(src.includes("ghostStep=Math.max(1,Math.ceil(points.length/12))")&&src.includes("accentStep=Math.max(1,Math.ceil(points.length/8))"),'full-size pop ghosts stay capped near twelve and semantic accents near eight even for large effects');
 assert(src.includes('function popAccent(origin,type,color,delay=0)'),'type-specific semantic accent layer exists');
 assert(src.includes("forEach(([dir,y])")&&src.includes("clip-path:polygon(50% 0,100% 35%")&&src.includes("border-radius:80% 20% 80% 20%"),'Red, Blue and Green pops keep distinct authored material shapes');
 assert(src.includes("function chargeFlight(color,amount,origin)")&&src.includes("function chargeImpact(destination,color,target,amount)"),'broken colored gems have a dedicated polished energy-flight path into charge crystals');
 assert(src.includes("chargeHead")&&src.includes("chargeTail"),'charge energy uses a readable comet head and short tail instead of equal particle spam');
 assert(src.includes("label.textContent='+'+amount"),'charge impact surfaces the actual gained amount at the target crystal');
 assert(src.includes("const FX_EASE='cubic-bezier(.16,1,.3,1)'"),'combat FX share a consistent authored easing family');
-assert(src.includes('function anticipateBreak(cells,tier=0)')&&src.includes('function boardPunch(power=1)'),'significant matches gain anticipation and bounded board recoil');
-assert(src.includes("fxHeadline('COMBO '+combo")&&src.includes("sub:combo>=4?'CHAIN SURGE':''"),'cascades visibly escalate through authored combo beats');
+assert(src.includes('function anticipateBreak(cells,tier=0)')&&src.includes('function boardPunch(power=1)')&&src.includes('function matchImpactBeat(origin,type,tier=1,cascade=0)'),'every match tier has anticipation plus one bounded impact beat without replacing the board renderer');
+assert(src.includes("fxHeadline('COMBO '+combo")&&src.includes("combo>=6?'FULL SURGE':combo>=4?'CHAIN SURGE':''"),'cascades visibly escalate from combo beats into chain and full-surge states');
 assert(src.includes("fxHeadline(actor==='player'?'EXTRA TURN':'ENEMY EXTRA TURN'"),'Match 4+ gets an explicit extra-turn punctuation beat');
 assert(src.includes("fxHeadline('WILD FORGED'")&&src.includes("ghost.className='gem wild wildForgeGhost'"),'Match 5 gets a dedicated fixed-angle Wild birth animation');
-assert(src.includes("const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),tier=makeWild?3:match4?2:cascade>0?Math.min(2,1+cascade):0"),'resolve assigns stronger choreography only to higher-value events');
-assert(src.includes("if(cascade>0)comboBeat(cascade,origin);")&&src.includes("await anticipateBreak(matches.cells,tier);"),'combo escalation and anticipation occur before destruction');
+assert(src.includes("matchTier=maxRun>=5?3:maxRun>=4?2:1")&&src.includes("cascadeTier=cascade>0?Math.min(3,1+cascade):1")&&src.includes("tier=Math.max(matchTier,cascadeTier)"),'resolve gives Match 3 a light tier and scales Match 4, Match 5, and deeper cascades upward');
+assert(src.includes("if(cascade>0)comboBeat(cascade,origin);")&&src.includes("await anticipateBreak(matches.cells,tier);")&&src.includes("await popCells(matches.cells,tier);"),'combo escalation, anticipation, and weighted pop timing are directed from the same match tier');
 
 assert(src.includes("matchingChargeTargets(color)")&&src.includes("chargeMote chargeMote-"),'charge energy targets matching equipped crystal slots with colored motes');
 assert(src.includes("if(gained>0&&effectOrigin)chargeFlight(type,gained,effectOrigin)"),'actual reservoir gain triggers energy flight from the broken-gem origin');
 assert(src.includes("await Promise.all([...damageAnimations.splice(0),...chargeAnimations.splice(0)])"),'charge flights resolve alongside damage flights without leaving animation work behind');
+assert(src.includes("function cascadeClimax(cascade,origin)")&&src.includes("sub:'CASCADE COMPLETE'")&&src.includes("if(cascade>=3)cascadeClimax(cascade,origin);"),'four-stage and longer cascades receive one final bounded climax after the last board settles');
+assert(src.includes("if(cascade===0&&tier>=2)await fxPause(tier===3?28:14);"),'special opening matches get a tiny readability hold while cascades keep accelerating');
+assert(src.includes("const popDuration=intensity>=3?225:intensity===2?210:195"),'pop timing remains fast for normal matches and gains weight only for premium events');
 
 for(const token of ["type==='red'","type==='blue'","type==='green'","type==='yellow'","type==='purple'","type==='gold'","type==='xp'"])assert(src.includes(token),'semantic pop branch '+token+' exists');
 assert(src.includes("const wildColors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff']"),'Wild uses a distinct multicolor particle burst');
