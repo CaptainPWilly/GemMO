@@ -131,7 +131,12 @@ assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop19')&&html.includes('assets/styles.css?v=20261005-pop19'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop20')&&html.includes('assets/styles.css?v=20261005-pop20'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(src.includes("function ensureBoardFx(){")&&src.includes("boardEl.appendChild(fx)")&&src.includes("ensureBoardFx();$('pstats')"),'board-local FX overlay is recreated as the final board child after every render');
+assert(styles.includes('.board{position:relative;isolation:isolate}')&&styles.includes('.boardFx{position:absolute;inset:0;z-index:1000;pointer-events:none;overflow:visible}'),'board-local FX are painted inside the board above all cells and gems');
+assert(src.includes("boardCellElements()")&&!src.includes("Array.from(boardEl.children).map"),'board animation paths ignore the non-cell FX overlay');
+assert(src.includes("clone.className=mote.className+' boardTravelClone'")&&src.includes("clone.className='damageSpark boardTravelClone'"),'charge and damage travel duplicate their in-board segment into the board-local overlay');
+assert(src.includes("const surface=fxSurface(origin)")&&src.includes("surface.host.appendChild(wrap)")&&src.includes("surface.host.appendChild(ghost)"),'headlines and Wild forge effects use the board-local surface whenever their origin is on the board');
 assert(!styles.includes('backface-visibility:hidden'),'static board gems are not force-promoted into per-gem compositor layers');
 assert(!styles.includes('.page,.game{will-change:transform,opacity}'),'combat screen is not permanently compositor-promoted between transitions');
 assert(!styles.includes('.board .gem.chargedGem{filter:'),'charged board gems use paint-only glow instead of filter compositing');
