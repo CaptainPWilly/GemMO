@@ -131,10 +131,12 @@ assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop16')&&html.includes('assets/styles.css?v=20261005-pop16'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop17')&&html.includes('assets/styles.css?v=20261005-pop17'),'mobile receives cache-busted local-pop performance assets after deployment');
 assert(html.indexOf('id="fxLayer"')>html.lastIndexOf('</div>\n\n<script src="shared/weapon-gems.js">')-120&&html.indexOf('id="fxLayer"')<html.indexOf('<script src="shared/weapon-gems.js">'),'combat FX layer is a top-level body portal outside the transformed app');
-assert(styles.includes('.fxLayer{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:visible;transform:translateZ(0);will-change:transform}'),'combat FX use a top-level fixed compositor portal above the entire app');
+assert(styles.includes('.app{z-index:0;isolation:isolate}')&&styles.includes('.fxLayer{position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:visible}'),'app is isolated below a non-transformed root FX portal at the maximum practical z-index');
 assert(styles.includes('.game>.flash{z-index:19}'),'screen flash remains game-local while traveling FX use the body portal');
+assert(src.includes("translate(-50%,-50%) translate3d('+(dx*p+bend*arc)") ,'charge motes are centered on their measured gem origin instead of using their top-left corner');
+assert(src.includes("translate(-50%,-50%) translate3d('+(dx*t+curve*4*t*(1-t))")&&!src.includes("dx*t+curve*4*t*(1-t)-6"),'damage particles use explicit center anchoring instead of hard-coded pixel compensation');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');
