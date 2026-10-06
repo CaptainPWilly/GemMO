@@ -122,7 +122,7 @@ assert(styles.includes('.equipmentHero')&&styles.includes('.gearCardAction')&&st
 assert(html.includes('class="combatant playerSide"')&&html.includes('class="right combatant enemySide"'),'combat header names explicit player and enemy sides');
 assert(html.includes('id="turnBadge" class="turnBadge turn-player" role="status" aria-live="polite"'),'turn banner is an accessible live status');
 assert(src.includes("game.classList.remove('turn-player','turn-enemy')")&&src.includes("badge.textContent=owner==='player'?'✦ YOUR TURN"),'runtime derives turn ownership classes and explicit banner copy');
-assert(styles.includes('.game.turn-player .playerSide')&&styles.includes('.game.turn-enemy .enemySide')&&styles.includes('.game.turn-enemy .board{filter:'),'turn styling highlights the active combatant and subdues the board during enemy actions');
+assert(styles.includes('.game.turn-player .playerSide')&&styles.includes('.game.turn-enemy .enemySide')&&styles.includes('.game.turn-enemy .boardShell:after'),'turn styling highlights the active combatant and dims enemy-turn board without a compositing filter');
 assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefers-reduced-motion:reduce)'),'turn change pulse respects reduced-motion preferences');
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
@@ -131,9 +131,14 @@ assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop17')&&html.includes('assets/styles.css?v=20261005-pop17'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop18')&&html.includes('assets/styles.css?v=20261005-pop18'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(!styles.includes('backface-visibility:hidden'),'static board gems are not force-promoted into per-gem compositor layers');
+assert(!styles.includes('.page,.game{will-change:transform,opacity}'),'combat screen is not permanently compositor-promoted between transitions');
+assert(!styles.includes('.board .gem.chargedGem{filter:'),'charged board gems use paint-only glow instead of filter compositing');
+assert(!styles.includes('.game.turn-enemy .board{filter:'),'enemy-turn board dimming avoids whole-board filter compositing');
+assert(!styles.includes('animation:spin 2.2s linear infinite'),'Wild gems do not run a persistent filter animation on the board');
 assert(html.indexOf('id="fxLayer"')>html.lastIndexOf('</div>\n\n<script src="shared/weapon-gems.js">')-120&&html.indexOf('id="fxLayer"')<html.indexOf('<script src="shared/weapon-gems.js">'),'combat FX layer is a top-level body portal outside the transformed app');
-assert(styles.includes('.app{z-index:0;isolation:isolate}')&&styles.includes('.fxLayer{position:fixed;inset:0;pointer-events:none;z-index:2147483647;overflow:visible}'),'app is isolated below a non-transformed root FX portal at the maximum practical z-index');
+assert(styles.includes('.fxLayer{position:absolute;inset:0;pointer-events:none;z-index:2147483647;overflow:visible;will-change:z-index}'),'root FX portal avoids iOS fixed-position compositing and explicitly refreshes z-order');
 assert(styles.includes('.game>.flash{z-index:19}'),'screen flash remains game-local while traveling FX use the body portal');
 assert(src.includes("translate(-50%,-50%) translate3d('+(dx*p+bend*arc)") ,'charge motes are centered on their measured gem origin instead of using their top-left corner');
 assert(src.includes("translate(-50%,-50%) translate3d('+(dx*t+curve*4*t*(1-t))")&&!src.includes("dx*t+curve*4*t*(1-t)-6"),'damage particles use explicit center anchoring instead of hard-coded pixel compensation');
