@@ -127,7 +127,7 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
 assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types keep distinct one-shot deformation definitions');
-assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style.opacity='0'"),'the matched gem itself is the entire normal pop effect');
+assert(src.includes("const accent=boardPopAccent(el,type,color,intensity,delay)")&&src.includes("animate(el,pop.frames(base)")&&src.includes("el.style.opacity='0'"),'normal pops combine the real gem deformation with exactly one lightweight board-local accent');
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
