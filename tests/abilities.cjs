@@ -131,12 +131,18 @@ assert(src.includes("burstBudget=Math.max(1,Math.floor(30/Math.max(1,points.leng
 assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
 assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
 assert(src.includes('function popGhost(el,origin,type,color,delay=0)')&&src.includes("ghost.className='gem popGhost '+type"),'matched gems spawn short-lived full-size FX ghosts so pops remain visible above board refill');
-assert(html.includes('assets/app.js?v=20261005-pop4')&&html.includes('assets/styles.css?v=20261005-pop4'),'mobile receives cache-busted semantic-pop assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop5')&&html.includes('assets/styles.css?v=20261005-pop5'),'mobile receives cache-busted charge-flight assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'visible pop polish keeps the accepted old direct board renderer');
 assert(src.includes("ghostStep=Math.max(1,Math.ceil(points.length/12))"),'ghost copies are capped to about twelve even for large purge effects');
 assert(src.includes('function popAccent(origin,type,color,delay=0)'),'type-specific semantic accent layer exists');
+assert(src.includes("for(const dir of [-1,1])")&&src.includes("for(const x of [-12,0,12])"),'Red split and Blue/Green/Gold multi-piece pop events are structurally distinct');
+assert(src.includes("function chargeFlight(color,amount,origin)")&&src.includes("function chargeImpact(destination,color,target)"),'broken colored gems have a dedicated energy-flight path into charge crystals');
+assert(src.includes("matchingChargeTargets(color)")&&src.includes("chargeMote chargeMote-"),'charge energy targets matching equipped crystal slots with colored motes');
+assert(src.includes("if(gained>0&&effectOrigin)chargeFlight(type,gained,effectOrigin)"),'actual reservoir gain triggers energy flight from the broken-gem origin');
+assert(src.includes("await Promise.all([...damageAnimations.splice(0),...chargeAnimations.splice(0)])"),'charge flights resolve alongside damage flights without leaving animation work behind');
+
 for(const token of ["type==='red'","type==='blue'","type==='green'","type==='yellow'","type==='purple'","type==='gold'","type==='xp'"])assert(src.includes(token),'semantic pop branch '+token+' exists');
-assert(src.includes("border-top-color:#ff7785")&&src.includes("border-right-color:#ffe17b")&&src.includes("border-bottom-color:#77efa3")&&src.includes("border-left-color:#87bdff"),'Wild uses a distinct multicolor pulse');
+assert(src.includes("const wildColors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff']"),'Wild uses a distinct multicolor particle burst');
 
 assert(!src.includes('requestAnimationFrame(()=>popGhost'),'ghost pops are event-driven rather than continuous rendering');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
