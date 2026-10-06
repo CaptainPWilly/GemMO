@@ -132,7 +132,7 @@ assert(src.includes("animate(el,pop.frames(base)")&&src.includes("flash=localPop
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(src.includes("position:absolute;inset:-6%")&&src.includes("border-radius:inherit"),'local pop flash uses gem-local inset geometry without left/top coordinate math');
 assert(!src.includes("left:50%;top:50%;width:'+size+'%"),'legacy cell-centered pop offset math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop11')&&html.includes('assets/styles.css?v=20261005-pop11'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop12')&&html.includes('assets/styles.css?v=20261005-pop12'),'mobile receives cache-busted local-pop performance assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');
