@@ -131,7 +131,7 @@ assert(src.includes("burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.leng
 assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
 assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
 assert(src.includes('function popGhost(el,origin,type,color,delay=0)')&&src.includes("ghost.className='gem popGhost '+type"),'matched gems spawn short-lived full-size FX ghosts so pops remain visible above board refill');
-assert(html.includes('assets/app.js?v=20261005-pop6')&&html.includes('assets/styles.css?v=20261005-pop6'),'mobile receives cache-busted polished combat FX assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop7')&&html.includes('assets/styles.css?v=20261005-pop7'),'mobile receives cache-busted premium choreography assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'visible pop polish keeps the accepted old direct board renderer');
 assert(src.includes("ghostStep=Math.max(1,Math.ceil(points.length/12))"),'ghost copies are capped to about twelve even for large purge effects');
 assert(src.includes('function popAccent(origin,type,color,delay=0)'),'type-specific semantic accent layer exists');
@@ -140,6 +140,13 @@ assert(src.includes("function chargeFlight(color,amount,origin)")&&src.includes(
 assert(src.includes("chargeHead")&&src.includes("chargeTail"),'charge energy uses a readable comet head and short tail instead of equal particle spam');
 assert(src.includes("label.textContent='+'+amount"),'charge impact surfaces the actual gained amount at the target crystal');
 assert(src.includes("const FX_EASE='cubic-bezier(.16,1,.3,1)'"),'combat FX share a consistent authored easing family');
+assert(src.includes('function anticipateBreak(cells,tier=0)')&&src.includes('function boardPunch(power=1)'),'significant matches gain anticipation and bounded board recoil');
+assert(src.includes("fxHeadline('COMBO '+combo")&&src.includes("sub:combo>=4?'CHAIN SURGE':''"),'cascades visibly escalate through authored combo beats');
+assert(src.includes("fxHeadline(actor==='player'?'EXTRA TURN':'ENEMY EXTRA TURN'"),'Match 4+ gets an explicit extra-turn punctuation beat');
+assert(src.includes("fxHeadline('WILD FORGED'")&&src.includes("ghost.className='gem wild wildForgeGhost'"),'Match 5 gets a dedicated fixed-angle Wild birth animation');
+assert(src.includes("const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),tier=makeWild?3:match4?2:cascade>0?Math.min(2,1+cascade):0"),'resolve assigns stronger choreography only to higher-value events');
+assert(src.includes("if(cascade>0)comboBeat(cascade,origin);")&&src.includes("await anticipateBreak(matches.cells,tier);"),'combo escalation and anticipation occur before destruction');
+
 assert(src.includes("matchingChargeTargets(color)")&&src.includes("chargeMote chargeMote-"),'charge energy targets matching equipped crystal slots with colored motes');
 assert(src.includes("if(gained>0&&effectOrigin)chargeFlight(type,gained,effectOrigin)"),'actual reservoir gain triggers energy flight from the broken-gem origin');
 assert(src.includes("await Promise.all([...damageAnimations.splice(0),...chargeAnimations.splice(0)])"),'charge flights resolve alongside damage flights without leaving animation work behind');
