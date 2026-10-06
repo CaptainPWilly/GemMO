@@ -118,7 +118,7 @@ let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
 function fxRoot(){
- const fx=fxRoot();if(!fx)return null;
+ const fx=document.getElementById('fxLayer');if(!fx)return null;
  if(typeof fx.showPopover==='function'){
   try{if(!fx.matches(':popover-open'))fx.showPopover()}catch{}
  }
