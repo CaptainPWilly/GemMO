@@ -328,7 +328,7 @@ function chargeFlight(color,amount,origin){
     $('fxLayer').appendChild(mote);
     const frames=Array.from({length:10},(_,step)=>{
      const p=step/9,arc=4*p*(1-p),scale=i===0?(1-.18*p):(1-.35*p);
-     return {transform:'translate3d('+(dx*p+bend*arc)+'px,'+(dy*p-22*arc)+'px,0) scale('+scale+')',opacity:step===0?0:step===9?0:(i===0?1:.72),offset:p};
+     return {transform:'translate(-50%,-50%) translate3d('+(dx*p+bend*arc)+'px,'+(dy*p-22*arc)+'px,0) scale('+scale+')',opacity:step===0?0:step===9?0:(i===0?1:.72),offset:p};
     });
     jobs.push(animate(mote,frames,{duration:flight,delay:lag,easing:'cubic-bezier(.32,.02,.48,1)'}).then(()=>mote.remove()));
    });
@@ -342,7 +342,7 @@ function damageFlight(side,amount,blocked){
  const destination=center($(side+'health')),origin=effectOrigin||center(boardEl),targetHP=side==='p'?pHP:eHP;pendingHP[side]++;
  const work=(async()=>{
  const dx=destination.x-origin.x,dy=destination.y-origin.y,curve=(side==='p'?-1:1)*Math.min(80,Math.abs(dy)*.3);
- const path=Array.from({length:15},(_,i)=>{const t=i/14;return {transform:'translate3d('+(dx*t+curve*4*t*(1-t)-6)+'px,'+(dy*t-6)+'px,0) rotate('+(t*270)+'deg) scale('+(1-.4*t)+')',opacity:t<.1?t*10:1,offset:t}});
+ const path=Array.from({length:15},(_,i)=>{const t=i/14;return {transform:'translate(-50%,-50%) translate3d('+(dx*t+curve*4*t*(1-t))+'px,'+(dy*t)+'px,0) rotate('+(t*270)+'deg) scale('+(1-.4*t)+')',opacity:t<.1?t*10:1,offset:t}});
  const trails=Array.from({length:reducedMotion()?0:mobilePerformance?1:2},(_,i)=>{const dot=document.createElement('span');dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';dot.style.opacity=1-i*.2;$('fxLayer').appendChild(dot);return animate(dot,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>dot.remove())});
  await Promise.all(trails);shownHP[side]=Math.max(0,targetHP);pendingHP[side]--;syncHealth(side);burst(destination,'#ffe5a0',mobilePerformance?2:4);
  const label=document.createElement('span');label.className='damageNumber';label.textContent=amount?'−'+amount:'BLOCK';label.style.left=destination.x+'px';label.style.top=destination.y+'px';$('fxLayer').appendChild(label);
