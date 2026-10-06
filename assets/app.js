@@ -499,12 +499,120 @@ async function fallColumns(){
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
-async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){busy=true;let counts={},broken={};for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;const value=1+(boardBonus[p.y]?.[p.x]||0);counts[type]=(counts[type]||0)+value;broken[actual]=(broken[actual]||0)+value}if(!comboRoots)comboRoots=comboChargeTypes(counts);recordBrokenGems(broken);let makeWild=null,match4=false;for(const run of matches.runs){if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
- render();const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');await popCells(matches.cells);
- for(const [type,n] of Object.entries(counts)){effectOrigin=center(cellAt(matches.cells.find(p=>(p.type||board[p.y][p.x])===type)));applyColor(type,n,actor,cascade)}effectOrigin=null;
+function matchFxCenter(cells){
+ if(!cells?.length)return effectCenter(boardEl);
+ let x=0,y=0,n=0;
+ for(const p of cells){const el=cellAt(p);if(!el)continue;const c=center(el);x+=c.x;y+=c.y;n++}
+ return n?{x:x/n,y:y/n}:effectCenter(boardEl);
+}
+function fxPause(ms){return reducedMotion()||ms<=0?Promise.resolve():new Promise(resolve=>setTimeout(resolve,ms))}
+function boardPunch(power=1){
+ if(reducedMotion())return Promise.resolve();
+ const shell=boardEl.parentElement||boardEl,px=Math.min(3,1.1*power),scale=1+Math.min(.009,.0035*power);
+ return animate(shell,[
+  {transform:'translate3d(0,0,0) scale(1)'},
+  {transform:'translate3d('+(-px)+'px,1px,0) scale('+scale+')',offset:.28},
+  {transform:'translate3d('+(px*.65)+'px,-1px,0) scale('+(1+(scale-1)*.45)+')',offset:.58},
+  {transform:'translate3d(0,0,0) scale(1)'}
+ ],{duration:120+power*18,easing:FX_EASE});
+}
+function fxHeadline(text,origin,{color='#ffe6a8',size=18,duration=500,sub=''}={}){
+ if(reducedMotion()||!origin)return Promise.resolve();
+ const wrap=document.createElement('span');wrap.className='matchFxHeadline';
+ wrap.innerHTML='<b>'+text+'</b>'+(sub?'<small>'+sub+'</small>':'');
+ wrap.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;z-index:15;pointer-events:none;display:grid;gap:1px;text-align:center;color:'+color+';font:900 '+size+'px/1 Georgia,serif;letter-spacing:.8px;text-shadow:0 2px 3px #000,0 0 8px '+color+'55;white-space:nowrap;';
+ const small=wrap.querySelector?.('small');if(small)small.style.cssText='font:800 8px/1.1 Inter,system-ui,sans-serif;letter-spacing:1.4px;color:#f6ead0;';
+ $('fxLayer').appendChild(wrap);
+ return animate(wrap,[
+  {transform:'translate(-50%,2px) scale(.72)',opacity:0},
+  {transform:'translate(-50%,-8px) scale(1.08)',opacity:1,offset:.22},
+  {transform:'translate(-50%,-13px) scale(1)',opacity:1,offset:.55},
+  {transform:'translate(-50%,-28px) scale(.96)',opacity:0}
+ ],{duration,easing:FX_EASE}).then(()=>wrap.remove());
+}
+async function anticipateBreak(cells,tier=0){
+ if(reducedMotion()||tier<=0)return;
+ const scale=tier>=3?1.11:tier===2?1.08:1.055,duration=tier>=3?78:tier===2?64:48;
+ const jobs=[];
+ for(const p of cells.slice(0,12)){
+  const el=cellAt(p)?.firstElementChild;if(!el)continue;
+  const base=el.classList.contains('gold')?'rotate(0deg)':'rotate(45deg)';
+  jobs.push(animate(el,[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale('+scale+')',opacity:1}
+  ],{duration,easing:'cubic-bezier(.2,.8,.2,1)'}));
+ }
+ await Promise.all(jobs);
+ await fxPause(tier>=3?28:tier===2?18:8);
+}
+function comboBeat(cascade,origin){
+ if(reducedMotion()||cascade<=0)return;
+ const combo=cascade+1,power=Math.min(3.2,1+combo*.38),size=Math.min(28,16+combo*2);
+ void boardPunch(power);
+ void fxHeadline('COMBO '+combo,origin,{color:combo>=4?'#fff1a6':'#f2d49a',size,duration:440+Math.min(180,combo*28),sub:combo>=4?'CHAIN SURGE':''});
+}
+function extraTurnBeat(origin,actor){
+ if(reducedMotion()||!origin)return;
+ void boardPunch(1.6);
+ void fxHeadline(actor==='player'?'EXTRA TURN':'ENEMY EXTRA TURN',origin,{color:'#ffe38f',size:17,duration:560,sub:'MATCH 4+'});
+}
+function wildForgeBeat(origin){
+ if(reducedMotion()||!origin)return;
+ const ghost=document.createElement('span');ghost.className='gem wild wildForgeGhost';ghost.dataset.i='W';
+ ghost.style.cssText='position:absolute;left:'+(origin.x-17)+'px;top:'+(origin.y-17)+'px;width:34px;height:34px;margin:0;z-index:14;pointer-events:none;animation:none;filter:none;';
+ $('fxLayer').appendChild(ghost);
+ const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff'];
+ colors.forEach((c,i)=>{const a=i/colors.length*Math.PI*2-Math.PI/2,dx=Math.cos(a)*38,dy=Math.sin(a)*38;popPiece(origin,'wildForgeRay','width:5px;height:18px;background:'+c+';border-radius:999px;box-shadow:0 0 5px '+c+'66;',[
+  {transform:'translate(-50%,-50%) translate(0,0) scaleY(.2)',opacity:0},
+  {transform:'translate(calc(-50% + '+(dx*.58).toFixed(1)+'px),calc(-50% + '+(dy*.58).toFixed(1)+'px)) scaleY(1)',opacity:1,offset:.32},
+  {transform:'translate(calc(-50% + '+dx.toFixed(1)+'px),calc(-50% + '+dy.toFixed(1)+'px)) scaleY(.3)',opacity:0}
+ ],430,i*12)});
+ void boardPunch(2.5);
+ void fxHeadline('WILD FORGED',origin,{color:'#fff4c7',size:21,duration:680,sub:'MATCH 5'});
+ return animate(ghost,[
+  {transform:'rotate(45deg) scale(.08)',opacity:0},
+  {transform:'rotate(45deg) scale(1.35)',opacity:1,offset:.36},
+  {transform:'rotate(45deg) scale(.94)',opacity:1,offset:.64},
+  {transform:'rotate(45deg) scale(1.04)',opacity:.95,offset:.82},
+  {transform:'rotate(45deg) scale(.78)',opacity:0}
+ ],{duration:650,easing:FX_EASE}).then(()=>ghost.remove());
+}
+
+async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=null){
+ busy=true;
+ let counts={},broken={};
+ for(const p of matches.cells){let actual=board[p.y][p.x],type=p.type||actual;const value=1+(boardBonus[p.y]?.[p.x]||0);counts[type]=(counts[type]||0)+value;broken[actual]=(broken[actual]||0)+value}
+ if(!comboRoots)comboRoots=comboChargeTypes(counts);
+ recordBrokenGems(broken);
+ let makeWild=null,match4=false,maxRun=3;
+ for(const run of matches.runs){maxRun=Math.max(maxRun,run.len);if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
+ render();
+ const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),tier=makeWild?3:match4?2:cascade>0?Math.min(2,1+cascade):0;
+ if(cascade>0)comboBeat(cascade,origin);
+ await anticipateBreak(matches.cells,tier);
+ const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;
+ if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');
+ await popCells(matches.cells);
+ if(makeWild)void wildForgeBeat(origin);else if(match4)extraTurnBeat(origin,actor);
+ for(const [type,n] of Object.entries(counts)){
+  const source=matches.cells.find(p=>(p.type||board[p.y][p.x])===type);
+  effectOrigin=source?center(cellAt(source)):origin;
+  applyColor(type,n,actor,cascade);
+ }
+ effectOrigin=null;
  if(cascade>0){const bonus=comboChargeBonus(cascade);for(const type of comboRoots)applyColor(type,bonus,actor,cascade,true);recordComboCharge(comboRoots,bonus,cascade+1)}
- for(const p of matches.cells){board[p.y][p.x]='';boardBonus[p.y][p.x]=0}if(makeWild){board[makeWild.y][makeWild.x]='wild';boardBonus[makeWild.y][makeWild.x]=0;setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}if(match4&&actor==='enemy'&&usesEnemyGems())enemyExtraTurn=true;if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
- await fallColumns();await Promise.all([...damageAnimations.splice(0),...chargeAnimations.splice(0)]);checkEnd();if(pHP<=0||eHP<=0){busy=false;return}let next=findMatches();if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}busy=false;afterAction(actor,keepTurn)}
+ for(const p of matches.cells){board[p.y][p.x]='';boardBonus[p.y][p.x]=0}
+ if(makeWild){board[makeWild.y][makeWild.x]='wild';boardBonus[makeWild.y][makeWild.x]=0;setLog('Five-match: a Wild was forged. Wilds substitute for any tile type in a line of 3+.')}
+ if(match4&&actor==='enemy'&&usesEnemyGems())enemyExtraTurn=true;
+ if(match4&&actor==='player'){extraTurn=true;setLog('Four-or-more match: you earn an extra turn.')}
+ await fallColumns();
+ await Promise.all([...damageAnimations.splice(0),...chargeAnimations.splice(0)]);
+ checkEnd();
+ if(pHP<=0||eHP<=0){busy=false;return}
+ let next=findMatches();
+ if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}
+ busy=false;afterAction(actor,keepTurn)
+}
 async function trySwap(a,b,actor,force=false,startProgress=0){
  if(busy)return false;busy=true;
  if(actor==='player')recordCombatAction({t:'swap',ax:a.x,ay:a.y,bx:b.x,by:b.y});
