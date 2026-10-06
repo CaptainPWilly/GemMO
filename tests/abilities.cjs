@@ -127,12 +127,11 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
 assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types keep distinct one-shot deformation definitions');
-assert(src.includes("function localPopFlash(gem,type,color,intensity=1,delay=0)")&&src.includes("gem.appendChild(fx)"),'per-gem flash FX are attached directly to the rendered gem instead of the cell or global overlay');
-assert(src.includes("animate(el,pop.frames(base)")&&src.includes("flash=localPopFlash(el,type,color,intensity,delay)"),'the real gem performs its authored type-specific pop while its child flash stays locked to the same geometry');
+assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style.opacity='0'"),'the matched gem itself is the entire normal pop effect');
+assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
-assert(src.includes("position:absolute;inset:-6%")&&src.includes("border-radius:inherit"),'local pop flash uses gem-local inset geometry without left/top coordinate math');
-assert(!src.includes("left:50%;top:50%;width:'+size+'%"),'legacy cell-centered pop offset math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop12')&&html.includes('assets/styles.css?v=20261005-pop12'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
+assert(html.includes('assets/app.js?v=20261005-pop13')&&html.includes('assets/styles.css?v=20261005-pop13'),'mobile receives cache-busted local-pop performance assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');
@@ -143,12 +142,12 @@ assert(src.includes("const sparks=(mobilePerformance?[]:[-1,1]).map"),'mobile ch
 assert(src.includes("length:reducedMotion()?0:mobilePerformance?1:2"),'damage travel uses one mobile trail and at most two desktop trails');
 assert(src.includes("burst(destination,'#ffe5a0',mobilePerformance?2:4)"),'damage impact debris is tightly capped');
 assert(src.includes("const FX_EASE='cubic-bezier(.16,1,.3,1)'"),'combat FX share a consistent authored easing family');
-assert(src.includes('function anticipateBreak(cells,tier=0)')&&src.includes('function boardPunch(power=1)')&&src.includes('function matchImpactBeat(origin,type,tier=1,cascade=0)'),'premium match choreography remains bounded and event-driven');
+assert(src.includes('function anticipateBreak(cells,tier=0)')&&src.includes('function boardPunch(power=1)')&&!src.includes('function matchImpactBeat('),'premium choreography remains event-driven without a second global match ring');
 assert(src.includes("fxHeadline('COMBO '+combo")&&src.includes("combo>=6?'FULL SURGE':combo>=4?'CHAIN SURGE':''"),'cascades visibly escalate from combo beats into chain and full-surge states');
 assert(src.includes("fxHeadline(actor==='player'?'EXTRA TURN':'ENEMY EXTRA TURN'"),'Match 4+ retains explicit extra-turn punctuation');
 assert(src.includes("fxHeadline('WILD FORGED'")&&src.includes("ghost.className='gem wild wildForgeGhost'"),'Match 5 retains its dedicated Wild birth animation');
 assert(src.includes("matchTier=maxRun>=5?3:maxRun>=4?2:1")&&src.includes("cascadeTier=cascade>0?Math.min(3,1+cascade):1"),'resolve still scales Match 4, Match 5, and deeper cascades upward');
-assert(src.includes("if(tier>=2||cascade>0)matchImpactBeat(origin,primaryType,tier,cascade);"),'normal Match 3 avoids a second global impact overlay');
+assert(!src.includes("matchImpactBeat(origin,primaryType,tier,cascade)"),'all match tiers avoid the displaced global impact overlay');
 assert(src.includes("function cascadeClimax(cascade,origin)")&&src.includes("void boardPunch(Math.min(3.4,1.5+combo*.28));"),'board recoil is reserved for the completed long-cascade climax');
 assert(src.includes("const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff']")&&src.includes("wildForgeRay"),'rare Wild forging keeps its multicolor birth rays');
 

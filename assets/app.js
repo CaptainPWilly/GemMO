@@ -265,18 +265,6 @@ function popPiece(origin,className,css,frames,duration=380,delay=0,easing=FX_EAS
  $('fxLayer').appendChild(el);
  animate(el,frames,{duration,delay,easing}).then(()=>el.remove());
 }
-function localPopFlash(gem,type,color,intensity=1,delay=0){
- if(reducedMotion()||!gem)return Promise.resolve();
- const fx=document.createElement('i');
- fx.className='localGemPop localGemPop-'+type;
- fx.style.cssText='position:absolute;inset:-6%;z-index:4;pointer-events:none;border:'+(intensity>=3?2:1)+'px solid '+color+';border-radius:inherit;box-shadow:'+(mobilePerformance?'none':'0 0 '+(3+intensity*2)+'px '+color+'55')+';';
- gem.appendChild(fx);
- return animate(fx,[
-  {transform:'scale(.72)',opacity:0},
-  {transform:'scale(.98)',opacity:.9,offset:.28},
-  {transform:'scale(1.34)',opacity:0}
- ],{duration:165+intensity*24,delay,easing:FX_EASE}).then(()=>fx.remove());
-}
 function burst(origin,color,count=4,type='red'){
  if(reducedMotion()||!origin)return;
  count=Math.min(count,mobilePerformance?2:4);
@@ -297,11 +285,7 @@ async function popCells(cells,intensity=1){
  await Promise.all(points.map(async({el,type,color},i)=>{
   if(!el)return;
   const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',delay=(i%3)*6;
-  const flash=localPopFlash(el,type,color,intensity,delay);
-  await Promise.all([
-   animate(el,pop.frames(base),{duration:Math.round(pop.duration*speed),delay,easing:pop.easing}),
-   flash
-  ]);
+  await animate(el,pop.frames(base),{duration:Math.round(pop.duration*speed),delay,easing:pop.easing});
   el.style.opacity='0';
  }))
 }
@@ -421,18 +405,6 @@ function fxHeadline(text,origin,{color='#ffe6a8',size=18,duration=500,sub=''}={}
   {transform:'translate(-50%,-28px) scale(.96)',opacity:0}
  ],{duration,easing:FX_EASE}).then(()=>wrap.remove());
 }
-function matchImpactBeat(origin,type,tier=1,cascade=0){
- if(reducedMotion()||!origin)return;
- const color=MATCH_FX_COLOR[type]||'#ffe6a8',ring=document.createElement('i'),size=18+tier*8+Math.min(10,cascade*2),endScale=1.45+tier*.22;
- ring.className='matchImpact matchImpact-'+type;
- ring.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;width:'+size+'px;height:'+size+'px;border:'+(tier>=3?2:1)+'px solid '+color+';border-radius:50%;pointer-events:none;z-index:9;box-shadow:0 0 '+(4+tier*2)+'px '+color+'55;';
- $('fxLayer').appendChild(ring);
- void animate(ring,[
-  {transform:'translate(-50%,-50%) scale(.28)',opacity:0},
-  {transform:'translate(-50%,-50%) scale(.72)',opacity:.9,offset:.22},
-  {transform:'translate(-50%,-50%) scale('+endScale+')',opacity:0}
- ],{duration:190+tier*32,easing:FX_EASE}).then(()=>ring.remove());
-}
 async function anticipateBreak(cells,tier=0){
  if(reducedMotion()||tier<=0)return;
  const scale=tier>=3?1.11:tier===2?1.08:1.055,duration=tier>=3?78:tier===2?64:48;
@@ -499,7 +471,6 @@ async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=
  const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;
  if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');
  await popCells(matches.cells,tier);
- if(tier>=2||cascade>0)matchImpactBeat(origin,primaryType,tier,cascade);
  if(makeWild)void wildForgeBeat(origin);else if(match4)extraTurnBeat(origin,actor);
  if(cascade===0&&tier>=2)await fxPause(tier===3?28:14);
  for(const [type,n] of Object.entries(counts)){
