@@ -131,10 +131,10 @@ assert(src.includes("await animate(el,pop.frames(base)")&&src.includes("el.style
 assert(!src.includes('function localPopFlash('),'no secondary local flash geometry remains to drift relative to the gem');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
-assert(html.includes('assets/app.js?v=20261005-pop14')&&html.includes('assets/styles.css?v=20261005-pop14'),'mobile receives cache-busted local-pop performance assets after deployment');
-assert(html.indexOf('id="fxLayer"')>html.indexOf('<div class="game" hidden>')&&html.indexOf('id="fxLayer"')<html.indexOf('</div>\n<section id="combatMenuPanel"'),'combat FX layer lives inside the combat game stacking context');
-assert(styles.includes('.game{position:relative;isolation:isolate}')&&styles.includes('.game>.fxLayer{position:absolute;inset:0;pointer-events:none;z-index:20;overflow:hidden}'),'combat establishes one isolated stack with FX above board content');
-assert(styles.includes('.game>.flash{z-index:19}'),'screen flash shares the combat stack instead of sitting behind composited gems');
+assert(html.includes('assets/app.js?v=20261005-pop15')&&html.includes('assets/styles.css?v=20261005-pop15'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(html.indexOf('id="fxLayer"')>html.indexOf('<div class="boardShell">')&&html.indexOf('id="fxLayer"')<html.indexOf('</div>\n  <div class="status">'),'combat FX layer lives directly inside the board shell above the board');
+assert(styles.includes('.boardShell{position:relative;isolation:isolate;overflow:visible;z-index:30}')&&styles.includes('.boardShell>.board{position:relative;z-index:1;overflow:hidden}')&&styles.includes('.boardShell>.fxLayer{position:absolute;inset:0;pointer-events:none;z-index:50;overflow:visible}'),'board shell owns an explicit overlay stack: board at 1, FX at 50, with FX allowed to travel outward');
+assert(styles.includes('.game>.flash{z-index:19}'),'screen flash remains game-wide while board-origin FX use the board-owned overlay');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');

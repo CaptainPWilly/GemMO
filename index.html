@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#090a08">
 <meta name="description" content="Choose your weapon, build your gem Sack, and battle your way through geMMO, a puzzle RPG.">
 <title>geMMO</title>
-<link rel="stylesheet" href="assets/styles.css?v=20261005-pop14">
+<link rel="stylesheet" href="assets/styles.css?v=20261005-pop15">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 </head>
 <body>
@@ -232,11 +232,11 @@
     <div class="turn"><div id="turnText">YOUR MOVE</div><small>ONE BOARD · TWO SACKS</small><button class="sacksBtn" id="sacksBtn">VIEW SACKS</button></div>
     <div class="right combatant enemySide"><div class="name" id="enemyName">ENEMY</div><div class="stats" id="estats">♥ 0 · ◌ 0</div><div class="health" id="ehealth" role="progressbar" aria-label="Enemy health" aria-valuemin="0" aria-valuemax="24"><div class="healthFill" id="efill"></div></div><button id="enemyWeapon" class="enemyWeapon" hidden></button></div><div id="enemyChargeGauges" class="enemyChargeGauges" aria-label="Enemy gem charges"></div>
   </div>
-  <div id="turnBadge" class="turnBadge turn-player" role="status" aria-live="polite">✦ YOUR TURN · 1 ✦</div><div id="enemyIntent" class="enemyIntent" role="status" aria-live="polite">WATCH THE BOARD</div><div id="statusTags" class="statusTags"></div><div class="boardShell"><div class="board" id="board"></div></div>
+  <div id="turnBadge" class="turnBadge turn-player" role="status" aria-live="polite">✦ YOUR TURN · 1 ✦</div><div id="enemyIntent" class="enemyIntent" role="status" aria-live="polite">WATCH THE BOARD</div><div id="statusTags" class="statusTags"></div><div class="boardShell"><div class="board" id="board"></div><div class="fxLayer" id="fxLayer" aria-hidden="true"></div></div>
   <div class="status"><div class="resource"><span id="gold">◆ 0</span><span id="xp">XP 0</span><span>↳ +ANCHOR</span><span>4+ ↻</span></div><div id="moveHistory" class="moveHistory" aria-label="Recent combat moves"><article class="moveHistoryItem moveHistoryPlaceholder latest" aria-hidden="true"><div class="moveHistoryMeta"><small>&nbsp;</small><strong>&nbsp;</strong></div><div class="moveBreaks"><span class="moveNoBreak">&nbsp;</span></div></article></div><div class="log combatMessage" id="log" role="status">Same board. Your colors use your Sack.</div></div>
   <div id="reservoirs" class="reservoirs"></div><div class="slots" id="slots"></div>
   <button id="effectsBtn" class="effectsBtn" aria-label="Current effects"><span aria-hidden="true">✦</span><span class="effectsBtnLabel">EFFECTS</span></button><div class="foot">SWIPE OR TAP 2 GEMS · ACTIVE GEM ABILITIES REPLACE YOUR BOARD MOVE</div>
-  <div class="fxLayer" id="fxLayer" aria-hidden="true"></div><div class="flash" id="flash"></div>
+  <div class="flash" id="flash"></div>
 </div>
 <section id="combatMenuPanel" class="combatOverlay uiOverlay" hidden><header><h2>Combat</h2><button id="closeCombatMenu" class="chromeIconButton" aria-label="Close combat menu">×</button></header><div class="combatMenuActions"><button id="combatSacksBtn">◇ SACKS</button><button id="combatItemsBtn">● ITEMS</button><button id="combatGemologyBtn">✦ RULES</button><button id="surrenderBtn" class="danger">⚑ SURRENDER</button></div><p id="combatMenuStatus"></p></section>
 <section id="combatItemsPanel" class="combatOverlay uiOverlay" hidden><header><h2>● Items</h2><button id="closeCombatItems" class="chromeIconButton" aria-label="Back">←</button></header><p class="combatItemsHint">One-shot physical resources. Potions and tonics act immediately, while gem abilities are reusable once recharged.</p><div id="combatItemsList" class="combatItemsList"></div><p id="combatItemsStatus" class="shopStatus" role="status"></p></section>
@@ -256,6 +256,6 @@
 <script src="shared/progression.js"></script>
 <script src="shared/story.js"></script>
 <script src="assets/combat-core.js"></script>
-<script src="assets/app.js?v=20261005-pop14"></script>
+<script src="assets/app.js?v=20261005-pop15"></script>
 </body>
 </html>
