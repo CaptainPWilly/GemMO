@@ -198,6 +198,7 @@ const luxuryFX=()=>!mobilePerformance&&!reducedMotion();
 let effectOrigin=null,damageAnimations=[],chargeAnimations=[];
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
+function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}
 function effectCenter(el){return reducedMotion()?null:center(el)}
 const MOTION={swap:170,pop:190,flight:340,settle:440};
 const shownHP={p:18,e:24},pendingHP={p:0,e:0};
@@ -275,21 +276,21 @@ function popAccent(origin,type,color,delay=0){
   return;
  }
  if(type==='blue'){
-  [-11,0,11].forEach((x,i)=>popPiece(origin,'popAccent popAccent-blue','width:5px;height:20px;background:linear-gradient(#e9f6ff,'+color+');clip-path:polygon(50% 0,100% 35%,65% 100%,35% 100%,0 35%);box-shadow:0 0 5px '+color+'55;',[
-   {transform:'translate(calc(-50% + '+x+'px),-16px) scale(.4)',opacity:0},
-   {transform:'translate(calc(-50% + '+(x*.8)+'px),2px) scale(1)',opacity:1,offset:.28},
-   {transform:'translate(calc(-50% + '+(x*.55)+'px),34px) scale(.5)',opacity:0}
-  ],430,delay+i*18,'cubic-bezier(.2,.65,.35,1)'));
+  [[0,-1,0],[1,0,90],[0,1,180],[-1,0,270]].forEach(([dx,dy,angle],i)=>popPiece(origin,'popAccent popAccent-blue','width:7px;height:18px;background:linear-gradient(#f5fbff,'+color+');clip-path:polygon(50% 0,100% 38%,70% 100%,30% 100%,0 38%);box-shadow:0 0 5px '+color+'55;',[
+   {transform:'translate(-50%,-50%) translate(0,0) rotate('+angle+'deg) scale(.35)',opacity:0},
+   {transform:'translate(-50%,-50%) translate('+(dx*11)+'px,'+(dy*11)+'px) rotate('+angle+'deg) scale(1)',opacity:1,offset:.3},
+   {transform:'translate(-50%,-50%) translate('+(dx*30)+'px,'+(dy*30)+'px) rotate('+angle+'deg) scale(.38)',opacity:0}
+  ],390,delay+i*12,'cubic-bezier(.18,.68,.26,1)'));
   return;
  }
  if(type==='green'){
-  [-1,0,1].forEach((lane,i)=>{
-   const x=lane*13,drift=lane*17;
-   popPiece(origin,'popAccent popAccent-green','width:12px;height:16px;background:linear-gradient(145deg,#eaffdb,'+color+');border-radius:80% 20% 80% 20%;box-shadow:0 0 5px '+color+'44;',[
-    {transform:'translate(calc(-50% + '+x+'px),2px) scale(.35) rotate('+(lane*14)+'deg)',opacity:0},
-    {transform:'translate(calc(-50% + '+(x+drift*.35)+'px),-14px) scale(.9) rotate('+(lane*4)+'deg)',opacity:1,offset:.3},
-    {transform:'translate(calc(-50% + '+(x+drift)+'px),-42px) scale(.55) rotate('+(-lane*16)+'deg)',opacity:0}
-   ],500,delay+i*20,'cubic-bezier(.18,.7,.22,1)');
+  [[-1,-.9],[0,-1.2],[1,-.9]].forEach(([lane,lift],i)=>{
+   const drift=lane*28,turn=lane*18;
+   popPiece(origin,'popAccent popAccent-green','width:11px;height:16px;background:linear-gradient(145deg,#efffe5,'+color+');border-radius:80% 20% 80% 20%;box-shadow:0 0 4px '+color+'44;',[
+    {transform:'translate(-50%,-50%) translate(0,0) scale(.3) rotate('+(turn*.35)+'deg)',opacity:0},
+    {transform:'translate(-50%,-50%) translate('+(drift*.35)+'px,'+(lift*12)+'px) scale(.92) rotate('+turn+'deg)',opacity:1,offset:.3},
+    {transform:'translate(-50%,-50%) translate('+drift+'px,'+(lift*34)+'px) scale(.45) rotate('+(turn*1.5)+'deg)',opacity:0}
+   ],430,delay+i*16,'cubic-bezier(.18,.72,.24,1)');
   });
   return;
  }
@@ -313,11 +314,16 @@ function popAccent(origin,type,color,delay=0){
   return;
  }
  if(type==='gold'){
-  [-10,0,10].forEach((x,i)=>popPiece(origin,'popAccent popAccent-gold','width:11px;height:11px;background:linear-gradient(145deg,#fff5bd,'+color+');border:1px solid #fff3b0;border-radius:50%;box-shadow:0 0 5px '+color+'55;',[
-   {transform:'translate(calc(-50% + '+x+'px),2px) scale(.45)',opacity:0},
-   {transform:'translate(calc(-50% + '+(x*1.15)+'px),-15px) scale(1)',opacity:1,offset:.28},
-   {transform:'translate(calc(-50% + '+(x*1.35)+'px),-38px) scale(.55)',opacity:0}
-  ],430,delay+i*24,'cubic-bezier(.15,.72,.24,1)'));
+  popPiece(origin,'popAccent popAccent-gold','width:38px;height:38px;border:2px solid '+color+';border-radius:50%;box-shadow:0 0 7px '+color+'55;',[
+   {transform:'translate(-50%,-50%) scale(.35)',opacity:0},
+   {transform:'translate(-50%,-50%) scale(.82)',opacity:1,offset:.28},
+   {transform:'translate(-50%,-50%) scale(1.35)',opacity:0}
+  ],360,delay);
+  [[-1,0],[1,0],[0,-1]].forEach(([dx,dy],i)=>popPiece(origin,'popAccent popAccent-gold','width:7px;height:7px;background:#fff3b0;border-radius:50%;box-shadow:0 0 5px '+color+'66;',[
+   {transform:'translate(-50%,-50%) translate(0,0) scale(.35)',opacity:0},
+   {transform:'translate(-50%,-50%) translate('+(dx*12)+'px,'+(dy*12)+'px) scale(1)',opacity:1,offset:.3},
+   {transform:'translate(-50%,-50%) translate('+(dx*25)+'px,'+(dy*25)+'px) scale(.3)',opacity:0}
+  ],340,delay+i*14));
   return;
  }
  if(type==='xp'){
@@ -405,7 +411,7 @@ function burst(origin,color,count=4,type='red'){
 }
 async function popCells(cells,intensity=1){
  const palette={red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'};
- const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p),el=cell?.firstElementChild;return {el,origin:cell?center(cell):null,type,color:palette[type]||'#fff'}});
+ const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p),el=cell?.firstElementChild;return {el,origin:gemCenter(p),type,color:palette[type]||'#fff'}});
  const ghostStep=Math.max(1,Math.ceil(points.length/12)),accentStep=Math.max(1,Math.ceil(points.length/8)),burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.length)));
  const popDuration=intensity>=3?225:intensity===2?210:195,squash=intensity>=3?.65:intensity===2?.69:.72,collapse=intensity>=3?.035:intensity===2?.055:.08;
  await Promise.all(points.map(async({el,origin,type,color},i)=>{
@@ -505,7 +511,7 @@ const MATCH_FX_COLOR={red:'#ff6677',blue:'#72b8ff',green:'#71e99f',yellow:'#ffe0
 function matchFxCenter(cells){
  if(!cells?.length)return effectCenter(boardEl);
  let x=0,y=0,n=0;
- for(const p of cells){const el=cellAt(p);if(!el)continue;const c=center(el);x+=c.x;y+=c.y;n++}
+ for(const p of cells){const c=gemCenter(p);if(!c)continue;x+=c.x;y+=c.y;n++}
  return n?{x:x/n,y:y/n}:effectCenter(boardEl);
 }
 function matchFxType(counts){
@@ -613,7 +619,7 @@ async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=
  let makeWild=null,match4=false,maxRun=3;
  for(const run of matches.runs){maxRun=Math.max(maxRun,run.len);if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();
- const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),matchTier=maxRun>=5?3:maxRun>=4?2:1,cascadeTier=cascade>0?Math.min(3,1+cascade):1,tier=Math.max(matchTier,cascadeTier),primaryType=matchFxType(counts);
+ const origin=makeWild?gemCenter(makeWild):matchFxCenter(matches.cells),matchTier=maxRun>=5?3:maxRun>=4?2:1,cascadeTier=cascade>0?Math.min(3,1+cascade):1,tier=Math.max(matchTier,cascadeTier),primaryType=matchFxType(counts);
  if(cascade>0)comboBeat(cascade,origin);
  await anticipateBreak(matches.cells,tier);
  const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;
@@ -624,7 +630,7 @@ async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=
  if(cascade===0&&tier>=2)await fxPause(tier===3?28:14);
  for(const [type,n] of Object.entries(counts)){
   const source=matches.cells.find(p=>(p.type||board[p.y][p.x])===type);
-  effectOrigin=source?center(cellAt(source)):origin;
+  effectOrigin=source?gemCenter(source):origin;
   applyColor(type,n,actor,cascade);
  }
  effectOrigin=null;
@@ -703,7 +709,7 @@ async function applyTarget(p){
   try{
    if(!resumedConsumablePaid){await flushCombatCheckpoint();const data=await accountRequest('/v1/matches/consume',{method:'POST',body:{matchId:activeMatchId,itemId:item.id}});combatConsumables[item.id]--;applyAccount(data.account);recordCombatAction({t:'consume',itemId:item.id})}resumedConsumablePaid=false;
    recordCombatAction({t:'target',x:p.x,y:p.y});beginCombatMove('player','ITEM · '+item.name);const type=board[p.y][p.x];if(type)recordBrokenGems({[type]:1+(boardBonus[p.y]?.[p.x]||0)});
-   targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=effectCenter(cellAt(p));await popCells([p]);effectOrigin=null;board[p.y][p.x]='';boardBonus[p.y][p.x]=0;await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
+   targetMode=null;targetKeepsTurn=false;armedConsumableId=null;effectOrigin=gemCenter(p);await popCells([p]);effectOrigin=null;board[p.y][p.x]='';boardBonus[p.y][p.x]=0;await fallColumns();setLog('CHERRY BOMB: destroyed one '+(type||'board')+' gem.','system');
    render();const m=findMatches();if(m)await resolve(m,'player',p,0,false,null);else{busy=false;afterAction('player',false)}
   }catch(error){busy=false;targetMode=null;targetKeepsTurn=false;armedConsumableId=null;setLog('Cherry Bomb failed: '+error.message.replaceAll('_',' '),'system');render();touchActivity()}
   return;
@@ -723,7 +729,7 @@ async function applyTarget(p){
   if(mode==='purge'){const chosen=board[p.y][p.x];for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(board[y][x]===chosen)cells.push({x,y})}
   if(cells.length){
    const broken={};for(const q of cells){const type=board[q.y][q.x];if(type)broken[type]=(broken[type]||0)+1+(boardBonus[q.y]?.[q.x]||0)}recordBrokenGems(broken);comboRoots=comboChargeTypes(broken);
-   if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=effectCenter(cellAt(p));applyColor(type,1+(boardBonus[p.y]?.[p.x]||0),'player');effectOrigin=null}}
+   if(mode==='break'){const type=board[p.y][p.x];if(type){effectOrigin=gemCenter(p);applyColor(type,1+(boardBonus[p.y]?.[p.x]||0),'player');effectOrigin=null}}
    await popCells(cells);for(const q of cells){board[q.y][q.x]='';boardBonus[q.y][q.x]=0}await fallColumns();
   }
  }
