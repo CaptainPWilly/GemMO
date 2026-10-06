@@ -208,63 +208,71 @@ function animate(el,frames,options){
  return new Promise(resolve=>{let done=false;const finish=()=>{if(done)return;done=true;clearTimeout(timer);animation.cancel();resolve()};const timer=setTimeout(finish,(options.delay||0)+options.duration+100);animation.finished.then(finish,finish)});
 }
 const GEM_POP={
- red:{duration:185,shards:4,easing:'cubic-bezier(.18,.82,.22,1)',frames:b=>[
+ red:{duration:235,shards:5,easing:'cubic-bezier(.16,.82,.2,1)',frames:b=>[
   {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(1.08,.82)',opacity:1,offset:.24},
-  {transform:b+' scale(.72,1.18)',opacity:.94,offset:.52},
-  {transform:b+' scale(.08)',opacity:0}
- ]},
- blue:{duration:205,shards:3,easing:'cubic-bezier(.2,.72,.18,1)',frames:b=>[
-  {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.88,1.08)',opacity:1,offset:.3},
-  {transform:b+' scale(1.12,.72)',opacity:.9,offset:.62},
-  {transform:b+' scale(.1,.02)',opacity:0}
- ]},
- green:{duration:220,shards:3,easing:'cubic-bezier(.2,.74,.2,1)',frames:b=>[
-  {transform:b+' translateY(0) scale(1)',opacity:1},
-  {transform:b+' translateY(1px) scale(.9,1.08)',opacity:1,offset:.28},
-  {transform:b+' translateY(-3px) scale(1.08,.78)',opacity:.9,offset:.62},
-  {transform:b+' translateY(-6px) scale(.12)',opacity:0}
- ]},
- yellow:{duration:170,shards:4,easing:'cubic-bezier(.12,.84,.2,1)',frames:b=>[
-  {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.78)',opacity:1,offset:.2},
-  {transform:b+' scale(1.34)',opacity:.92,offset:.52},
-  {transform:b+' scale(.08)',opacity:0}
- ]},
- purple:{duration:225,shards:3,easing:'cubic-bezier(.24,.7,.18,1)',frames:b=>[
-  {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.62)',opacity:.96,offset:.36},
-  {transform:b+' scale(1.12)',opacity:.78,offset:.7},
-  {transform:b+' scale(.06)',opacity:0}
- ]},
- gold:{duration:210,shards:4,easing:'cubic-bezier(.18,.8,.22,1)',frames:b=>[
-  {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.88)',opacity:1,offset:.25},
-  {transform:b+' scale(1.2)',opacity:.92,offset:.58},
-  {transform:b+' scale(.12)',opacity:0}
- ]},
- xp:{duration:185,shards:4,easing:'cubic-bezier(.14,.84,.2,1)',frames:b=>[
-  {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.74)',opacity:1,offset:.22},
-  {transform:b+' scale(1.28,.88)',opacity:.9,offset:.55},
+  {transform:b+' scale(1.18,.68)',opacity:1,offset:.28},
+  {transform:b+' scale(.58,1.3)',opacity:.92,offset:.58},
   {transform:b+' scale(.05)',opacity:0}
  ]},
- wild:{duration:235,shards:5,easing:'cubic-bezier(.18,.8,.2,1)',frames:b=>[
+ blue:{duration:255,shards:4,easing:'cubic-bezier(.18,.76,.18,1)',frames:b=>[
   {transform:b+' scale(1)',opacity:1},
-  {transform:b+' scale(.7)',opacity:1,offset:.3},
-  {transform:b+' scale(1.22)',opacity:.86,offset:.66},
+  {transform:b+' scale(.76,1.18)',opacity:1,offset:.3},
+  {transform:b+' scale(1.28,.42)',opacity:.9,offset:.65},
+  {transform:b+' scale(.05,.01)',opacity:0}
+ ]},
+ green:{duration:270,shards:4,easing:'cubic-bezier(.16,.78,.2,1)',frames:b=>[
+  {transform:b+' translateY(0) scale(1)',opacity:1},
+  {transform:b+' translateY(2px) scale(.82,1.18)',opacity:1,offset:.28},
+  {transform:b+' translateY(-8px) scale(1.2,.7)',opacity:.9,offset:.65},
+  {transform:b+' translateY(-13px) scale(.06)',opacity:0}
+ ]},
+ yellow:{duration:220,shards:5,easing:'cubic-bezier(.1,.9,.18,1)',frames:b=>[
+  {transform:b+' scale(1)',opacity:1},
+  {transform:b+' scale(.68)',opacity:1,offset:.2},
+  {transform:b+' scale(1.52)',opacity:.94,offset:.56},
+  {transform:b+' scale(.05)',opacity:0}
+ ]},
+ purple:{duration:280,shards:4,easing:'cubic-bezier(.22,.7,.16,1)',frames:b=>[
+  {transform:b+' scale(1)',opacity:1},
+  {transform:b+' scale(.42)',opacity:1,offset:.36},
+  {transform:b+' scale(1.34)',opacity:.78,offset:.72},
   {transform:b+' scale(.04)',opacity:0}
+ ]},
+ gold:{duration:245,shards:5,easing:'cubic-bezier(.14,.84,.18,1)',frames:b=>[
+  {transform:b+' scale(1)',opacity:1},
+  {transform:b+' scale(.78)',opacity:1,offset:.24},
+  {transform:b+' scale(1.36)',opacity:.94,offset:.6},
+  {transform:b+' scale(.07)',opacity:0}
+ ]},
+ xp:{duration:230,shards:5,easing:'cubic-bezier(.12,.88,.18,1)',frames:b=>[
+  {transform:b+' scale(1)',opacity:1},
+  {transform:b+' scale(.62)',opacity:1,offset:.22},
+  {transform:b+' scale(1.5,.84)',opacity:.92,offset:.58},
+  {transform:b+' scale(.04)',opacity:0}
+ ]},
+ wild:{duration:290,shards:6,easing:'cubic-bezier(.16,.8,.18,1)',frames:b=>[
+  {transform:b+' scale(1)',opacity:1},
+  {transform:b+' scale(.52)',opacity:1,offset:.3},
+  {transform:b+' scale(1.42)',opacity:.84,offset:.7},
+  {transform:b+' scale(.03)',opacity:0}
  ]}
 };
-function burst(origin,color,count=3,type='red'){
+function popEcho(origin,color,type){
  if(reducedMotion()||!origin)return;
- const shape={red:[6,3,'2px'],blue:[4,4,'1px'],green:[5,5,'50%'],yellow:[3,7,'2px'],purple:[5,5,'1px'],gold:[5,5,'50%'],xp:[3,6,'1px'],wild:[5,5,'50%']}[type]||[5,5,'1px'];
+ const e=document.createElement('i'),round=type==='gold'||type==='green'||type==='wild';
+ e.className='popEcho popEcho-'+type;
+ e.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;width:14px;height:14px;border:2px solid '+color+';border-radius:'+(round?'50%':'3px')+';pointer-events:none;';
+ $('fxLayer').appendChild(e);
+ animate(e,[{transform:'translate(-50%,-50%) scale(.35)',opacity:.9},{transform:'translate(-50%,-50%) scale(2.55)',opacity:0}],{duration:type==='purple'?300:250,easing:'cubic-bezier(.12,.72,.22,1)'}).then(()=>e.remove());
+}
+function burst(origin,color,count=4,type='red'){
+ if(reducedMotion()||!origin)return;
+ const shape={red:[7,3,'1px'],blue:[4,6,'1px'],green:[5,5,'50%'],yellow:[3,8,'1px'],purple:[6,4,'1px'],gold:[5,5,'50%'],xp:[3,7,'1px'],wild:[5,5,'50%']}[type]||[5,5,'1px'];
  for(let i=0;i<count;i++){
-  const p=document.createElement('i'),angle=(i/count)*Math.PI*2+(type==='yellow'?.2:0),dist=16+(i%3)*7;
-  p.className='shard shard-'+type;p.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;background:'+color+';width:'+shape[0]+'px;height:'+shape[1]+'px;border-radius:'+shape[2]+';';
+  const p=document.createElement('i'),angle=(i/count)*Math.PI*2+(type==='yellow'?.2:type==='purple'?.4:0),dist=20+(i%3)*8;
+  p.className='shard shard-'+type;p.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;background:'+color+';color:'+color+';width:'+shape[0]+'px;height:'+shape[1]+'px;border-radius:'+shape[2]+';';
   $('fxLayer').appendChild(p);
-  animate(p,[{transform:'translate(-50%,-50%) scale(1)',opacity:.95},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) scale(.15)',opacity:0}],{duration:240+i*18,easing:'cubic-bezier(.12,.72,.25,1)'}).then(()=>p.remove())
+  animate(p,[{transform:'translate(-50%,-50%) scale(1.12)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) scale(.08)',opacity:0}],{duration:290+i*16,easing:'cubic-bezier(.12,.72,.25,1)'}).then(()=>p.remove())
  }
 }
 async function popCells(cells){
@@ -272,9 +280,10 @@ async function popCells(cells){
  const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p);return {el:cell?.firstElementChild,origin:center(cell),type,color:palette[type]||'#fff'}});
  await Promise.all(points.map(async({el,origin,type,color},i)=>{
   if(!el)return;
-  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',budget=Math.max(1,Math.floor(30/Math.max(1,points.length)));
+  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',budget=Math.max(1,Math.floor(36/Math.max(1,points.length)));
+  popEcho(origin,color,type);
   burst(origin,color,Math.min(pop.shards,budget),type);
-  await animate(el,pop.frames(base),{duration:pop.duration,delay:(i%3)*10,easing:pop.easing});
+  await animate(el,pop.frames(base),{duration:pop.duration,delay:(i%3)*12,easing:pop.easing});
   el.style.opacity='0';
  }))
 }

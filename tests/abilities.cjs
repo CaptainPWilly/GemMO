@@ -14,9 +14,9 @@ const progressionDefs=fs.readFileSync(path.join(root,'shared','progression.js'),
 const storyDefs=fs.readFileSync(path.join(root,'shared','story.js'),'utf8');
 const combatCore=fs.readFileSync(path.join(root,'assets','combat-core.js'),'utf8');
 let src=fs.readFileSync(path.join(root,'assets','app.js'),'utf8');
-assert(html.includes('href="assets/styles.css"'),'production shell must load the canonical stylesheet');
+assert(/href="assets\/styles\.css(?:\?[^"]+)?" /.test(html.replace('>',' >'))||/href="assets\/styles\.css(?:\?[^"]+)?"/.test(html),'production shell must load the canonical stylesheet');
 assert(html.includes('src="assets/content.js"')&&html.includes('src="shared/encounters.js"')&&html.includes('src="shared/combat-rules.js"')&&html.includes('src="shared/progression.js"')&&html.includes('src="shared/story.js"')&&html.includes('src="assets/combat-core.js"')&&html.indexOf('assets/content.js')<html.indexOf('shared/encounters.js')&&html.indexOf('shared/encounters.js')<html.indexOf('shared/combat-rules.js')&&html.indexOf('shared/combat-rules.js')<html.indexOf('shared/progression.js')&&html.indexOf('shared/progression.js')<html.indexOf('shared/story.js')&&html.indexOf('shared/story.js')<html.indexOf('assets/combat-core.js')&&html.indexOf('assets/combat-core.js')<html.indexOf('assets/app.js'),'production shell must load content, shared encounter/combat/story rules, combat core, then runtime');
-assert(html.includes('src="assets/app.js"'),'production shell must load the canonical runtime');
+assert(/src="assets\/app\.js(?:\?[^"]+)?"/.test(html),'production shell must load the canonical runtime');
 assert(/<div class="worldEffectsPanel uiSheet" id="worldEffectsPanel" hidden>/.test(html)&&/<div class="worldQuestPanel uiSheet" id="worldQuestPanel" hidden>/.test(html),'world drawers have real DOM IDs so map setup can open');
 assert(content.includes('globalThis.GEMMO_CONTENT=Object.freeze'),'static game definitions must live behind the content boundary');
 assert(!content.includes("'env'")&&!html.includes('ENVIRONMENT · RIFT')&&!src.includes("type==='env'"),'standalone Environment gem rules stay removed');
@@ -127,9 +127,12 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
 assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types have distinct one-shot pop definitions');
-assert(src.includes("budget=Math.max(1,Math.floor(30/Math.max(1,points.length)))"),'pop shards are globally budgeted so large cascades stay mobile-safe');
+assert(src.includes("budget=Math.max(1,Math.floor(36/Math.max(1,points.length)))"),'pop shards are globally budgeted so large cascades stay mobile-safe');
 assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
 assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
+assert(src.includes('function popEcho(origin,color,type)')&&src.includes("e.className='popEcho popEcho-'+type"),'each destroyed gem gets one bounded type-colored outline echo');
+assert(html.includes('assets/app.js?v=20261005-pop2')&&html.includes('assets/styles.css?v=20261005-pop2'),'mobile receives cache-busted combat assets after deployment');
+assert(!src.includes('function ensureBoardCells(){'),'visible pop polish keeps the accepted old direct board renderer');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
 assert(src.includes("function render(){renderStatuses();boardEl.innerHTML='';"),'actual old board render path is restored');
 assert(src.includes('async function fightEntrance(){}'),'later 64-gem fight entrance is removed');
