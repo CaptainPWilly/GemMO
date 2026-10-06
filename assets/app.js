@@ -403,20 +403,22 @@ function burst(origin,color,count=4,type='red'){
   animate(p,[{transform:'translate(-50%,-50%) scale(1.2)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) scale(.06)',opacity:0}],{duration:320+i*16,easing:'cubic-bezier(.12,.72,.25,1)'}).then(()=>p.remove())
  }
 }
-async function popCells(cells){
+async function popCells(cells,intensity=1){
  const palette={red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'};
  const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p),el=cell?.firstElementChild;return {el,origin:cell?center(cell):null,type,color:palette[type]||'#fff'}});
- const ghostStep=Math.max(1,Math.ceil(points.length/12)),burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.length)));
+ const ghostStep=Math.max(1,Math.ceil(points.length/12)),accentStep=Math.max(1,Math.ceil(points.length/8)),burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.length)));
+ const popDuration=intensity>=3?225:intensity===2?210:195,squash=intensity>=3?.65:intensity===2?.69:.72,collapse=intensity>=3?.035:intensity===2?.055:.08;
  await Promise.all(points.map(async({el,origin,type,color},i)=>{
   if(!el)return;
-  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)';
-  if(i%ghostStep===0){const delay=(i%3)*8;void popGhost(el,origin,type,color,delay);popAccent(origin,type,color,delay)}
+  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',delay=(i%3)*8;
+  if(i%ghostStep===0)void popGhost(el,origin,type,color,delay);
+  if(i%accentStep===0)popAccent(origin,type,color,delay);
   burst(origin,color,Math.min(pop.shards,burstBudget),type);
   await animate(el,[
    {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.72)',opacity:.9,offset:.35},
-   {transform:base+' scale(.08)',opacity:0}
-  ],{duration:205,delay:(i%3)*8,easing:'cubic-bezier(.2,.72,.2,1)'});
+   {transform:base+' scale('+squash+')',opacity:.9,offset:.34},
+   {transform:base+' scale('+collapse+')',opacity:0}
+  ],{duration:popDuration,delay,easing:'cubic-bezier(.2,.72,.2,1)'});
   el.style.opacity='0';
  }))
 }
@@ -499,11 +501,16 @@ async function fallColumns(){
  if(!findMatches()&&!legalMoves().length)await reshuffleBoard();
 }
 
+const MATCH_FX_COLOR={red:'#ff6677',blue:'#72b8ff',green:'#71e99f',yellow:'#ffe06d',purple:'#c69bff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff4d6'};
 function matchFxCenter(cells){
  if(!cells?.length)return effectCenter(boardEl);
  let x=0,y=0,n=0;
  for(const p of cells){const el=cellAt(p);if(!el)continue;const c=center(el);x+=c.x;y+=c.y;n++}
  return n?{x:x/n,y:y/n}:effectCenter(boardEl);
+}
+function matchFxType(counts){
+ const ranked=Object.entries(counts||{}).filter(([,n])=>n>0).sort((a,b)=>b[1]-a[1]);
+ return ranked[0]?.[0]||'gold';
 }
 function fxPause(ms){return reducedMotion()||ms<=0?Promise.resolve():new Promise(resolve=>setTimeout(resolve,ms))}
 function boardPunch(power=1){
@@ -530,6 +537,19 @@ function fxHeadline(text,origin,{color='#ffe6a8',size=18,duration=500,sub=''}={}
   {transform:'translate(-50%,-28px) scale(.96)',opacity:0}
  ],{duration,easing:FX_EASE}).then(()=>wrap.remove());
 }
+function matchImpactBeat(origin,type,tier=1,cascade=0){
+ if(reducedMotion()||!origin)return;
+ const color=MATCH_FX_COLOR[type]||'#ffe6a8',ring=document.createElement('i'),size=18+tier*8+Math.min(10,cascade*2),endScale=1.45+tier*.22;
+ ring.className='matchImpact matchImpact-'+type;
+ ring.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;width:'+size+'px;height:'+size+'px;border:'+(tier>=3?2:1)+'px solid '+color+';border-radius:50%;pointer-events:none;z-index:9;box-shadow:0 0 '+(4+tier*2)+'px '+color+'55;';
+ $('fxLayer').appendChild(ring);
+ void animate(ring,[
+  {transform:'translate(-50%,-50%) scale(.28)',opacity:0},
+  {transform:'translate(-50%,-50%) scale(.72)',opacity:.9,offset:.22},
+  {transform:'translate(-50%,-50%) scale('+endScale+')',opacity:0}
+ ],{duration:190+tier*32,easing:FX_EASE}).then(()=>ring.remove());
+ if(tier===1&&cascade===0)void boardPunch(.45);
+}
 async function anticipateBreak(cells,tier=0){
  if(reducedMotion()||tier<=0)return;
  const scale=tier>=3?1.11:tier===2?1.08:1.055,duration=tier>=3?78:tier===2?64:48;
@@ -547,16 +567,22 @@ async function anticipateBreak(cells,tier=0){
 }
 function comboBeat(cascade,origin){
  if(reducedMotion()||cascade<=0)return;
- const combo=cascade+1,power=Math.min(3.2,1+combo*.38),size=Math.min(28,16+combo*2);
+ const combo=cascade+1,power=Math.min(3.4,1+combo*.4),size=Math.min(30,16+combo*2),surge=combo>=6?'FULL SURGE':combo>=4?'CHAIN SURGE':'';
  void boardPunch(power);
- void fxHeadline('COMBO '+combo,origin,{color:combo>=4?'#fff1a6':'#f2d49a',size,duration:440+Math.min(180,combo*28),sub:combo>=4?'CHAIN SURGE':''});
+ void fxHeadline('COMBO '+combo,origin,{color:combo>=4?'#fff1a6':'#f2d49a',size,duration:430+Math.min(210,combo*30),sub:surge});
 }
-function extraTurnBeat(origin,actor){
+function cascadeClimax(cascade,origin){
+ const combo=cascade+1;
+ if(reducedMotion()||!origin||combo<4)return;
+ void boardPunch(Math.min(3.4,1.5+combo*.28));
+ void fxHeadline('CHAIN '+combo,origin,{color:'#fff4bd',size:Math.min(30,18+combo*2),duration:620+Math.min(120,combo*18),sub:'CASCADE COMPLETE'});
+}
+function extraTurnBeat(origin,actor,punch=true){
  if(reducedMotion()||!origin)return;
- void boardPunch(1.6);
+ if(punch)void boardPunch(1.6);
  void fxHeadline(actor==='player'?'EXTRA TURN':'ENEMY EXTRA TURN',origin,{color:'#ffe38f',size:17,duration:560,sub:'MATCH 4+'});
 }
-function wildForgeBeat(origin){
+function wildForgeBeat(origin,punch=true){
  if(reducedMotion()||!origin)return;
  const ghost=document.createElement('span');ghost.className='gem wild wildForgeGhost';ghost.dataset.i='W';
  ghost.style.cssText='position:absolute;left:'+(origin.x-17)+'px;top:'+(origin.y-17)+'px;width:34px;height:34px;margin:0;z-index:14;pointer-events:none;animation:none;filter:none;';
@@ -567,7 +593,7 @@ function wildForgeBeat(origin){
   {transform:'translate(calc(-50% + '+(dx*.58).toFixed(1)+'px),calc(-50% + '+(dy*.58).toFixed(1)+'px)) scaleY(1)',opacity:1,offset:.32},
   {transform:'translate(calc(-50% + '+dx.toFixed(1)+'px),calc(-50% + '+dy.toFixed(1)+'px)) scaleY(.3)',opacity:0}
  ],430,i*12)});
- void boardPunch(2.5);
+ if(punch)void boardPunch(2.5);
  void fxHeadline('WILD FORGED',origin,{color:'#fff4c7',size:21,duration:680,sub:'MATCH 5'});
  return animate(ghost,[
   {transform:'rotate(45deg) scale(.08)',opacity:0},
@@ -587,13 +613,15 @@ async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=
  let makeWild=null,match4=false,maxRun=3;
  for(const run of matches.runs){maxRun=Math.max(maxRun,run.len);if(run.len>=4)match4=true;if(run.len>=5&&!makeWild){makeWild=run.cells.find(p=>target&&p.x===target.x&&p.y===target.y)||run.cells[Math.floor(run.cells.length/2)]}}
  render();
- const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),tier=makeWild?3:match4?2:cascade>0?Math.min(2,1+cascade):0;
+ const origin=makeWild?effectCenter(cellAt(makeWild)):matchFxCenter(matches.cells),matchTier=maxRun>=5?3:maxRun>=4?2:1,cascadeTier=cascade>0?Math.min(3,1+cascade):1,tier=Math.max(matchTier,cascadeTier),primaryType=matchFxType(counts);
  if(cascade>0)comboBeat(cascade,origin);
  await anticipateBreak(matches.cells,tier);
  const wildCount=matches.cells.filter(p=>board[p.y][p.x]==='wild').length;
  if(wildCount)setLog(wildCount+' Wild'+(wildCount===1?' substitutes':'s substitute')+' in this match. Only matched tiles are removed.');
- await popCells(matches.cells);
- if(makeWild)void wildForgeBeat(origin);else if(match4)extraTurnBeat(origin,actor);
+ await popCells(matches.cells,tier);
+ matchImpactBeat(origin,primaryType,tier,cascade);
+ if(makeWild)void wildForgeBeat(origin,cascade===0);else if(match4)extraTurnBeat(origin,actor,cascade===0);
+ if(cascade===0&&tier>=2)await fxPause(tier===3?28:14);
  for(const [type,n] of Object.entries(counts)){
   const source=matches.cells.find(p=>(p.type||board[p.y][p.x])===type);
   effectOrigin=source?center(cellAt(source)):origin;
@@ -611,6 +639,7 @@ async function resolve(matches,actor,target,cascade=0,keepTurn=false,comboRoots=
  if(pHP<=0||eHP<=0){busy=false;return}
  let next=findMatches();
  if(next){busy=false;return resolve(next,actor,null,cascade+1,keepTurn,comboRoots)}
+ if(cascade>=3)cascadeClimax(cascade,origin);
  busy=false;afterAction(actor,keepTurn)
 }
 async function trySwap(a,b,actor,force=false,startProgress=0){
