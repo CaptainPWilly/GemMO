@@ -132,7 +132,7 @@ assert(!src.includes('function localPopFlash('),'no secondary local flash geomet
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
 assert(!src.includes("position:absolute;inset:-6%")&&!src.includes("left:50%;top:50%;width:'+size+'%"),'all secondary per-gem positioning math is gone');
 assert(html.includes('assets/app.js?v=20261005-pop20')&&html.includes('assets/styles.css?v=20261005-pop20'),'mobile receives cache-busted local-pop performance assets after deployment');
-assert(src.includes("function ensureBoardFx(){")&&src.includes("boardEl.appendChild(fx)")&&src.includes("const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove())")&&src.includes("boardEl.insertBefore(c,boardFx)"),'persistent board-local FX overlay survives cell rebuilds while all 64 cells are rebuilt immediately before it');
+assert(src.includes("function ensureBoardFx(){")&&src.includes("boardEl.appendChild(fx)")&&src.includes("const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove())")&&src.includes("boardEl.appendChild(c)}boardEl.appendChild(boardFx)"),'persistent board-local FX overlay survives cell rebuilds and is moved back to the final paint position after all 64 cells');
 assert(styles.includes('.board{position:relative;isolation:isolate}')&&styles.includes('.boardFx{position:absolute;inset:0;z-index:1000;pointer-events:none;overflow:visible}'),'board-local FX are painted inside the board above all cells and gems');
 assert(src.includes("function boardCellElements(){return Array.from(boardEl.children).filter")&&src.includes("boardCellElements().map")&&!src.includes("Array.from(boardEl.children).map"),'board animation paths ignore the non-cell FX overlay without recursive lookup');
 assert(src.includes("if(mobilePerformance&&pointInBoard(origin)){")&&src.includes("clone.className=mote.className+' boardTravelClone'")&&src.includes("clone.className='damageSpark boardTravelClone'"),'mobile charge and damage travel duplicate only the in-board segment into the board-local overlay');
@@ -170,7 +170,7 @@ assert(src.includes("const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a
 
 assert(!src.includes('requestAnimationFrame(()=>popGhost'),'ghost pops are event-driven rather than continuous rendering');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
-assert(src.includes("function render(){renderStatuses();const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove());")&&src.includes("boardEl.insertBefore(c,boardFx)"),'accepted direct board renderer still rebuilds all 64 cells while preserving only the FX overlay');
+assert(src.includes("function render(){renderStatuses();const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove());")&&src.includes("boardEl.appendChild(c)}boardEl.appendChild(boardFx)"),'accepted direct board renderer still rebuilds all 64 cells while preserving only the FX overlay');
 assert(src.includes('async function fightEntrance(){}'),'later 64-gem fight entrance is removed');
 assert(!styles.includes('PRESTIGE PUZZLE BOARD')&&!styles.includes('MOBILE ORIGINAL-FIDELITY BOARD'),'all later board override layers stay removed');
 assert(styles.includes('.boardShell{border-radius:6px;border:2px solid #8e7447;background:#15140f'),'old board frame styling is restored exactly');
