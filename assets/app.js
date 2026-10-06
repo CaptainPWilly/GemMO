@@ -257,33 +257,90 @@ const GEM_POP={
   {transform:b+' scale(.03)',opacity:0}
  ]}
 };
-function popEcho(origin,color,type){
- if(reducedMotion()||!origin)return;
- const e=document.createElement('i'),round=type==='gold'||type==='green'||type==='wild';
- e.className='popEcho popEcho-'+type;
- e.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;width:14px;height:14px;border:2px solid '+color+';border-radius:'+(round?'50%':'3px')+';pointer-events:none;';
- $('fxLayer').appendChild(e);
- animate(e,[{transform:'translate(-50%,-50%) scale(.35)',opacity:.9},{transform:'translate(-50%,-50%) scale(2.55)',opacity:0}],{duration:type==='purple'?300:250,easing:'cubic-bezier(.12,.72,.22,1)'}).then(()=>e.remove());
+function popGhost(el,origin,type,color,delay=0){
+ if(reducedMotion()||!el||!origin)return Promise.resolve();
+ const rect=el.getBoundingClientRect(),ghost=document.createElement('span'),gold=type==='gold',base=gold?'rotate(0deg)':'rotate(45deg)';
+ ghost.className='gem popGhost '+type;
+ ghost.dataset.i=ICON[type]||'';
+ const size=Math.max(18,Math.round(Math.max(rect.width,rect.height)));
+ ghost.style.cssText='position:absolute;left:'+(origin.x-size/2)+'px;top:'+(origin.y-size/2)+'px;width:'+size+'px;height:'+size+'px;margin:0;z-index:8;pointer-events:none;filter:none;';
+ $('fxLayer').appendChild(ghost);
+ const frames={
+  red:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(1.48,.72)',opacity:1,offset:.26},
+   {transform:base+' scale(.7,1.62)',opacity:.95,offset:.56},
+   {transform:base+' scale(.04)',opacity:0}
+  ],
+  blue:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.78,1.5)',opacity:1,offset:.3},
+   {transform:base+' scale(1.62,.35)',opacity:.92,offset:.64},
+   {transform:base+' scale(.04,.01)',opacity:0}
+  ],
+  green:[
+   {transform:base+' translateY(0) scale(1)',opacity:1},
+   {transform:base+' translateY(3px) scale(.78,1.45)',opacity:1,offset:.28},
+   {transform:base+' translateY(-12px) scale(1.55,.62)',opacity:.9,offset:.66},
+   {transform:base+' translateY(-18px) scale(.05)',opacity:0}
+  ],
+  yellow:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.58)',opacity:1,offset:.2},
+   {transform:base+' scale(1.78)',opacity:.94,offset:.55},
+   {transform:base+' scale(.04)',opacity:0}
+  ],
+  purple:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.34)',opacity:1,offset:.34},
+   {transform:base+' scale(1.72)',opacity:.78,offset:.72},
+   {transform:base+' scale(.03)',opacity:0}
+  ],
+  gold:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.74)',opacity:1,offset:.24},
+   {transform:base+' scale(1.62)',opacity:.96,offset:.6},
+   {transform:base+' scale(.05)',opacity:0}
+  ],
+  xp:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.5)',opacity:1,offset:.2},
+   {transform:base+' scale(1.8,.82)',opacity:.92,offset:.58},
+   {transform:base+' scale(.03)',opacity:0}
+  ],
+  wild:[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.42)',opacity:1,offset:.3},
+   {transform:base+' scale(1.82)',opacity:.85,offset:.7},
+   {transform:base+' scale(.03)',opacity:0}
+  ]
+ }[type]||[];
+ return animate(ghost,frames,{duration:type==='wild'?360:type==='purple'?345:320,delay,easing:'cubic-bezier(.14,.8,.18,1)'}).then(()=>ghost.remove());
 }
 function burst(origin,color,count=4,type='red'){
  if(reducedMotion()||!origin)return;
  const shape={red:[7,3,'1px'],blue:[4,6,'1px'],green:[5,5,'50%'],yellow:[3,8,'1px'],purple:[6,4,'1px'],gold:[5,5,'50%'],xp:[3,7,'1px'],wild:[5,5,'50%']}[type]||[5,5,'1px'];
  for(let i=0;i<count;i++){
-  const p=document.createElement('i'),angle=(i/count)*Math.PI*2+(type==='yellow'?.2:type==='purple'?.4:0),dist=20+(i%3)*8;
+  const p=document.createElement('i'),angle=(i/count)*Math.PI*2+(type==='yellow'?.2:type==='purple'?.4:0),dist=24+(i%3)*9;
   p.className='shard shard-'+type;p.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;background:'+color+';color:'+color+';width:'+shape[0]+'px;height:'+shape[1]+'px;border-radius:'+shape[2]+';';
   $('fxLayer').appendChild(p);
-  animate(p,[{transform:'translate(-50%,-50%) scale(1.12)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) scale(.08)',opacity:0}],{duration:290+i*16,easing:'cubic-bezier(.12,.72,.25,1)'}).then(()=>p.remove())
+  animate(p,[{transform:'translate(-50%,-50%) scale(1.2)',opacity:1},{transform:'translate('+Math.cos(angle)*dist+'px,'+Math.sin(angle)*dist+'px) scale(.06)',opacity:0}],{duration:320+i*16,easing:'cubic-bezier(.12,.72,.25,1)'}).then(()=>p.remove())
  }
 }
 async function popCells(cells){
  const palette={red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'};
- const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p);return {el:cell?.firstElementChild,origin:center(cell),type,color:palette[type]||'#fff'}});
+ const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p),el=cell?.firstElementChild;return {el,origin:cell?center(cell):null,type,color:palette[type]||'#fff'}});
+ const ghostStep=Math.max(1,Math.ceil(points.length/12)),burstBudget=Math.max(1,Math.floor(30/Math.max(1,points.length)));
  await Promise.all(points.map(async({el,origin,type,color},i)=>{
   if(!el)return;
-  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',budget=Math.max(1,Math.floor(36/Math.max(1,points.length)));
-  popEcho(origin,color,type);
-  burst(origin,color,Math.min(pop.shards,budget),type);
-  await animate(el,pop.frames(base),{duration:pop.duration,delay:(i%3)*12,easing:pop.easing});
+  const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)';
+  if(i%ghostStep===0)void popGhost(el,origin,type,color,(i%3)*8);
+  burst(origin,color,Math.min(pop.shards,burstBudget),type);
+  await animate(el,[
+   {transform:base+' scale(1)',opacity:1},
+   {transform:base+' scale(.72)',opacity:.9,offset:.35},
+   {transform:base+' scale(.08)',opacity:0}
+  ],{duration:205,delay:(i%3)*8,easing:'cubic-bezier(.2,.72,.2,1)'});
   el.style.opacity='0';
  }))
 }
