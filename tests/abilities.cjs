@@ -131,11 +131,15 @@ assert(src.includes("burstBudget=Math.max(1,Math.floor(12/Math.max(1,points.leng
 assert(src.includes("base=type==='gold'?'rotate(0deg)':'rotate(45deg)'"),'type pops preserve each gem resting angle instead of visibly spinning it');
 assert(src.includes("p.className='shard shard-'+type"),'pop debris inherits gem type for readable material language');
 assert(src.includes('function popGhost(el,origin,type,color,delay=0)')&&src.includes("ghost.className='gem popGhost '+type"),'matched gems spawn short-lived full-size FX ghosts so pops remain visible above board refill');
-assert(html.includes('assets/app.js?v=20261005-pop8')&&html.includes('assets/styles.css?v=20261005-pop8'),'mobile receives cache-busted premium choreography assets after deployment');
+assert(html.includes('assets/app.js?v=20261005-pop9')&&html.includes('assets/styles.css?v=20261005-pop9'),'mobile receives cache-busted premium choreography assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'visible pop polish keeps the accepted old direct board renderer');
 assert(src.includes("ghostStep=Math.max(1,Math.ceil(points.length/12))")&&src.includes("accentStep=Math.max(1,Math.ceil(points.length/8))"),'full-size pop ghosts stay capped near twelve and semantic accents near eight even for large effects');
 assert(src.includes('function popAccent(origin,type,color,delay=0)'),'type-specific semantic accent layer exists');
-assert(src.includes("forEach(([dir,y])")&&src.includes("clip-path:polygon(50% 0,100% 35%")&&src.includes("border-radius:80% 20% 80% 20%"),'Red, Blue and Green pops keep distinct authored material shapes');
+assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'FX origins use the rendered gem center rather than the larger socket center');
+assert(src.includes("origin:gemCenter(p)")&&src.includes("const c=gemCenter(p);if(!c)continue")&&src.includes("makeWild?gemCenter(makeWild):matchFxCenter(matches.cells)"),'destruction, aggregate match beats, and Wild forging share the same gem-centered coordinate source');
+assert(src.includes("translate(-50%,-50%) translate(0,0)")&&src.includes("width:38px;height:38px;border:2px solid"),'Blue, Green, and Gold semantic accents are explicitly centered before their authored motion');
+assert(!src.includes("translate(calc(-50% + '+x+'px),-16px)")&&!src.includes("translate(calc(-50% + '+x+'px),2px)"),'legacy top-edge Blue/Green/Gold accent positioning is gone');
+assert(src.includes("forEach(([dir,y])")&&src.includes("[[0,-1,0],[1,0,90],[0,1,180],[-1,0,270]]")&&src.includes("border-radius:80% 20% 80% 20%"),'Red, Blue and Green pops keep distinct authored material shapes');
 assert(src.includes("function chargeFlight(color,amount,origin)")&&src.includes("function chargeImpact(destination,color,target,amount)"),'broken colored gems have a dedicated polished energy-flight path into charge crystals');
 assert(src.includes("chargeHead")&&src.includes("chargeTail"),'charge energy uses a readable comet head and short tail instead of equal particle spam');
 assert(src.includes("label.textContent='+'+amount"),'charge impact surfaces the actual gained amount at the target crystal');
