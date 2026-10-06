@@ -207,7 +207,7 @@ let effectOrigin=null,damageAnimations=[],chargeAnimations=[];
 function boardCellElements(){return Array.from(boardEl.children).filter(el=>el.classList?.contains('cell'))}
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
 function ensureBoardFx(){
- let fx=boardEl.querySelector(':scope > .boardFx');
+ let fx=Array.from(boardEl.children).find(el=>el.classList?.contains('boardFx'));
  if(!fx){fx=document.createElement('div');fx.className='boardFx';fx.setAttribute('aria-hidden','true');boardEl.appendChild(fx)}
  return fx;
 }
