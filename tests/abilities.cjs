@@ -170,7 +170,7 @@ assert(src.includes("const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a
 
 assert(!src.includes('requestAnimationFrame(()=>popGhost'),'ghost pops are event-driven rather than continuous rendering');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
-assert(src.includes("function render(){renderStatuses();boardEl.innerHTML='';"),'actual old board render path is restored');
+assert(src.includes("function render(){renderStatuses();const boardFx=ensureBoardFx();boardCellElements().forEach(el=>el.remove());")&&src.includes("boardEl.insertBefore(c,boardFx)"),'accepted direct board renderer still rebuilds all 64 cells while preserving only the FX overlay');
 assert(src.includes('async function fightEntrance(){}'),'later 64-gem fight entrance is removed');
 assert(!styles.includes('PRESTIGE PUZZLE BOARD')&&!styles.includes('MOBILE ORIGINAL-FIDELITY BOARD'),'all later board override layers stay removed');
 assert(styles.includes('.boardShell{border-radius:6px;border:2px solid #8e7447;background:#15140f'),'old board frame styling is restored exactly');
