@@ -148,7 +148,7 @@ assert(src.includes("fxHeadline('WILD FORGED'")&&src.includes("ghost.className='
 assert(src.includes("matchTier=maxRun>=5?3:maxRun>=4?2:1")&&src.includes("cascadeTier=cascade>0?Math.min(3,1+cascade):1"),'resolve still scales Match 4, Match 5, and deeper cascades upward');
 assert(src.includes("if(tier>=2||cascade>0)matchImpactBeat(origin,primaryType,tier,cascade);"),'normal Match 3 avoids a second global impact overlay');
 assert(src.includes("function cascadeClimax(cascade,origin)")&&src.includes("void boardPunch(Math.min(3.4,1.5+combo*.28));"),'board recoil is reserved for the completed long-cascade climax');
-assert(src.includes("const wildColors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff']"),'rare Wild forging keeps its multicolor birth rays');
+assert(src.includes("const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff']")&&src.includes("wildForgeRay"),'rare Wild forging keeps its multicolor birth rays');
 
 assert(!src.includes('requestAnimationFrame(()=>popGhost'),'ghost pops are event-driven rather than continuous rendering');
 assert(!src.includes('function ensureBoardCells(){')&&!src.includes('function renderBoard(){'),'old board renderer rebuilds the board directly instead of using the later persistent renderer');
