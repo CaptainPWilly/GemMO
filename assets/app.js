@@ -265,16 +265,16 @@ function popPiece(origin,className,css,frames,duration=380,delay=0,easing=FX_EAS
  $('fxLayer').appendChild(el);
  animate(el,frames,{duration,delay,easing}).then(()=>el.remove());
 }
-function localPopFlash(cell,type,color,intensity=1,delay=0){
- if(reducedMotion()||!cell)return Promise.resolve();
- const fx=document.createElement('i'),gold=type==='gold',base=gold?'rotate(0deg)':'rotate(45deg)',size=intensity>=3?72:intensity===2?64:56;
+function localPopFlash(gem,type,color,intensity=1,delay=0){
+ if(reducedMotion()||!gem)return Promise.resolve();
+ const fx=document.createElement('i');
  fx.className='localGemPop localGemPop-'+type;
- fx.style.cssText='position:absolute;left:50%;top:50%;width:'+size+'%;aspect-ratio:1;z-index:4;pointer-events:none;border:'+(intensity>=3?2:1)+'px solid '+color+';border-radius:'+(gold?'50%':'20%')+';box-shadow:'+(mobilePerformance?'none':'0 0 '+(3+intensity*2)+'px '+color+'55')+';';
- cell.appendChild(fx);
+ fx.style.cssText='position:absolute;inset:-6%;z-index:4;pointer-events:none;border:'+(intensity>=3?2:1)+'px solid '+color+';border-radius:inherit;box-shadow:'+(mobilePerformance?'none':'0 0 '+(3+intensity*2)+'px '+color+'55')+';';
+ gem.appendChild(fx);
  return animate(fx,[
-  {transform:'translate(-50%,-50%) '+base+' scale(.35)',opacity:0},
-  {transform:'translate(-50%,-50%) '+base+' scale(.88)',opacity:.9,offset:.28},
-  {transform:'translate(-50%,-50%) '+base+' scale(1.28)',opacity:0}
+  {transform:'scale(.72)',opacity:0},
+  {transform:'scale(.98)',opacity:.9,offset:.28},
+  {transform:'scale(1.34)',opacity:0}
  ],{duration:165+intensity*24,delay,easing:FX_EASE}).then(()=>fx.remove());
 }
 function burst(origin,color,count=4,type='red'){
@@ -292,12 +292,12 @@ function burst(origin,color,count=4,type='red'){
 }
 async function popCells(cells,intensity=1){
  const palette={red:'#ff7c80',blue:'#87bdff',green:'#9affba',yellow:'#ffe39b',purple:'#d5acff',gold:'#ffe39b',xp:'#acfbff',wild:'#fff'};
- const points=cells.map(p=>{const type=board[p.y][p.x],cell=cellAt(p),el=cell?.firstElementChild;return {cell,el,type,color:palette[type]||'#fff'}});
+ const points=cells.map(p=>{const type=board[p.y][p.x],el=cellAt(p)?.firstElementChild;return {el,type,color:palette[type]||'#fff'}});
  const speed=intensity>=3?1.06:intensity===2?1:.9;
- await Promise.all(points.map(async({cell,el,type,color},i)=>{
+ await Promise.all(points.map(async({el,type,color},i)=>{
   if(!el)return;
   const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)',delay=(i%3)*6;
-  const flash=localPopFlash(cell,type,color,intensity,delay);
+  const flash=localPopFlash(el,type,color,intensity,delay);
   await Promise.all([
    animate(el,pop.frames(base),{duration:Math.round(pop.duration*speed),delay,easing:pop.easing}),
    flash

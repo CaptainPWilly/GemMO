@@ -127,10 +127,12 @@ assert(styles.includes('@keyframes turnCuePulse')&&styles.includes('@media(prefe
 assert(src.includes("const reducedMotion=()=>motionOff||window.matchMedia('(prefers-reduced-motion: reduce)').matches"),'old board still respects reduced-motion preferences');
 assert(src.includes('const MOTION={swap:170,pop:190,flight:340,settle:440};'),'combat uses the exact pre-visual-overhaul motion budget');
 assert(src.includes('const GEM_POP={')&&['red','blue','green','yellow','purple','gold','xp','wild'].every(type=>src.includes(type+':{duration:')),'all eight board gem types keep distinct one-shot deformation definitions');
-assert(src.includes("function localPopFlash(cell,type,color,intensity=1,delay=0)")&&src.includes("cell.appendChild(fx)"),'per-gem flash FX are attached to the matched cell instead of the global overlay');
-assert(src.includes("animate(el,pop.frames(base)")&&src.includes("flash=localPopFlash(cell,type,color,intensity,delay)"),'the real gem performs its authored type-specific pop while one local flash supplies impact');
+assert(src.includes("function localPopFlash(gem,type,color,intensity=1,delay=0)")&&src.includes("gem.appendChild(fx)"),'per-gem flash FX are attached directly to the rendered gem instead of the cell or global overlay');
+assert(src.includes("animate(el,pop.frames(base)")&&src.includes("flash=localPopFlash(el,type,color,intensity,delay)"),'the real gem performs its authored type-specific pop while its child flash stays locked to the same geometry');
 assert(!src.includes('function popGhost(')&&!src.includes('function popAccent('),'duplicate global gem ghosts and multi-piece accent clusters are removed');
-assert(html.includes('assets/app.js?v=20261005-pop10')&&html.includes('assets/styles.css?v=20261005-pop10'),'mobile receives cache-busted local-pop performance assets after deployment');
+assert(src.includes("position:absolute;inset:-6%")&&src.includes("border-radius:inherit"),'local pop flash uses gem-local inset geometry without left/top coordinate math');
+assert(!src.includes("left:50%;top:50%;width:'+size+'%"),'legacy cell-centered pop offset math is gone');
+assert(html.includes('assets/app.js?v=20261005-pop11')&&html.includes('assets/styles.css?v=20261005-pop11'),'mobile receives cache-busted local-pop performance assets after deployment');
 assert(!src.includes('function ensureBoardCells(){'),'pop cleanup keeps the accepted old direct board renderer');
 assert(src.includes("function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}"),'cross-UI travel FX still use rendered gem centers');
 assert(src.includes("function matchFxAnchor(matches,target,makeWild)")&&src.includes("return anchor?gemCenter(anchor):effectCenter(boardEl)"),'special match beats anchor to one real matched gem instead of the average point between gems');
