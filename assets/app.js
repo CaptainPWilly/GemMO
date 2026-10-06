@@ -117,6 +117,14 @@ let board=[],boardBonus=[],selected=null,busy=false,playerTurn=true,freeSwap=fal
 let pHP=18,eHP=24,pGuard=0,eGuard=0,gold=0,xp=0;
 let ec={red:0,blue:0,green:0,yellow:0,purple:0};
 const $=id=>document.getElementById(id), boardEl=$('board'),logEl=$('log');
+function fxRoot(){
+ const fx=fxRoot();if(!fx)return null;
+ if(typeof fx.showPopover==='function'){
+  try{if(!fx.matches(':popover-open'))fx.showPopover()}catch{}
+ }
+ return fx;
+}
+fxRoot();
 function makeCombatRng(seed){return COMBAT_CORE.makeRng(seed)}
 function combatJournalKey(matchId=activeMatchId){return 'gemmo.match.'+(account?.user?.id||'local')+'.'+matchId}
 function persistCombatJournal(){if(!activeMatchId)return;try{localStorage.setItem(combatJournalKey(),JSON.stringify(combatTranscript))}catch{}}
@@ -197,7 +205,7 @@ const performanceMode=()=>mobilePerformance;
 const luxuryFX=()=>!mobilePerformance&&!reducedMotion();
 let effectOrigin=null,damageAnimations=[],chargeAnimations=[];
 function cellAt(p){return boardEl.children[p.y*W+p.x]}
-function center(el){const r=el.getBoundingClientRect(),a=$('fxLayer').getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
+function center(el){const r=el.getBoundingClientRect(),a=fxRoot().getBoundingClientRect();return {x:r.left+r.width/2-a.left,y:r.top+r.height/2-a.top}}
 function gemCenter(p){const cell=cellAt(p),gem=cell?.firstElementChild;return gem?center(gem):cell?center(cell):null}
 function effectCenter(el){return reducedMotion()?null:center(el)}
 const MOTION={swap:170,pop:190,flight:340,settle:440};
@@ -262,7 +270,7 @@ const FX_EASE='cubic-bezier(.16,1,.3,1)';
 function popPiece(origin,className,css,frames,duration=380,delay=0,easing=FX_EASE){
  const el=document.createElement('i');el.className=className;
  el.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;z-index:10;pointer-events:none;'+css;
- $('fxLayer').appendChild(el);
+ fxRoot().appendChild(el);
  animate(el,frames,{duration,delay,easing}).then(()=>el.remove());
 }
 function burst(origin,color,count=4,type='red'){
@@ -271,7 +279,7 @@ function burst(origin,color,count=4,type='red'){
  for(let i=0;i<count;i++){
   const p=document.createElement('i'),angle=(i/count)*Math.PI*2,dist=18+(i%2)*8,dx=Math.cos(angle)*dist,dy=Math.sin(angle)*dist;
   p.className='shard shard-'+type;p.style.cssText='left:'+origin.x+'px;top:'+origin.y+'px;background:'+color+';color:'+color+';width:4px;height:4px;border-radius:50%;';
-  $('fxLayer').appendChild(p);
+  fxRoot().appendChild(p);
   animate(p,[
    {transform:'translate(-50%,-50%) scale(1)',opacity:1},
    {transform:'translate(calc(-50% + '+dx.toFixed(1)+'px),calc(-50% + '+dy.toFixed(1)+'px)) scale(.1)',opacity:0}
@@ -299,9 +307,9 @@ function chargeImpact(destination,color,target,amount){
  ring.style.cssText='position:absolute;left:'+destination.x+'px;top:'+destination.y+'px;width:16px;height:16px;border:2px solid '+c+';border-radius:50%;pointer-events:none;z-index:12;box-shadow:0 0 7px '+c+'66;';
  label.className='chargeGainLabel';label.textContent='+'+amount;
  label.style.cssText='position:absolute;left:'+destination.x+'px;top:'+(destination.y-12)+'px;color:'+c+';font:900 11px Georgia,serif;text-shadow:0 1px 2px #000;pointer-events:none;z-index:13;';
- $('fxLayer').appendChild(ring);$('fxLayer').appendChild(label);
+ fxRoot().appendChild(ring);fxRoot().appendChild(label);
  const sparks=(mobilePerformance?[]:[-1,1]).map(dir=>{
-  const p=document.createElement('i');p.style.cssText='position:absolute;left:'+destination.x+'px;top:'+destination.y+'px;width:4px;height:4px;border-radius:50%;background:'+c+';box-shadow:0 0 5px '+c+';pointer-events:none;z-index:12;';$('fxLayer').appendChild(p);
+  const p=document.createElement('i');p.style.cssText='position:absolute;left:'+destination.x+'px;top:'+destination.y+'px;width:4px;height:4px;border-radius:50%;background:'+c+';box-shadow:0 0 5px '+c+';pointer-events:none;z-index:12;';fxRoot().appendChild(p);
   return animate(p,[{transform:'translate(-50%,-50%) scale(.7)',opacity:1},{transform:'translate(calc(-50% + '+(dir*15)+'px),calc(-50% - 10px)) scale(.2)',opacity:0}],{duration:230,easing:FX_EASE}).then(()=>p.remove());
  });
  const work=Promise.all([
@@ -325,7 +333,7 @@ function chargeFlight(color,amount,origin){
     const size=i===0?9:5,mote=document.createElement('i');
     mote.className='chargeMote chargeMote-'+color+(i===0?' chargeHead':' chargeTail');
     mote.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+c+';box-shadow:0 0 '+(i===0?8:5)+'px '+c+(i===0?',0 0 13px '+c+'66':'')+';pointer-events:none;z-index:11;';
-    $('fxLayer').appendChild(mote);
+    fxRoot().appendChild(mote);
     const frames=Array.from({length:10},(_,step)=>{
      const p=step/9,arc=4*p*(1-p),scale=i===0?(1-.18*p):(1-.35*p);
      return {transform:'translate(-50%,-50%) translate3d('+(dx*p+bend*arc)+'px,'+(dy*p-22*arc)+'px,0) scale('+scale+')',opacity:step===0?0:step===9?0:(i===0?1:.72),offset:p};
@@ -343,9 +351,9 @@ function damageFlight(side,amount,blocked){
  const work=(async()=>{
  const dx=destination.x-origin.x,dy=destination.y-origin.y,curve=(side==='p'?-1:1)*Math.min(80,Math.abs(dy)*.3);
  const path=Array.from({length:15},(_,i)=>{const t=i/14;return {transform:'translate(-50%,-50%) translate3d('+(dx*t+curve*4*t*(1-t))+'px,'+(dy*t)+'px,0) rotate('+(t*270)+'deg) scale('+(1-.4*t)+')',opacity:t<.1?t*10:1,offset:t}});
- const trails=Array.from({length:reducedMotion()?0:mobilePerformance?1:2},(_,i)=>{const dot=document.createElement('span');dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';dot.style.opacity=1-i*.2;$('fxLayer').appendChild(dot);return animate(dot,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>dot.remove())});
+ const trails=Array.from({length:reducedMotion()?0:mobilePerformance?1:2},(_,i)=>{const dot=document.createElement('span');dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';dot.style.opacity=1-i*.2;fxRoot().appendChild(dot);return animate(dot,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>dot.remove())});
  await Promise.all(trails);shownHP[side]=Math.max(0,targetHP);pendingHP[side]--;syncHealth(side);burst(destination,'#ffe5a0',mobilePerformance?2:4);
- const label=document.createElement('span');label.className='damageNumber';label.textContent=amount?'−'+amount:'BLOCK';label.style.left=destination.x+'px';label.style.top=destination.y+'px';$('fxLayer').appendChild(label);
+ const label=document.createElement('span');label.className='damageNumber';label.textContent=amount?'−'+amount:'BLOCK';label.style.left=destination.x+'px';label.style.top=destination.y+'px';fxRoot().appendChild(label);
  void animate($(side+'health'),[{transform:'translateX(0)'},{transform:'translateX(-3px)',offset:.2},{transform:'translateX(2px)',offset:.45},{transform:'translateX(0)'}],{duration:180});
  void animate(label,[{transform:'translate(-50%,0) scale(.75)',opacity:0},{transform:'translate(-50%,-8px) scale(1.15)',opacity:1,offset:.18},{transform:'translate(-50%,-28px) scale(1)',opacity:0}],{duration:540,easing:'ease-out'}).then(()=>label.remove());
  })();damageAnimations.push(work);
@@ -397,7 +405,7 @@ function fxHeadline(text,origin,{color='#ffe6a8',size=18,duration=500,sub=''}={}
  wrap.innerHTML='<b>'+text+'</b>'+(sub?'<small>'+sub+'</small>':'');
  wrap.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;z-index:15;pointer-events:none;display:grid;gap:1px;text-align:center;color:'+color+';font:900 '+size+'px/1 Georgia,serif;letter-spacing:.8px;text-shadow:0 2px 3px #000,0 0 8px '+color+'55;white-space:nowrap;';
  const small=wrap.querySelector?.('small');if(small)small.style.cssText='font:800 8px/1.1 Inter,system-ui,sans-serif;letter-spacing:1.4px;color:#f6ead0;';
- $('fxLayer').appendChild(wrap);
+ fxRoot().appendChild(wrap);
  return animate(wrap,[
   {transform:'translate(-50%,2px) scale(.72)',opacity:0},
   {transform:'translate(-50%,-8px) scale(1.08)',opacity:1,offset:.22},
@@ -439,7 +447,7 @@ function wildForgeBeat(origin){
  if(reducedMotion()||!origin)return;
  const ghost=document.createElement('span');ghost.className='gem wild wildForgeGhost';ghost.dataset.i='W';
  ghost.style.cssText='position:absolute;left:'+(origin.x-17)+'px;top:'+(origin.y-17)+'px;width:34px;height:34px;margin:0;z-index:14;pointer-events:none;animation:none;filter:none;';
- $('fxLayer').appendChild(ghost);
+ fxRoot().appendChild(ghost);
  const colors=['#ff7785','#ffe17b','#77efa3','#87bdff','#c8a3ff'];
  colors.forEach((c,i)=>{const a=i/colors.length*Math.PI*2-Math.PI/2,dx=Math.cos(a)*38,dy=Math.sin(a)*38;popPiece(origin,'wildForgeRay','width:5px;height:18px;background:'+c+';border-radius:999px;box-shadow:0 0 5px '+c+'66;',[
   {transform:'translate(-50%,-50%) translate(0,0) scaleY(.2)',opacity:0},
@@ -1396,7 +1404,7 @@ function startFight(){
  if(account){const owned=new Set(account.inventory.filter(id=>itemById(id)));if(sack.filter(Boolean).some(id=>!owned.has(id)))return}
  clearTimeout(enemyTimer);board=[];boardBonus=[];selected=null;busy=false;playerTurn=true;freeSwap=false;extraTurn=false;enemyExtraTurn=false;overdrive=false;enemyReload=false;combatPaused=false;activeMatchId=null;activeRewardBudget=null;activeAuthority=null;combatRng=null;combatTranscript=[];matchStartPromise=null;rewardsSettled=false;lossSettlementStarted=false;combatConsumables=Object.fromEntries(inventoryItems.filter(v=>v.kind==='consumable'&&v.qty>0).map(v=>[v.id,v.qty]));
  const gear=gearStats(),skills=currentSkillEffects();pHP=playerMaxHP();eHP=enemyMaxHP();pGuard=gear.guard+skills.startGuard;eGuard=gold=xp=0;guardTurns=pGuard?2:0;charges={red:0,blue:0,green:0,yellow:0,purple:0};for(const color of Object.keys(charges))charges[color]=Math.min(reservoirCap(color),skills.startCharge[color]||0);ec={red:0,blue:0,green:0,yellow:0,purple:0};shownHP.p=pHP;shownHP.e=eHP;pendingHP.p=pendingHP.e=0;damageAnimations=[];chargeAnimations=[];effectOrigin=null;
- encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
+ encounterClearSaved=activeEncounter!=='rat'||worldCleared('rat');encounterSettling=false;lastMatchError='';$('resultMenu').disabled=false;$('resultRetry').hidden=true;$('resultText').textContent='';fxRoot().innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');
  if(accountToken){
   busy=true;setLog('SYNCING MATCH…','system');render();matchStartPromise=startMatchTicket();
   void matchStartPromise.then(async()=>{busy=false;if(!activeMatchId){combatPaused=true;setLog('MATCH SERVER UNREACHABLE — RETURN TO WORLD','system');render();return}eHP=enemyMaxHP();shownHP.e=eHP;board=[];boardBonus=[];buildBoard();setLog(enemyLabel()+' · '+eHP+' HP');render();busy=true;try{await fightEntrance()}finally{busy=false}render();touchActivity()});
@@ -1408,7 +1416,7 @@ function restoreCombatMatch(match){
  sack=s.sack.slice();equipment={...s.equipment};if(account){account.skills={...account.skills,purchased:s.skills};account.pendingMatch={matchId:match.matchId,encounterId:match.encounterId}}
  procsUsed=s.procsUsed||[];board=s.board;boardBonus=s.bonus;pHP=s.pHP;eHP=s.eHP;pGuard=s.pGuard;eGuard=s.eGuard;gold=s.gold;xp=s.xp;charges=s.charges;ec=s.ec;buffs=s.buffs;enemyEffects=s.enemyEffects;playerTurn=s.playerTurn;freeSwap=s.freeSwap;extraTurn=s.extraTurn;enemyExtraTurn=!!s.enemyExtraTurn;overdrive=s.overdrive;enemyReload=s.enemyReload;targetMode=s.targetMode;targetKeepsTurn=s.targetKeepsTurn;pinColumn=s.pinColumn;pinTurns=s.pinTurns;guardTurns=s.guardTurns;evadeTurns=s.evadeTurns;combatConsumables=s.consumables;actionNumber=s.actions+1;
  armedAbilitySlot=-1;armedConsumableId=null;resumedArmedSpec=null;resumedConsumablePaid=false;const last=match.transcript[match.transcript.length-1];if((targetMode||freeSwap)&&last?.t==='ability')resumedArmedSpec=combatItemById(sack[last.slot]);if(targetMode==='consumable_break'&&last?.t==='consume'){armedConsumableId=last.itemId;resumedConsumablePaid=true}
- selected=null;busy=false;combatPaused=false;rewardsSettled=false;lossSettlementStarted=false;encounterSettling=false;matchStartPromise=null;pendingHP.p=pendingHP.e=0;shownHP.p=pHP;shownHP.e=eHP;damageAnimations=[];effectOrigin=null;renderedTurnOwner='';combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();$('fxLayer').innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');render();setLog(targetMode||freeSwap?'MATCH RESUMED · choose your pending target.':'MATCH RESUMED','system');persistCombatJournal();checkEnd();touchActivity();
+ selected=null;busy=false;combatPaused=false;rewardsSettled=false;lossSettlementStarted=false;encounterSettling=false;matchStartPromise=null;pendingHP.p=pendingHP.e=0;shownHP.p=pHP;shownHP.e=eHP;damageAnimations=[];effectOrigin=null;renderedTurnOwner='';combatHistory=[];activeCombatMove=null;logSequence=0;renderMoveHistory();fxRoot().innerHTML='';$('result').classList.remove('show');$('modal').classList.remove('show');$('combatMenuPanel').hidden=true;$('combatItemsPanel').hidden=true;$('combatGemologyPanel').hidden=true;$('effectsDrawer').hidden=true;showScreen('fight');render();setLog(targetMode||freeSwap?'MATCH RESUMED · choose your pending target.':'MATCH RESUMED','system');persistCombatJournal();checkEnd();touchActivity();
 }
 async function loadSavedMatch(){
  const data=await accountRequest('/v1/matches/open');let match=data.match;if(!match)return null;
