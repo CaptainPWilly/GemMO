@@ -257,6 +257,77 @@ const GEM_POP={
   {transform:b+' scale(.03)',opacity:0}
  ]}
 };
+function popAccent(origin,type,color,delay=0){
+ if(reducedMotion()||!origin)return;
+ const el=document.createElement('i');
+ el.className='popAccent popAccent-'+type;
+ let css='',frames=[],duration=320;
+ if(type==='red'){
+  css='width:28px;height:4px;background:'+color+';border-radius:2px;';
+  frames=[
+   {transform:'translate(-50%,-50%) scaleX(.35)',opacity:1},
+   {transform:'translate(-50%,-50%) scaleX(1.9)',opacity:1,offset:.34},
+   {transform:'translate(calc(-50% - 18px),-50%) scaleX(.5)',opacity:0}
+  ];
+ }else if(type==='blue'){
+  css='width:5px;height:26px;background:'+color+';border-radius:2px;';
+  frames=[
+   {transform:'translate(-50%,-60%) scaleY(.3)',opacity:1},
+   {transform:'translate(-50%,-20%) scaleY(1.65)',opacity:1,offset:.42},
+   {transform:'translate(-50%,22px) scaleY(.35)',opacity:0}
+  ];
+ }else if(type==='green'){
+  css='width:13px;height:13px;background:'+color+';border-radius:50% 50% 50% 12%;';
+  frames=[
+   {transform:'translate(-50%,-50%) scale(.45)',opacity:1},
+   {transform:'translate(-50%,-15px) scale(1.15)',opacity:1,offset:.46},
+   {transform:'translate(-50%,-34px) scale(.35)',opacity:0}
+  ];
+  duration=360;
+ }else if(type==='yellow'){
+  css='width:30px;height:3px;background:'+color+';border-radius:2px;box-shadow:0 0 0 1px '+color+'55;';
+  frames=[
+   {transform:'translate(-50%,-50%) scaleX(.2)',opacity:1},
+   {transform:'translate(-50%,-50%) scaleX(2.15)',opacity:1,offset:.38},
+   {transform:'translate(-50%,-50%) scaleX(.2)',opacity:0}
+  ];
+ }else if(type==='purple'){
+  css='width:30px;height:30px;border:3px solid '+color+';border-radius:50%;';
+  frames=[
+   {transform:'translate(-50%,-50%) scale(1.75)',opacity:.95},
+   {transform:'translate(-50%,-50%) scale(.35)',opacity:1,offset:.62},
+   {transform:'translate(-50%,-50%) scale(.06)',opacity:0}
+  ];
+  duration=380;
+ }else if(type==='gold'){
+  css='width:11px;height:11px;background:'+color+';border-radius:50%;border:1px solid #fff3b0;';
+  frames=[
+   {transform:'translate(-50%,-50%) scale(.7)',opacity:1},
+   {transform:'translate(-50%,-18px) scale(1.25)',opacity:1,offset:.5},
+   {transform:'translate(-50%,-31px) scale(.45)',opacity:0}
+  ];
+  duration=360;
+ }else if(type==='xp'){
+  el.textContent='✦';
+  css='width:30px;height:30px;color:'+color+';font:bold 30px/30px Georgia,serif;text-align:center;';
+  frames=[
+   {transform:'translate(-50%,-50%) scale(.3)',opacity:1},
+   {transform:'translate(-50%,-50%) scale(1.75)',opacity:1,offset:.48},
+   {transform:'translate(-50%,-50%) scale(.5)',opacity:0}
+  ];
+ }else{
+  css='width:34px;height:34px;border:4px solid transparent;border-top-color:#ff7785;border-right-color:#ffe17b;border-bottom-color:#77efa3;border-left-color:#87bdff;border-radius:50%;';
+  frames=[
+   {transform:'translate(-50%,-50%) scale(.35)',opacity:1},
+   {transform:'translate(-50%,-50%) scale(1.65)',opacity:1,offset:.52},
+   {transform:'translate(-50%,-50%) scale(.55)',opacity:0}
+  ];
+  duration=390;
+ }
+ el.style.cssText='position:absolute;left:'+origin.x+'px;top:'+origin.y+'px;z-index:9;pointer-events:none;'+css;
+ $('fxLayer').appendChild(el);
+ animate(el,frames,{duration,delay,easing:'cubic-bezier(.14,.8,.18,1)'}).then(()=>el.remove());
+}
 function popGhost(el,origin,type,color,delay=0){
  if(reducedMotion()||!el||!origin)return Promise.resolve();
  const rect=el.getBoundingClientRect(),ghost=document.createElement('span'),gold=type==='gold',base=gold?'rotate(0deg)':'rotate(45deg)';
@@ -267,52 +338,45 @@ function popGhost(el,origin,type,color,delay=0){
  $('fxLayer').appendChild(ghost);
  const frames={
   red:[
-   {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(1.48,.72)',opacity:1,offset:.26},
-   {transform:base+' scale(.7,1.62)',opacity:.95,offset:.56},
-   {transform:base+' scale(.04)',opacity:0}
+   {transform:base+' translateX(0) scale(1)',opacity:1},
+   {transform:base+' translateX(-10px) scale(1.35,.7)',opacity:1,offset:.38},
+   {transform:base+' translateX(18px) scale(.22,.95)',opacity:0}
   ],
   blue:[
-   {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.78,1.5)',opacity:1,offset:.3},
-   {transform:base+' scale(1.62,.35)',opacity:.92,offset:.64},
-   {transform:base+' scale(.04,.01)',opacity:0}
+   {transform:base+' translateY(0) scale(1)',opacity:1},
+   {transform:base+' translateY(8px) scale(.78,1.35)',opacity:1,offset:.42},
+   {transform:base+' translateY(24px) scale(.18,.4)',opacity:0}
   ],
   green:[
    {transform:base+' translateY(0) scale(1)',opacity:1},
-   {transform:base+' translateY(3px) scale(.78,1.45)',opacity:1,offset:.28},
-   {transform:base+' translateY(-12px) scale(1.55,.62)',opacity:.9,offset:.66},
-   {transform:base+' translateY(-18px) scale(.05)',opacity:0}
+   {transform:base+' translateY(-10px) scale(1.18,.88)',opacity:1,offset:.46},
+   {transform:base+' translateY(-26px) scale(.28)',opacity:0}
   ],
   yellow:[
    {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.58)',opacity:1,offset:.2},
-   {transform:base+' scale(1.78)',opacity:.94,offset:.55},
-   {transform:base+' scale(.04)',opacity:0}
+   {transform:base+' scale(1.8,.42)',opacity:1,offset:.46},
+   {transform:base+' scale(.15,1.5)',opacity:0}
   ],
   purple:[
    {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.34)',opacity:1,offset:.34},
-   {transform:base+' scale(1.72)',opacity:.78,offset:.72},
+   {transform:base+' scale(.26)',opacity:1,offset:.58},
    {transform:base+' scale(.03)',opacity:0}
   ],
   gold:[
-   {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.74)',opacity:1,offset:.24},
-   {transform:base+' scale(1.62)',opacity:.96,offset:.6},
-   {transform:base+' scale(.05)',opacity:0}
+   {transform:base+' translateY(0) scale(1)',opacity:1},
+   {transform:base+' translateY(-12px) scale(1.25)',opacity:1,offset:.5},
+   {transform:base+' translateY(-30px) scale(.3)',opacity:0}
   ],
   xp:[
    {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.5)',opacity:1,offset:.2},
-   {transform:base+' scale(1.8,.82)',opacity:.92,offset:.58},
-   {transform:base+' scale(.03)',opacity:0}
+   {transform:base+' scale(1.9,.55)',opacity:1,offset:.46},
+   {transform:base+' scale(.2)',opacity:0}
   ],
   wild:[
    {transform:base+' scale(1)',opacity:1},
-   {transform:base+' scale(.42)',opacity:1,offset:.3},
-   {transform:base+' scale(1.82)',opacity:.85,offset:.7},
-   {transform:base+' scale(.03)',opacity:0}
+   {transform:base+' scale(.4)',opacity:1,offset:.38},
+   {transform:base+' scale(1.95)',opacity:.82,offset:.72},
+   {transform:base+' scale(.05)',opacity:0}
   ]
  }[type]||[];
  return animate(ghost,frames,{duration:type==='wild'?360:type==='purple'?345:320,delay,easing:'cubic-bezier(.14,.8,.18,1)'}).then(()=>ghost.remove());
@@ -334,7 +398,7 @@ async function popCells(cells){
  await Promise.all(points.map(async({el,origin,type,color},i)=>{
   if(!el)return;
   const pop=GEM_POP[type]||GEM_POP.red,base=type==='gold'?'rotate(0deg)':'rotate(45deg)';
-  if(i%ghostStep===0)void popGhost(el,origin,type,color,(i%3)*8);
+  if(i%ghostStep===0){const delay=(i%3)*8;void popGhost(el,origin,type,color,delay);popAccent(origin,type,color,delay)}
   burst(origin,color,Math.min(pop.shards,burstBudget),type);
   await animate(el,[
    {transform:base+' scale(1)',opacity:1},
