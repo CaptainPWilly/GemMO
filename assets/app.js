@@ -351,7 +351,7 @@ function chargeFlight(color,amount,origin){
      return {transform:'translate(-50%,-50%) translate3d('+(dx*p+bend*arc)+'px,'+(dy*p-22*arc)+'px,0) scale('+scale+')',opacity:step===0?0:step===9?0:(i===0?1:.72),offset:p};
     });
     jobs.push(animate(mote,frames,{duration:flight,delay:lag,easing:'cubic-bezier(.32,.02,.48,1)'}).then(()=>mote.remove()));
-    if(pointInBoard(origin)){
+    if(mobilePerformance&&pointInBoard(origin)){
      const local=boardFxPoint(origin),clone=document.createElement('i');
      clone.className=mote.className+' boardTravelClone';
      clone.style.cssText='position:absolute;left:'+local.x+'px;top:'+local.y+'px;width:'+size+'px;height:'+size+'px;border-radius:50%;background:'+c+';box-shadow:0 0 '+(i===0?8:5)+'px '+c+(i===0?',0 0 13px '+c+'66':'')+';pointer-events:none;z-index:30;';
@@ -373,7 +373,7 @@ function damageFlight(side,amount,blocked){
  const trails=Array.from({length:reducedMotion()?0:mobilePerformance?1:2},(_,i)=>{
   const jobs=[],dot=document.createElement('span');dot.className='damageSpark';dot.style.left=origin.x+'px';dot.style.top=origin.y+'px';dot.style.opacity=1-i*.2;fxRoot().appendChild(dot);
   jobs.push(animate(dot,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>dot.remove()));
-  if(pointInBoard(origin)){
+  if(mobilePerformance&&pointInBoard(origin)){
    const local=boardFxPoint(origin),clone=document.createElement('span');clone.className='damageSpark boardTravelClone';clone.style.left=local.x+'px';clone.style.top=local.y+'px';clone.style.opacity=1-i*.2;ensureBoardFx().appendChild(clone);
    jobs.push(animate(clone,path,{duration:MOTION.flight,delay:i*18,easing:'cubic-bezier(.4,0,.75,.4)'}).then(()=>clone.remove()));
   }
